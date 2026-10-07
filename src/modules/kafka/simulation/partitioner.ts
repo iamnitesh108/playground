@@ -6,17 +6,27 @@ export interface Partitioner {
   partition(key: string | null, partitionCount: number): number
 }
 
+/** Records per partition before a key-less "batch" is considered full in the simulator. */
+const STICKY_BATCH = 3
+
 /**
- * Kafka's default behaviour: hash the key so equal keys always share a
- * partition; spread key-less records around.
+ * Kafka's default behaviour: hash the key so equal keys always share a partition.
+ * Key-less records stick to one partition until a batch fills, then move on
+ * (the real client switches after roughly batch.size bytes; here, every 3 records).
  */
 export class DefaultPartitioner implements Partitioner {
-  readonly name = 'default (key hash)'
-  private next = 0
+  readonly name = 'default (key hash, sticky without key)'
+  private stickyPartition = 0
+  private stickyCount = 0
 
   partition(key: string | null, partitionCount: number): number {
     if (key !== null && key !== '') return partitionForKey(key, partitionCount)
-    return this.next++ % partitionCount
+    if (this.stickyCount >= STICKY_BATCH) {
+      this.stickyPartition = (this.stickyPartition + 1) % partitionCount
+      this.stickyCount = 0
+    }
+    this.stickyCount++
+    return this.stickyPartition % partitionCount
   }
 }
 

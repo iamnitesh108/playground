@@ -85,7 +85,7 @@ export class ConsumerGroup {
   }
 
   lag(partition: number): number {
-    return this.topic.endOffset(partition) - (this.committed.get(partition) ?? this.startingOffset(partition))
+    return this.topic.endOffset(partition) - (this.committed.get(partition) ?? this.positionOf(partition))
   }
 
   totalLag(): number {
@@ -137,9 +137,10 @@ export class ConsumerGroup {
     for (const partition of this.topic.partitionIds) {
       const committed = this.committed.get(partition)
       if (committed === undefined) {
-        // 'latest' pins a brand-new group to the current end of the log.
-        if (this.offsetReset === 'latest') this.committed.set(partition, this.topic.endOffset(partition))
-        this.position.delete(partition)
+        // No saved progress: auto.offset.reset picks the start. Nothing is committed
+        // until a consumer commits, so a crash before that resets again.
+        if (this.offsetReset === 'latest') this.position.set(partition, this.topic.endOffset(partition))
+        else this.position.delete(partition)
       } else {
         this.position.set(partition, committed)
       }

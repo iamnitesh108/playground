@@ -115,7 +115,7 @@ export class ExtractTopicFromField implements Transform {
   }
 }
 
-/** Replaces a struct key with one of its fields, e.g. {"id": 7} → "7". */
+/** Replaces a struct key with one of its fields, e.g. {"id": 7} → 7. */
 export class ExtractKeyField implements Transform {
   readonly type = 'ExtractField$Key'
 
@@ -134,7 +134,7 @@ export class ExtractKeyField implements Transform {
   apply(record: ConnectRecord): ConnectRecord | null {
     const key = asObject(record.key)
     if (!key || !(this.field in key)) return record
-    return { ...record, key: String(key[this.field]) }
+    return { ...record, key: key[this.field] }
   }
 }
 
