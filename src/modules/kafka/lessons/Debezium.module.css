@@ -1,0 +1,138 @@
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-family: var(--font-mono);
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.table th {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+
+.table tbody tr {
+  animation: rowIn 0.3s var(--ease);
+}
+
+.empty {
+  color: var(--text-faint);
+}
+
+.actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+
+.actions button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  padding: 1px 6px;
+  cursor: pointer;
+}
+
+.actions button:hover {
+  background: var(--surface-muted);
+}
+
+.wal {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+}
+
+.wal li + li {
+  margin-top: 0;
+}
+
+.walEntry {
+  display: flex;
+  gap: var(--space-2);
+  padding: 3px 6px;
+  border-left: 2px solid var(--ok);
+  animation: rowIn 0.3s var(--ease);
+}
+
+.pending {
+  border-left-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.lsn {
+  color: var(--text-faint);
+  width: 3.4rem;
+}
+
+.walState {
+  margin-left: auto;
+  color: var(--text-faint);
+}
+
+.connector {
+  margin-top: var(--space-2);
+  font-size: 0.75rem;
+  color: var(--ok);
+  font-family: var(--font-mono);
+}
+
+.stopped {
+  color: var(--warn);
+}
+
+.topic {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--border);
+}
+
+.events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 26px;
+}
+
+.event {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 2px 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  animation: rowIn 0.3s var(--ease);
+}
+
+.event[data-op='c'] {
+  border-top: 2px solid var(--ok);
+}
+
+.event[data-op='u'] {
+  border-top: 2px solid var(--accent);
+}
+
+.event[data-op='d'] {
+  border-top: 2px solid var(--danger);
+}
+
+@keyframes rowIn {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+}

@@ -1,0 +1,25 @@
+.pipeline {
+  display: flex;
+  flex-direction: column;
+  min-width: max-content;
+}
+
+.pipeline > * {
+  width: 100%;
+}
+
+.edge {
+  flex: 1 0 44px;
+  display: flex;
+}
+
+/* The two right-hand boxes share a width so the vertical arrow joins their centres. */
+.anchor {
+  width: 150px;
+}
+
+.down {
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 74px;
+}

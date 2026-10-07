@@ -1,0 +1,108 @@
+/* Small helpers shared by Kafka lessons. */
+
+.svg {
+  width: 100%;
+  max-width: 620px;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+
+.drawLine {
+  stroke-dasharray: 600;
+  animation: draw 0.7s var(--ease) both;
+}
+
+.demoNote {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin: var(--space-3) 0 0;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-3);
+}
+
+.stat {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-muted);
+}
+
+.statLabel {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.statValue {
+  font-family: var(--font-mono);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.result {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+  animation: fadeIn 0.25s var(--ease);
+}
+
+.resultOk {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.resultBad {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.json {
+  margin: 0;
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  line-height: 1.5;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  font-weight: 600;
+  margin-bottom: var(--space-1);
+}
+
+@keyframes draw {
+  from {
+    stroke-dashoffset: 600;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}

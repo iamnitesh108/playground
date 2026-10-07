@@ -1,0 +1,134 @@
+.partition {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+}
+
+.partition + .partition {
+  border-top: 1px dashed var(--border);
+}
+
+.label {
+  flex: none;
+  width: 84px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding-top: 10px;
+}
+
+.owner {
+  --tone: var(--text-muted);
+  font-weight: 400;
+  font-size: 0.68rem;
+  color: var(--tone);
+}
+
+.cells {
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.cell {
+  --tone: var(--border-strong);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 46px;
+  max-width: 96px;
+  min-height: 42px;
+  padding: 2px 6px;
+  border: 1px solid var(--border-strong);
+  border-top: 3px solid var(--tone);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  animation: append 0.35s var(--ease);
+  transition:
+    opacity 0.25s var(--ease),
+    background 0.25s var(--ease);
+}
+
+.offset {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--text-faint);
+  line-height: 1.1;
+}
+
+.key {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.value {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  color: var(--text-muted);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.highlight {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+
+.read {
+  opacity: 0.45;
+}
+
+.tombstone {
+  border-style: dashed;
+  background: var(--surface-muted);
+}
+
+.next {
+  border: 1px dashed var(--border-strong);
+  background: transparent;
+  animation: none;
+  color: var(--text-faint);
+}
+
+.next .key {
+  font-size: 0.64rem;
+}
+
+.marker {
+  --tone: var(--accent);
+  font-size: 0.62rem;
+  font-family: var(--font-mono);
+  color: var(--tone);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+
+@keyframes append {
+  from {
+    opacity: 0;
+    transform: translateX(-10px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}

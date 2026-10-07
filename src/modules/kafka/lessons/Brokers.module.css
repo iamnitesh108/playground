@@ -1,0 +1,57 @@
+.cluster {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) 0 var(--space-5);
+}
+
+.broker {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  background: var(--surface);
+}
+
+.brokerName {
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin-bottom: var(--space-2);
+}
+
+.chips {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+}
+
+.leader {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.controller {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+}
+
+@media (max-width: 560px) {
+  .cluster {
+    grid-template-columns: 1fr;
+  }
+}

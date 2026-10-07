@@ -1,0 +1,44 @@
+.record {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: 90px minmax(0, 1fr);
+  column-gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+
+.field:last-child {
+  border-bottom: 0;
+}
+
+.field:nth-child(n + 5) {
+  background: var(--surface-muted);
+}
+
+.name {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  grid-row: span 2;
+  padding-top: 2px;
+}
+
+.content {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.note {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+.by {
+  color: var(--text-muted);
+}

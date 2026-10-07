@@ -1,0 +1,57 @@
+.brokers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.broker {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  transition:
+    opacity 0.25s var(--ease),
+    border-color 0.25s var(--ease);
+}
+
+.leader {
+  border-color: var(--accent);
+}
+
+.dead {
+  opacity: 0.45;
+  border-style: dashed;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.name {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.role {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  min-width: 4.5rem;
+}
+
+.leader .role {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.isr {
+  font-size: 0.72rem;
+  color: var(--danger);
+  flex: 1;
+}
+
+.inSync {
+  color: var(--ok);
+}
