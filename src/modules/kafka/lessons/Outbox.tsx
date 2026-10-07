@@ -68,13 +68,13 @@ const PIPELINE_STEPS: { title: string; body: ReactNode; active: Node[]; edge?: s
   },
   {
     title: 'Transforms route and reshape',
-    body: <p><strong>Reroute</strong> sends the record to the topic named in the row’s <code>event_type</code> column, <strong>unwrap</strong> strips the Debezium envelope, <strong>ExtractField</strong> makes the outbox <code>id</code> the key.</p>,
+    body: <p><strong>Reroute</strong> sends the record to the topic named in the row’s <code>event_type</code> column, <strong>unwrap</strong> strips the Debezium envelope, <strong>ExtractField</strong> makes the business <code>id</code> the key, so every event for one entity lands in the same partition, in order.</p>,
     active: ['debezium', 'smt'],
     edge: 'debezium-smt',
   },
   {
     title: 'An ordinary event in a topic',
-    body: <p>Downstream sees a clean record on e.g. <code>ledger-entries</code>: key = outbox ID, value = the outbox row as JSON.</p>,
+    body: <p>Downstream sees a clean record on e.g. <code>ledger-entries</code>: key = the business ID from the <code>id</code> column, value = the outbox row as JSON.</p>,
     active: ['smt', 'topic'],
     edge: 'smt-topic',
   },
@@ -154,7 +154,8 @@ function sourceRecord(input: Input): ConnectRecord {
     return { topic: '__debezium-heartbeat.app', key: { serverName: 'app' }, value: { ts_ms: 1727000000000 } }
   }
   const row = {
-    id: '9f2c',
+    event_id: 'c51e…',
+    id: '981',
     source: 'payments',
     type: 'TRANSACTION',
     event_type: input === 'none' ? null : input,
@@ -164,7 +165,7 @@ function sourceRecord(input: Input): ConnectRecord {
   }
   return {
     topic: 'app.public.outbox',
-    key: { id: '9f2c' },
+    key: { id: '981' },
     value: { before: null, after: row, source: { table: 'outbox', lsn: 24023128 }, op: 'c', ts_ms: 1727000000000 },
   }
 }
@@ -221,7 +222,8 @@ export default function Outbox() {
         title="schema.sql"
         code={`
 CREATE TABLE outbox (
-    id          text PRIMARY KEY,          -- becomes the Kafka key
+    event_id    uuid PRIMARY KEY DEFAULT gen_random_uuid(),  -- one row per event, retries included
+    id          text NOT NULL,             -- business ID; becomes the Kafka key
     source      text NOT NULL,             -- which service/domain produced it
     type        text NOT NULL,             -- entity type, e.g. TRANSACTION
     event_type  text NOT NULL,             -- destination topic, e.g. LEDGER-ENTRIES
@@ -261,8 +263,9 @@ COMMIT;
   "publication.autocreate.mode": "filtered",
   "topic.prefix": "app",
   "table.include.list": "public.outbox",
+  "message.key.columns": "public.outbox:id",
 
-  "snapshot.mode": "never",
+  "snapshot.mode": "no_data",
   "skipped.operations": "u,d,t",
   "tombstones.on.delete": "false",
   "heartbeat.interval.ms": "1000",
@@ -302,7 +305,13 @@ COMMIT;
       <p>Why each choice:</p>
       <ul>
         <li>
-          <code>snapshot.mode=never</code> — old outbox rows were already delivered; only new inserts matter.
+          <code>snapshot.mode=no_data</code> (called <code>never</code> in older Debezium versions) — old outbox rows
+          were already delivered; only new inserts matter.
+        </li>
+        <li>
+          <code>message.key.columns</code> — Debezium normally keys records by the primary key
+          (<code>event_id</code>). This makes the key the business <code>id</code> instead, so ExtractField can turn{' '}
+          <code>{"{"}"id": "981"{"}"}</code> into <code>"981"</code>.
         </li>
         <li>
           <code>skipped.operations=u,d,t</code> — the outbox is append-only from Kafka’s point of view. A cleanup job
@@ -338,8 +347,10 @@ COMMIT;
         title="consumer settings"
         code={`
 group.id=ledger-entries-group
-auto.offset.reset=earliest            # a new group processes everything still retained
-enable.auto.commit=false              # ack manually, after the work is done
+# a new group processes everything still retained
+auto.offset.reset=earliest
+# ack manually, after the work is done
+enable.auto.commit=false
 key.deserializer=org.apache.kafka.common.serialization.StringDeserializer
 value.deserializer=org.apache.kafka.common.serialization.ByteArrayDeserializer
 `}
@@ -350,8 +361,8 @@ value.deserializer=org.apache.kafka.common.serialization.ByteArrayDeserializer
           fails the insert; the consumer treats that as “already processed” and acks.
         </li>
         <li>
-          <strong>Never blocks:</strong> any other failure inserts a fresh outbox row (same ID and event type, error in{' '}
-          <code>remarks</code>) and acks. The retry travels through the pipeline again later. Track an attempt count so
+          <strong>Never blocks:</strong> any other failure inserts a fresh outbox row (new <code>event_id</code>, same{' '}
+          <code>id</code> and event type, error in <code>remarks</code>) and acks. The retry travels through the pipeline again later. Track an attempt count so
           a permanently broken event cannot loop forever.
         </li>
         <li>

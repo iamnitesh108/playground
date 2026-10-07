@@ -20,7 +20,7 @@ const FLOW_STEPS = [
   { title: 'Transforms reshape it', body: <p>Single Message Transforms can rename the topic, pick fields, drop records — one record at a time, no code.</p> },
   { title: 'A converter serializes it', body: <p>The configured <code>key.converter</code>/<code>value.converter</code> turns the record into bytes, e.g. JSON.</p> },
   { title: 'It lands in Kafka', body: <p>The worker’s internal producer writes it. Periodically the worker saves the source offset to the offsets topic, so a restart resumes in the right place.</p> },
-  { title: 'A sink task consumes it', body: <p>On the other side, a sink connector is just a managed consumer group. Its tasks deserialize records with their converter…</p> },
+  { title: 'A sink task consumes it', body: <p>On the other side, a sink connector is just a managed consumer group (named <code>connect-&lt;connector name&gt;</code>). Its tasks deserialize records with their converter…</p> },
   { title: '…and writes it to the target', body: <p>…and write batches to the destination. Committed consumer offsets track sink progress.</p> },
 ]
 
@@ -206,7 +206,8 @@ export default function KafkaConnect() {
         title="connect-distributed.properties"
         code={`
 bootstrap.servers=localhost:9092
-group.id=connect-cluster                 # workers sharing this form one cluster
+# workers sharing this group.id form one Connect cluster
+group.id=connect-cluster
 
 key.converter=org.apache.kafka.connect.storage.StringConverter
 value.converter=org.apache.kafka.connect.json.JsonConverter
@@ -215,9 +216,11 @@ value.converter.schemas.enable=false
 config.storage.topic=_connect-configs
 offset.storage.topic=_connect-offsets
 status.storage.topic=_connect-status
-offset.flush.interval.ms=10000           # how often source offsets are saved
+# how often source offsets are saved (default 60000)
+offset.flush.interval.ms=10000
 
-listeners=HTTP://0.0.0.0:8083            # REST API
+# REST API
+listeners=HTTP://0.0.0.0:8083
 plugin.path=/opt/connect/plugins
 
 # Keep secrets out of connector JSON: \${file:/path:key} is resolved at runtime
@@ -248,15 +251,21 @@ config.providers.file.class=org.apache.kafka.common.config.provider.FileConfigPr
 
       <h2>Error handling</h2>
       <CodeBlock
-        title="connector config — tolerate bad records"
+        title="connector config — tolerate bad records (sink connector)"
         code={`
-"errors.tolerance": "all",                       // skip records that fail conversion/transforms
+"errors.tolerance": "all",
 "errors.log.enable": "true",
 "errors.log.include.messages": "true",
-"errors.deadletterqueue.topic.name": "dlq-orders",        // sink connectors only
-"errors.deadletterqueue.context.headers.enable": "true"   // add failure reason as headers
+"errors.deadletterqueue.topic.name": "dlq-orders",
+"errors.deadletterqueue.topic.replication.factor": "3",
+"errors.deadletterqueue.context.headers.enable": "true"
 `}
       />
+      <p>
+        <code>errors.tolerance=all</code> skips records that fail in a converter or transform instead of stopping the
+        task. The dead letter queue receives those records, and with context headers enabled each one carries the
+        failure reason in its headers.
+      </p>
       <Callout tone="warn">
         The dead letter queue settings apply to <strong>sink</strong> connectors. On a source connector,{' '}
         <code>errors.tolerance=all</code> skips failing records (logged if enabled) but does not route them anywhere.

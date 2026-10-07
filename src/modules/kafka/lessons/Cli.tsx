@@ -51,7 +51,9 @@ kafka-console-producer.sh ${BS} --topic orders \\
             label: 'Consume',
             content: (
               <CodeBlock
-                code={`# from the beginning, showing keys, partitions, offsets
+                code={`# Kafka 4.2+ renames --property to --formatter-property (the old name still works, with a warning)
+
+# from the beginning, showing keys, partitions, offsets
 kafka-console-consumer.sh ${BS} --topic orders --from-beginning \\
   --property print.key=true --property print.partition=true \\
   --property print.offset=true --property print.timestamp=true

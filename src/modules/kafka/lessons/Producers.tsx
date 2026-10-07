@@ -8,9 +8,9 @@ import styles from './lesson.module.css'
 const PIPELINE = ['send()', 'Serializer', 'Partitioner', 'Accumulator', 'Sender', 'Leader broker']
 
 const SEND_STEPS = [
-  { title: 'Your code calls send()', body: <p>You hand the producer a topic, a key and a value. The call returns immediately; the work happens in the background.</p> },
+  { title: 'Your code calls send()', body: <p>You hand the producer a topic, a key and a value. The call normally returns at once (it only blocks, up to <code>max.block.ms</code>, while fetching metadata or when the send buffer is full); the work happens in the background.</p> },
   { title: 'Serialize', body: <p>The key and value serializers turn your objects into bytes.</p> },
-  { title: 'Pick a partition', body: <p>The partitioner hashes the key (murmur2) and takes it modulo the partition count. No key? Records are spread out instead.</p> },
+  { title: 'Pick a partition', body: <p>The partitioner hashes the key (murmur2) and takes it modulo the partition count. No key? A “sticky” partition is used instead.</p> },
   { title: 'Wait in a batch', body: <p>The record joins a <strong>batch</strong> for that partition in the record accumulator. Batches fill until <code>batch.size</code> bytes or until <code>linger.ms</code> passes.</p> },
   { title: 'Ship the batch', body: <p>A background sender thread groups ready batches by leader broker and sends them in one request, optionally compressed.</p> },
   { title: 'Leader stores and acknowledges', body: <p>The leader appends the batch to the partition log, assigns offsets, and replies once the <code>acks</code> condition is met. Your callback or future completes with the offset.</p> },
@@ -70,7 +70,7 @@ function PartitionerMath() {
           </div>
         </div>
       ) : (
-        <p className={styles.demoNote}>No key: the producer uses the “sticky” strategy — it fills a batch for one partition, then switches to another, spreading load evenly.</p>
+        <p className={styles.demoNote}>No key: the hash is skipped. The producer uses the “sticky” strategy — it fills a batch for one partition, then switches to another, spreading load evenly over time.</p>
       )}
     </Demo>
   )
@@ -177,7 +177,11 @@ export default function Producers() {
           If the record has a key: <code>partition = toPositive(murmur2(keyBytes)) % numPartitions</code>. Same key →
           same partition, every time.
         </li>
-        <li>No key: stick to one partition until a batch is full, then move on (“sticky” partitioning).</li>
+        <li>
+          No key: stick to one partition until about a batch’s worth of data (<code>batch.size</code>) has been
+          sent to it, then switch (“sticky” partitioning, the default since Kafka 3.3; older clients switched when a
+          batch was sent).
+        </li>
       </ol>
       <PartitionerMath />
       <PartitionerCompare />
@@ -189,10 +193,11 @@ export default function Producers() {
       </p>
       <ul>
         <li>
-          <code>linger.ms</code> — how long to wait for more records before sending a batch that is not full.
+          <code>linger.ms</code> — how long to wait for more records before sending a batch that is not full. The
+          default was 0 until Kafka 4.0, which changed it to 5 ms.
         </li>
         <li>
-          <code>batch.size</code> — the maximum batch size in bytes.
+          <code>batch.size</code> — the maximum batch size in bytes per partition (default 16 KB).
         </li>
         <li>
           <code>compression.type</code> — <code>lz4</code>, <code>zstd</code>, <code>snappy</code> or{' '}
@@ -221,9 +226,10 @@ export default function Producers() {
       </p>
       <RetryDuplicates />
       <Callout tone="tip">
-        Idempotence is on by default in modern clients (<code>enable.idempotence=true</code>, which also implies{' '}
-        <code>acks=all</code>). It protects against duplicates caused by the producer’s own retries — not against your
-        application calling <code>send()</code> twice.
+        Idempotence is on by default since Kafka 3.0 (<code>enable.idempotence=true</code>; it requires{' '}
+        <code>acks=all</code>, which is also the default). It protects against duplicates caused by the producer’s own
+        retries within one producer session — not against your application calling <code>send()</code> twice, and not
+        across a producer restart (the new instance gets a new producer ID).
       </Callout>
       <p>
         For writing to several partitions atomically, producers also support <strong>transactions</strong>{' '}
@@ -251,11 +257,11 @@ delivery.timeout.ms=120000
         items={[
           { term: 'Partitioner', definition: 'Producer component that maps a record to a partition.' },
           { term: 'murmur2', definition: 'The hash function the default partitioner applies to key bytes.' },
-          { term: 'Sticky partitioning', definition: 'For key-less records: fill one partition’s batch, then switch.' },
+          { term: 'Sticky partitioning', definition: 'For key-less records: send to one partition until about batch.size bytes have gone to it, then switch.' },
           { term: 'Batch', definition: 'A group of records for the same partition sent together.' },
           { term: 'linger.ms', definition: 'Max wait to fill a batch before sending it.' },
           { term: 'acks', definition: 'How many replicas must store a record before the producer is told it succeeded.' },
-          { term: 'Idempotent producer', definition: 'Producer that tags batches with an ID and sequence so retries never duplicate.' },
+          { term: 'Idempotent producer', definition: 'Producer that tags batches with a producer ID and sequence number so its own retries never duplicate.' },
           { term: 'Transaction', definition: 'Atomic write across partitions, visible all-or-nothing to read_committed consumers.' },
         ]}
       />

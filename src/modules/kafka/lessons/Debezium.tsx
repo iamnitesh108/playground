@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useObservable } from '@/shared/hooks/useObservable'
 import { Box, Button, Callout, CodeBlock, Connector, Demo, Row, Segmented, Table, TermList, Walkthrough } from '@/shared/ui'
 import { cx } from '@/shared/utils/cx'
-import { CdcPipeline, ExtractNewRecordState, type ChangeEvent } from '../simulation'
+import { CdcPipeline, ExtractNewRecordState, type ChangeEvent, type ReplicaIdentity } from '../simulation'
 import styles from './lesson.module.css'
 import own from './Debezium.module.css'
 
@@ -49,7 +49,7 @@ function CdcPlayground() {
   return (
     <Demo
       title="Change data capture, live"
-      hint="Insert rows, update and delete them. Then stop the connector, make changes, and watch the WAL pile up until it restarts."
+      hint="Insert rows, update and delete them, and compare the before field under each replica identity. Then stop the connector, make changes, and watch the WAL pile up until it restarts."
       controls={
         <>
           <Button size="sm" variant="primary" onClick={() => cdc.insert()}>
@@ -61,6 +61,15 @@ function CdcPlayground() {
           <Button size="sm" variant="ghost" onClick={() => cdc.reset()}>
             Reset
           </Button>
+          <Segmented
+            label="REPLICA IDENTITY"
+            value={cdc.replicaIdentity}
+            onChange={(v: ReplicaIdentity) => cdc.setReplicaIdentity(v)}
+            options={[
+              { value: 'default', label: 'DEFAULT' },
+              { value: 'full', label: 'FULL' },
+            ]}
+          />
         </>
       }
     >
@@ -147,7 +156,7 @@ function CdcPlayground() {
             ]}
           />
           <pre className={styles.json} style={{ marginTop: 8 }}>
-            {`key: ${JSON.stringify(latest.key)}\nvalue: ${JSON.stringify(shown, null, 2)}`}
+            {`key: ${JSON.stringify(latest.key)}\nvalue: ${JSON.stringify(shown, null, 2)}${view === 'unwrapped' && latest.value.op === 'd' ? '   (a delete becomes a tombstone by default)' : ''}`}
           </pre>
         </div>
       )}
@@ -191,7 +200,9 @@ export default function Debezium() {
       <Callout tone="warn" title="Slots hold WAL hostage">
         A replication slot keeps every WAL segment its reader has not confirmed. If the connector is stopped, failing,
         or deleted while the slot remains, Postgres keeps writing WAL and never frees it — eventually filling the disk.
-        Monitor <code>pg_replication_slots</code> and drop slots you no longer use.
+        Monitor <code>pg_replication_slots</code>, drop slots you no longer use, and consider{' '}
+        <code>max_slot_wal_keep_size</code> (Postgres 13+) to cap how much WAL a slot may hold — at the price of the
+        slot being invalidated if it falls further behind.
       </Callout>
 
       <h2>The change event</h2>
@@ -203,7 +214,9 @@ export default function Debezium() {
         </li>
         <li>
           <code>before</code> / <code>after</code> — the row before and after the change (<code>null</code> where it
-          does not apply).
+          does not apply). How much of <code>before</code> you get depends on the table’s replica identity: with the
+          default, an UPDATE has no <code>before</code> and a DELETE only carries the primary key; with{' '}
+          <code>REPLICA IDENTITY FULL</code> both carry every old column.
         </li>
         <li>
           <code>source</code> — where it came from: connector, database, schema, table, LSN, transaction ID.
@@ -214,7 +227,9 @@ export default function Debezium() {
       </ul>
       <p>
         Many consumers only want the new row, not the envelope. The <code>ExtractNewRecordState</code> SMT (“unwrap”)
-        replaces the envelope with the contents of <code>after</code>, as the toggle above shows.
+        replaces the envelope with the contents of <code>after</code>, as the toggle above shows. A delete has no{' '}
+        <code>after</code>; by default (<code>delete.tombstone.handling.mode=tombstone</code>) it is turned into a
+        tombstone — a record with a <code>null</code> value.
       </p>
 
       <h2>Snapshots</h2>
@@ -222,8 +237,9 @@ export default function Debezium() {
         A slot only sees changes made after it was created. To also capture rows that already exist, Debezium can take
         an initial <strong>snapshot</strong>, emitting each existing row as an <code>op: r</code> event, before
         streaming. <code>snapshot.mode</code> controls it: <code>initial</code> (default: snapshot once, then stream),{' '}
-        <code>always</code>, <code>initial_only</code>, <code>when_needed</code>, or <code>never</code>/
-        <code>no_data</code> — skip existing rows and stream only new changes. That last option suits tables whose old
+        <code>always</code>, <code>initial_only</code>, <code>when_needed</code>, or <code>no_data</code> — skip
+        existing rows and stream only new changes (older Debezium versions call this <code>never</code>, which newer
+        versions deprecate). That last option suits tables whose old
         rows do not matter, such as an outbox.
       </p>
 
@@ -232,7 +248,9 @@ export default function Debezium() {
         If the captured tables are quiet while other tables in the database are busy, the WAL keeps growing but
         Debezium has no event to confirm, so the slot cannot advance. Setting <code>heartbeat.interval.ms</code> makes
         Debezium emit periodic heartbeat records (to a <code>__debezium-heartbeat.&lt;prefix&gt;</code> topic) and
-        commit its position with them, letting Postgres recycle WAL.
+        commit its position with them, letting Postgres recycle WAL. Replication slots are per database: if the busy
+        writes happen in a <em>different</em> database on the same server, heartbeats alone do not help — also set{' '}
+        <code>heartbeat.action.query</code> so each heartbeat writes a tiny row the connector can confirm.
       </p>
 
       <CodeBlock

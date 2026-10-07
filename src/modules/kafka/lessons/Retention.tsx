@@ -131,7 +131,8 @@ export default function Retention() {
       <p>
         Some topics represent <em>state</em> rather than history: the current profile of each user, the current
         config of each connector. For these, only the newest record per key matters. A background cleaner thread
-        rewrites old segments, dropping records that have been superseded.
+        rewrites old, closed segments, dropping records that have been superseded. The active segment is never compacted,
+        so the latest few duplicates always remain until it rolls.
       </p>
       <CompactionDemo />
       <p>
@@ -155,8 +156,8 @@ export default function Retention() {
   --entity-type topics --entity-name user-profiles \\
   --add-config cleanup.policy=compact,delete.retention.ms=86400000
 
-# both at once: compact, but also drop anything older than 30 days
---add-config cleanup.policy=compact,delete,retention.ms=2592000000`}
+# both policies at once (a list value needs [brackets]): compact, and also drop anything older than 30 days
+--add-config cleanup.policy=[compact,delete],retention.ms=2592000000`}
       />
 
       <h2>Words from this lesson</h2>

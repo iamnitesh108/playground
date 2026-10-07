@@ -106,9 +106,12 @@ export default function Delivery() {
       <h2>Auto-commit vs manual commit</h2>
       <ul>
         <li>
-          <strong>Auto-commit</strong> (<code>enable.auto.commit=true</code>, the default): the client commits the
-          latest polled positions every <code>auto.commit.interval.ms</code> (5 s). Easy, but a crash can lose or
-          repeat up to a few seconds of records.
+          <strong>Auto-commit</strong> (<code>enable.auto.commit=true</code>, the default): every{' '}
+          <code>auto.commit.interval.ms</code> (5 s), inside the next <code>poll()</code>, the client commits the
+          positions of records the previous poll returned. In a simple loop that finishes each batch before polling again
+          this is at-least-once: a crash repeats up to a few seconds of records. If you hand records to other threads and
+          poll again before they finish, auto-commit can commit records that were never processed — and a crash loses
+          them.
         </li>
         <li>
           <strong>Manual commit</strong>: you call <code>commitSync()</code>/<code>commitAsync()</code>, or{' '}

@@ -200,9 +200,16 @@ export default function Offsets() {
       <h2>A group with no history</h2>
       <ResetDemo />
       <p>
-        There is a third value, <code>none</code>, which throws an error instead of guessing — useful when silently
-        skipping or replaying data would be a bug.
+        There is also <code>none</code>, which throws an error instead of guessing — useful when silently skipping or
+        replaying data would be a bug — and, since Kafka 4.0, <code>by_duration:&lt;ISO-8601 duration&gt;</code>{' '}
+        (e.g. <code>by_duration:P1D</code>) to start from the records of the last day.
       </p>
+
+      <Callout tone="warn" title="The reset applies until the first commit">
+        <code>auto.offset.reset</code> is used whenever there is no committed offset — not just once. A{' '}
+        <code>latest</code> consumer that restarts before it has committed anything resets to the end again, silently
+        skipping whatever was produced in between. Commit early if that matters.
+      </Callout>
 
       <h2>Rewinding on purpose</h2>
       <p>
@@ -229,7 +236,7 @@ export default function Offsets() {
           { term: 'Committed offset', definition: 'Saved progress of a group for a partition; survives restarts.' },
           { term: 'Lag', definition: 'Records written but not yet committed by a group.' },
           { term: '__consumer_offsets', definition: 'Internal topic where committed offsets are stored.' },
-          { term: 'auto.offset.reset', definition: 'Where to start when a group has no committed offset: earliest, latest or none.' },
+          { term: 'auto.offset.reset', definition: 'Where to start when a group has no committed offset: earliest, latest, none, or (4.0+) by_duration.' },
         ]}
       />
     </>

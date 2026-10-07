@@ -77,7 +77,7 @@ const STEPS = [
     title: 'Leader moves? Refresh.',
     body: (
       <p>
-        If a broker dies, the controller elects a new leader and the client gets a <code>NOT_LEADER</code> error. It
+        If a broker dies, the controller elects a new leader and the client gets a <code>NOT_LEADER_OR_FOLLOWER</code> error. It
         refreshes its metadata and retries against the new leader automatically.
       </p>
     ),
@@ -143,7 +143,7 @@ export default function Brokers() {
       <h2>Who stores what</h2>
       <p>
         Each partition (next lesson) lives on several brokers. One copy is the <strong>leader</strong> — it handles all
-        reads and writes for that partition. The other copies are <strong>followers</strong> that continuously copy
+        writes and, by default, all reads for that partition. The other copies are <strong>followers</strong> that continuously copy
         the leader. Leadership is spread so every broker does a fair share of the work.
       </p>
       <ClusterLayout />
@@ -177,6 +177,9 @@ inter.broker.listener.name=PLAINTEXT
 listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
 
 log.dirs=/var/lib/kafka
+
+# KRaft storage must be formatted once before the first start:
+#   kafka-storage.sh format -t $(kafka-storage.sh random-uuid) -c server.properties
 `}
       />
 

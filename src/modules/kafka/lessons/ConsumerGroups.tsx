@@ -71,7 +71,7 @@ function GroupPlayground() {
 const REBALANCE_STEPS = [
   { title: 'A consumer starts', body: <p>Consumer c3 starts with <code>group.id=billing</code> and contacts the group’s <strong>coordinator</strong> — a broker chosen by hashing the group ID.</p> },
   { title: 'Everyone re-joins', body: <p>The coordinator starts a rebalance. All members send a <code>JoinGroup</code> request. In the classic “eager” protocol they first stop processing and give up their partitions.</p> },
-  { title: 'The leader assigns', body: <p>The first member to join becomes the <strong>group leader</strong>. It runs the assignor (range, round robin, sticky…) and sends the plan back in <code>SyncGroup</code>.</p> },
+  { title: 'The leader assigns', body: <p>The first member to join becomes the <strong>group leader</strong>. It runs the assignor (here range: 4 partitions over 3 members gives c1 two, the others one each) and sends the plan back in <code>SyncGroup</code>.</p> },
   { title: 'Work resumes', body: <p>Each member receives its partitions and resumes from the group’s committed offsets. The <strong>generation</strong> number increases, so stale members are fenced off.</p> },
   { title: 'Heartbeats keep it alive', body: <p>Members heartbeat to the coordinator. Miss them for <code>session.timeout.ms</code>, or go longer than <code>max.poll.interval.ms</code> between polls, and the member is kicked out — another rebalance.</p> },
 ]
@@ -86,7 +86,7 @@ function RebalanceFlow() {
               <Box
                 key={c}
                 title={c}
-                caption={step === 3 ? ({ c1: 'P0', c2: 'P1', c3: 'P2, P3' } as Record<string, string>)[c] : step === 1 ? 'paused' : c === 'c3' && step === 0 ? 'new' : step === 2 && c === 'c1' ? 'group leader' : 'member'}
+                caption={step === 3 ? ({ c1: 'P0, P1', c2: 'P2', c3: 'P3' } as Record<string, string>)[c] : step === 1 ? 'paused' : c === 'c3' && step === 0 ? 'new' : step === 2 && c === 'c1' ? 'group leader' : 'member'}
                 active={(step === 0 && c === 'c3') || (step === 2 && c === 'c1') || step === 3}
                 dimmed={step === 1}
               />
@@ -147,6 +147,12 @@ while (running) {
         With 4 partitions, a 5th consumer in the same group sits <strong>idle</strong>. The partition count is the
         ceiling on a group’s parallelism — choose it with your peak consumer count in mind.
       </Callout>
+      <Callout tone="note" title="Share groups">
+        Everything here describes classic consumer groups. Kafka 4.2 also made <strong>share groups</strong> (KIP-932,
+        “queues for Kafka”) production-ready: several consumers read the <em>same</em> partition, each record is
+        acknowledged individually, and failed records are redelivered. Parallelism is no longer capped by the
+        partition count, but per-key ordering is given up. Use them for independent jobs, not ordered streams.
+      </Callout>
 
       <h2>Rebalancing</h2>
       <p>
@@ -159,15 +165,16 @@ while (running) {
       <Table
         head={['Assignor', 'How it splits', 'Notes']}
         rows={[
-          ['range', 'Contiguous blocks per topic', 'Old default; can be uneven across many topics'],
+          ['range', 'Contiguous blocks per topic', 'The default (listed first in the default list, before cooperative-sticky); can be uneven across many topics'],
           ['roundrobin', 'Deals partitions out like cards', 'Even, but moves many partitions on change'],
           ['sticky', 'Even, keeps previous owners where possible', 'Fewer moved partitions'],
           ['cooperative-sticky', 'Sticky, done in incremental steps', 'Members keep unaffected partitions during a rebalance — no stop-the-world'],
         ]}
       />
       <p>
-        Newer clusters also offer the <strong>next-generation consumer protocol</strong> (<code>group.protocol=consumer</code>
-        , KIP-848), where the broker computes assignments and rebalances become incremental by default.
+        Since Kafka 4.0 the <strong>next-generation consumer protocol</strong> is generally available (opt in with{' '}
+        <code>group.protocol=consumer</code>, KIP-848): the group coordinator computes assignments itself, and
+        rebalances are incremental — members keep partitions that do not move.
       </p>
 
       <Callout tone="tip" title="Rebalance hygiene">
@@ -175,7 +182,8 @@ while (running) {
           <li>Keep per-record work fast, or lower <code>max.poll.records</code>, so you stay inside <code>max.poll.interval.ms</code>.</li>
           <li>
             For containers that restart often, set <code>group.instance.id</code> (<strong>static membership</strong>): a
-            restarting member gets its old partitions back without a rebalance.
+            member that restarts and rejoins within <code>session.timeout.ms</code> gets its old partitions back without
+            a rebalance.
           </li>
           <li>Commit before giving up partitions, or expect some records to be processed twice.</li>
         </ul>
@@ -194,7 +202,7 @@ while (running) {
           { term: 'Heartbeat', definition: 'Periodic “I’m alive” signal from a member to the coordinator.' },
           { term: 'session.timeout.ms', definition: 'How long without heartbeats before a member is considered dead.' },
           { term: 'max.poll.interval.ms', definition: 'Max time between poll() calls before a member is considered stuck.' },
-          { term: 'Static membership', definition: 'Stable group.instance.id so restarts do not trigger rebalances.' },
+          { term: 'Static membership', definition: 'Stable group.instance.id so a restart within session.timeout.ms does not trigger a rebalance.' },
         ]}
       />
     </>

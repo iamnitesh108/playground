@@ -101,7 +101,8 @@ export default function Replication() {
       <h2>Leader, followers and the ISR</h2>
       <ul>
         <li>
-          One replica is the <strong>leader</strong>. Producers write to it and consumers read from it.
+          One replica is the <strong>leader</strong>. Producers write to it and, by default, consumers read from it
+          (since Kafka 2.4 consumers can be configured to fetch from a nearby follower instead).
         </li>
         <li>
           The others are <strong>followers</strong>. They constantly fetch new records from the leader, exactly like a

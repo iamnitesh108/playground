@@ -99,12 +99,13 @@ export default function TopicsPartitions() {
       <ul>
         <li>
           The number of partitions is the <strong>maximum number of consumers in a group</strong> that can work in
-          parallel (lesson 7). Plan for your peak throughput.
+          parallel (lesson 7; true for classic consumer groups). Plan for your peak throughput.
         </li>
         <li>
-          You can <strong>add</strong> partitions later but never remove them. Adding changes{' '}
-          <code>hash(key) % partitions</code>, so existing keys may move to a different partition — breaking per-key
-          ordering for a moment. Pick a sensible number up front.
+          You can <strong>add</strong> partitions later but never remove them. Existing records stay where they are,
+          but adding changes <code>hash(key) % partitions</code>, so <em>new</em> records for an existing key may go
+          to a different partition than its older records — per-key ordering is broken across that boundary. Pick a
+          sensible number up front.
         </li>
         <li>
           Very high counts cost memory, file handles and longer failovers. Tens to low hundreds per topic is common.

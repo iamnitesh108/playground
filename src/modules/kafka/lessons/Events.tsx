@@ -24,8 +24,8 @@ function RecordBuilder() {
     { name: 'topic', content: 'orders', note: 'where it is written', by: 'producer' },
     {
       name: 'partition',
-      content: partition === null ? 'any (no key)' : String(partition),
-      note: 'murmur2(key) % 3 partitions',
+      content: partition === null ? 'chosen by the sticky partitioner (no key)' : String(partition),
+      note: 'toPositive(murmur2(key)) % 3 partitions',
       by: 'partitioner',
     },
     { name: 'offset', content: 'assigned on write', note: 'position in the partition', by: 'broker' },
@@ -68,7 +68,10 @@ export default function Events() {
       </p>
 
       <h2>Anatomy of a record</h2>
-      <p>A record is surprisingly simple. Four parts come from the producer, and the broker adds the rest:</p>
+      <p>
+        A record is surprisingly simple. Your code supplies four parts; the producer then picks the partition and the
+        broker assigns the offset:
+      </p>
       <ul>
         <li>
           <strong>Key</strong> — optional. Usually the ID of the thing the event is about (<code>order-42</code>). It
