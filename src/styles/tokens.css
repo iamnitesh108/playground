@@ -1,0 +1,104 @@
+:root {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
+
+  --bg: #fafaf9;
+  --surface: #ffffff;
+  --surface-muted: #f4f4f2;
+  --border: #e4e4e0;
+  --border-strong: #cfcfca;
+  --text: #1c1c1a;
+  --text-muted: #64645f;
+  --text-faint: #9a9a94;
+
+  --accent: #3d6b8a;
+  --accent-soft: #e7eef3;
+  --accent-text: #ffffff;
+  --ok: #4f7a5a;
+  --ok-soft: #e8f0ea;
+  --warn: #9a6b2f;
+  --warn-soft: #f5ede2;
+  --danger: #a1493f;
+  --danger-soft: #f6e8e6;
+
+  /* Categorical tones for partitions, consumers, groups. Muted on purpose. */
+  --tone-0: #3d6b8a;
+  --tone-1: #7a6a4f;
+  --tone-2: #4f7a5a;
+  --tone-3: #8a5a6b;
+  --tone-4: #5a5f8a;
+  --tone-5: #6b7a4f;
+
+  --radius-sm: 4px;
+  --radius: 6px;
+  --radius-lg: 10px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --sidebar-width: 272px;
+  --content-width: 780px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --bg: #161615;
+    --surface: #1d1d1c;
+    --surface-muted: #242422;
+    --border: #2f2f2d;
+    --border-strong: #3d3d3a;
+    --text: #e8e8e4;
+    --text-muted: #a3a39d;
+    --text-faint: #6f6f6a;
+    --accent: #7fa6c2;
+    --accent-soft: #24303a;
+    --accent-text: #161615;
+    --ok: #8fb59a;
+    --ok-soft: #22302a;
+    --warn: #c9a170;
+    --warn-soft: #332a1f;
+    --danger: #d08a80;
+    --danger-soft: #362322;
+    --tone-0: #7fa6c2;
+    --tone-1: #bba684;
+    --tone-2: #8fb59a;
+    --tone-3: #c296a6;
+    --tone-4: #979cc8;
+    --tone-5: #a7b684;
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme='dark'] {
+  --bg: #161615;
+  --surface: #1d1d1c;
+  --surface-muted: #242422;
+  --border: #2f2f2d;
+  --border-strong: #3d3d3a;
+  --text: #e8e8e4;
+  --text-muted: #a3a39d;
+  --text-faint: #6f6f6a;
+  --accent: #7fa6c2;
+  --accent-soft: #24303a;
+  --accent-text: #161615;
+  --ok: #8fb59a;
+  --ok-soft: #22302a;
+  --warn: #c9a170;
+  --warn-soft: #332a1f;
+  --danger: #d08a80;
+  --danger-soft: #362322;
+  --tone-0: #7fa6c2;
+  --tone-1: #bba684;
+  --tone-2: #8fb59a;
+  --tone-3: #c296a6;
+  --tone-4: #979cc8;
+  --tone-5: #a7b684;
+  color-scheme: dark;
+}

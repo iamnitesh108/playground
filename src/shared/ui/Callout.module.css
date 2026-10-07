@@ -1,0 +1,37 @@
+.callout {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--callout-color);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: var(--space-3) var(--space-4);
+  margin: var(--space-5) 0;
+}
+
+.label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--callout-color);
+  margin-bottom: var(--space-1);
+}
+
+.body > :last-child {
+  margin-bottom: 0;
+}
+
+.note {
+  --callout-color: var(--accent);
+}
+
+.tip {
+  --callout-color: var(--ok);
+}
+
+.warn {
+  --callout-color: var(--warn);
+}
+
+.analogy {
+  --callout-color: var(--tone-1);
+}

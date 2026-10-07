@@ -1,0 +1,43 @@
+.demo {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  margin: var(--space-5) 0 var(--space-6);
+}
+
+.header {
+  padding: var(--space-4) var(--space-4) 0;
+}
+
+.eyebrow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.title {
+  font-size: 1rem;
+  margin-top: 2px;
+}
+
+.hint {
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  margin: var(--space-1) 0 0;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.body {
+  padding: var(--space-4);
+  overflow-x: auto;
+}
