@@ -8,6 +8,7 @@ module of short lessons with step-through diagrams and small in-browser simulato
 | Module | Covers |
 | ------ | ------ |
 | Apache Kafka | Events, brokers, topics, partitions, producers, offsets, consumer groups, delivery guarantees, replication, retention, Kafka Connect, Debezium CDC, the transactional outbox pattern, CLI and glossary |
+| Kafka from scratch | Hands-on setup of Kafka 4.3 (KRaft), Postgres, Kafka Connect and Debezium 3.7 with Docker Compose; every config key explained; pub-sub and CDC from Java; troubleshooting and production checklist |
 
 ## Run
 

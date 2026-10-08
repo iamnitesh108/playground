@@ -1,0 +1,43 @@
+.pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: max-content;
+}
+
+.pipeline > * {
+  width: 100%;
+}
+
+.edge {
+  flex: 1 0 40px;
+  display: flex;
+}
+
+.anchor {
+  width: 150px;
+}
+
+.down {
+  display: flex;
+  justify-content: flex-end;
+  padding-right: 74px;
+}
+
+.tree {
+  margin: var(--space-4) 0 var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.7;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  white-space: pre;
+  overflow-x: auto;
+}
+
+.note {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
