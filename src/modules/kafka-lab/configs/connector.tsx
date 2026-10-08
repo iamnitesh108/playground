@@ -17,10 +17,10 @@ export const CONNECTOR_CONFIG: ConfigEntry[] = [
   {
     section: 'How to reach the database',
     key: 'database.hostname',
-    value: 'postgres',
-    explain: <p>Host of the database, as seen <em>from the Connect worker</em> — the Compose service name here, not <code>localhost</code>.</p>,
+    value: 'postgres-1',
+    explain: <p>The database host as seen <em>from the Connect worker</em>: its DNS name on servers, the service name (<code>postgres</code>) in Compose. Never <code>localhost</code> unless Postgres runs on the same machine as the worker.</p>,
   },
-  { key: 'database.port', value: '5432', defaultValue: '5432', explain: <p>Postgres port inside the network (the container port, not a remapped host port).</p> },
+  { key: 'database.port', value: '5432', defaultValue: '5432', explain: <p>The Postgres port as reached from the worker (in Compose: the container port, not a remapped host port).</p> },
   {
     key: 'database.user',
     value: 'debezium',
@@ -28,11 +28,13 @@ export const CONNECTOR_CONFIG: ConfigEntry[] = [
   },
   {
     key: 'database.password',
-    value: 'dbz',
+    value: '${file:/etc/kafka/connect-secrets.properties:password}',
     explain: (
       <p>
-        Stored in Connect’s config topic and visible through the REST API. In real setups use a config provider:{' '}
-        <code>{'${file:/secrets/db.properties:password}'}</code> with <code>config.providers=file</code> on the worker.
+        A placeholder, resolved by the worker’s <code>file</code> config provider from{' '}
+        <code>/etc/kafka/connect-secrets.properties</code> (a line <code>password=…</code>). A plain password here would be
+        stored in the <code>connect-configs</code> topic and returned by <code>GET /connectors/…/config</code>; the placeholder is
+        all anyone sees (tested). In the container setup the file is <code>/etc/kafka-connect/secrets.properties</code>.
       </p>
     ),
   },

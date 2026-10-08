@@ -10,18 +10,28 @@ export default function Connector() {
         <code>public.orders</code> from this Postgres into Kafka”. Its configuration is JSON, sent over REST.
       </p>
 
-      <h2>connectors/orders-cdc.json</h2>
-      <ConfigExplorer file="connectors/orders-cdc.json" format="json" entries={CONNECTOR_CONFIG} />
+      <h2>The connector configuration</h2>
+      <p>
+        Keep it in version control next to your other infrastructure files — for example{' '}
+        <code>/etc/kafka/connectors/orders-cdc.json</code> on the Connect server, or <code>connectors/orders-cdc.json</code>{' '}
+        in the deployment repository. The database host and secrets path follow the Ubuntu layout; in the Compose stack
+        they are <code>postgres</code> and <code>/etc/kafka-connect/secrets.properties</code>.
+      </p>
+      <ConfigExplorer file="orders-cdc.json" format="json" entries={CONNECTOR_CONFIG} />
 
       <h2>Register it</h2>
       <CodeBlock
         title="create (or update) the connector"
         code={`curl -s -X PUT -H 'Content-Type: application/json' \\
-  --data @connectors/orders-cdc.json \\
-  localhost:8083/connectors/orders-cdc/config
+  --data @orders-cdc.json \\
+  http://connect-1:8083/connectors/orders-cdc/config
 
-curl -s localhost:8083/connectors/orders-cdc/status`}
+curl -s http://connect-1:8083/connectors/orders-cdc/status`}
       />
+      <p>
+        <code>connect-1:8083</code> is any Connect worker (or the load balancer in front of them); in the Compose stack,{' '}
+        <code>localhost:8083</code>.
+      </p>
       <CodeBlock title="status" code={CONNECTOR_STATUS} />
       <p>
         <code>PUT …/config</code> takes the config object alone, creates the connector if it does not exist and updates it
@@ -32,17 +42,19 @@ curl -s localhost:8083/connectors/orders-cdc/status`}
       <h2>Make some changes</h2>
       <CodeBlock
         title="insert, update, delete"
-        code={`docker compose exec postgres psql -U postgres -d shop \\
+        code={`psql -h postgres-1 -U postgres -d shop \\
   -c "INSERT INTO orders (customer, amount) VALUES ('alice', 120.50), ('bob', 75.00);" \\
   -c "UPDATE orders SET status = 'PAID' WHERE customer = 'alice';" \\
-  -c "DELETE FROM orders WHERE customer = 'bob';"`}
+  -c "DELETE FROM orders WHERE customer = 'bob';"
+# Compose: docker compose exec postgres psql -U postgres -d shop -c "…"`}
       />
       <CodeBlock
         title="read the topic"
-        code={`docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh \\
-  --bootstrap-server kafka:19092 --topic shop.public.orders --from-beginning \\
+        code={`/opt/kafka/bin/kafka-console-consumer.sh \\
+  --bootstrap-server broker-1:9092 --topic shop.public.orders --from-beginning \\
   --formatter-property print.key=true --formatter-property print.offset=true \\
-  --formatter-property key.separator=' | '`}
+  --formatter-property key.separator=' | '
+# Compose: docker compose exec kafka /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server kafka:19092 …`}
       />
       <CodeBlock title="what Kafka received (trimmed)" code={CDC_RECORDS} />
 

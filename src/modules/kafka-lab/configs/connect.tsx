@@ -5,11 +5,12 @@ export const CONNECT_PROPERTIES: ConfigEntry[] = [
   {
     section: 'Which Kafka, which cluster',
     key: 'bootstrap.servers',
-    value: 'kafka:19092',
+    value: 'kafka-1:9092',
     explain: (
       <p>
-        The broker(s) the worker connects to. It is a client like any other, so in Compose it uses the INTERNAL
-        listener (<code>kafka:19092</code>); on a laptop install it would be <code>localhost:9092</code>.
+        The brokers the worker connects to — it is a Kafka client like any other. List two or three brokers
+        (<code>broker-1:9092,broker-2:9092,broker-3:9092</code>) so start-up does not depend on one machine. In the
+        Compose stack it is the INTERNAL listener, <code>kafka:19092</code>.
       </p>
     ),
   },
@@ -123,24 +124,49 @@ export const CONNECT_PROPERTIES: ConfigEntry[] = [
   },
   {
     key: 'rest.advertised.host.name',
-    value: 'connect',
-    explain: <p>The hostname other workers use to forward REST requests to this one. With several workers, it must be reachable from all of them.</p>,
+    value: 'connect-1',
+    explain: <p>This worker’s own DNS name. Workers forward REST requests to each other (for example to the leader), so with several workers it must be resolvable and reachable from all of them. In Compose: <code>connect</code>.</p>,
   },
   {
     section: 'Plugins',
     key: 'plugin.path',
-    value: '/opt/connect-plugins',
+    value: '/opt/kafka-connect/plugins',
     explain: (
       <>
         <p>
           Directories scanned for connectors, converters and transforms. Each plugin goes in its own subdirectory (e.g.{' '}
-          <code>/opt/connect-plugins/debezium-connector-postgres/</code> with all its JARs), and gets its own class loader
-          so plugins cannot clash.
+          <code>/opt/kafka-connect/plugins/debezium-connector-postgres/</code> with all its JARs) and gets its own class
+          loader, so plugins cannot clash. Keeping it outside <code>/opt/kafka_2.13-4.3.1</code> means a Kafka upgrade does
+          not lose the plugins. In the container image: <code>/opt/kafka/plugins</code>.
         </p>
         <p>
           Check what was found with <code>curl localhost:8083/connector-plugins</code>.
         </p>
       </>
+    ),
+  },
+  {
+    section: 'Secrets',
+    key: 'config.providers',
+    value: 'file',
+    explain: (
+      <p>
+        Enables placeholders in connector configs that are resolved at runtime instead of stored. A connector can say{' '}
+        <code>{'"database.password": "${file:/etc/kafka/connect-secrets.properties:password}"'}</code>; the REST API and
+        the config topic then only ever contain the placeholder (tested). The secrets file must be readable by the
+        worker’s user and nobody else.
+      </p>
+    ),
+  },
+  {
+    key: 'config.providers.file.class',
+    value: 'org.apache.kafka.common.config.provider.FileConfigProvider',
+    explain: (
+      <p>
+        The implementation behind the name <code>file</code>: reads <code>key=value</code> files. Kafka also ships{' '}
+        <code>DirectoryConfigProvider</code> and <code>EnvVarConfigProvider</code>; secret stores such as Vault have their
+        own providers.
+      </p>
     ),
   },
 ]

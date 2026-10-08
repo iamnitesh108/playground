@@ -28,14 +28,53 @@ export const POSTGRES_SETTINGS: ConfigEntry[] = [
   },
   {
     key: 'max_slot_wal_keep_size',
-    value: '-1',
+    value: '10GB',
     defaultValue: '-1 (unlimited)',
     explain: (
       <p>
-        Optional safety net (Postgres 13+): the most WAL a slot may hold back, e.g. <code>10GB</code>. Beyond it the slot
-        is invalidated instead of filling the disk — the connector must then be re-snapshotted. Worth setting in production.
+        Safety net (Postgres 13+): the most WAL a replication slot may hold back. If the connector stops and the backlog
+        passes this size, the slot is invalidated instead of filling the disk and taking the database down — the
+        connector must then be re-snapshotted. Size it from free disk space and how long a Connect outage may last.
       </p>
     ),
+  },
+  {
+    key: 'listen_addresses',
+    value: "'*'",
+    defaultValue: "'localhost'",
+    explain: (
+      <p>
+        Interfaces Postgres accepts TCP connections on. The Ubuntu package listens on <code>localhost</code> only; a Connect
+        worker on another server needs the network interface (<code>'*'</code>, or a specific address). Access is still
+        controlled by <code>pg_hba.conf</code> and the firewall.
+      </p>
+    ),
+  },
+]
+
+/** Lines appended to pg_hba.conf (Ubuntu: /etc/postgresql/<version>/main/pg_hba.conf). */
+export const PG_HBA: ConfigEntry[] = [
+  {
+    key: 'from the Connect hosts',
+    text: 'host    shop    debezium    10.0.0.0/8    scram-sha-256',
+    explain: (
+      <>
+        <p>
+          Columns: connection type (<code>host</code> = TCP), database, user, client address range, authentication
+          method. This lets <code>debezium</code> reach only the <code>shop</code> database, only from the private network
+          where the Connect workers run, with a SCRAM password. Narrow the range to your workers’ subnet.
+        </p>
+        <p>
+          A logical replication connection names a database, so it matches rules like this one. Guides that add{' '}
+          <code>host replication …</code> lines are describing <em>physical</em> replication.
+        </p>
+      </>
+    ),
+  },
+  {
+    key: 'from this host',
+    text: 'host    shop    debezium    127.0.0.1/32  scram-sha-256',
+    explain: <p>Only needed when a worker runs on the database server itself, as in a single-machine setup.</p>,
   },
 ]
 

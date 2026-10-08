@@ -7,13 +7,15 @@ export default function PubSub() {
     <>
       <p>
         In pub-sub, your code decides what an event is and sends it. Here a payment service publishes payments to the
-        topic <code>payments</code>, and a billing service consumes them. Both connect from your machine through{' '}
-        <code>localhost:9092</code>.
+        topic <code>payments</code>, and a billing service consumes them. The code uses{' '}
+        <code>bootstrap.servers=localhost:9092</code> — the EXTERNAL listener of the Compose stack. Against servers, list
+        several brokers instead: <code>broker-1:9092,broker-2:9092,broker-3:9092</code>. In real services this value comes
+        from configuration, never from code.
       </p>
 
       <h2>The project</h2>
-      <CodeBlock title="create the topic first (auto-creation is off)" code={`docker compose exec kafka /opt/kafka/bin/kafka-topics.sh \\
-  --bootstrap-server kafka:19092 --create --topic payments --partitions 3`} />
+      <CodeBlock title="create the topic first (auto-creation is off)" code={`/opt/kafka/bin/kafka-topics.sh --bootstrap-server broker-1:9092 --create --topic payments --partitions 3
+# Compose: docker compose exec kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server kafka:19092 --create --topic payments --partitions 3`} />
       <Tabs
         items={[
           { label: 'build.gradle', content: <CodeBlock title="app/build.gradle" code={BUILD_GRADLE} /> },
@@ -69,7 +71,7 @@ export default function PubSub() {
         <li><code>wakeup()</code> from the shutdown hook makes <code>poll()</code> throw, so <code>close()</code> runs and the consumer leaves the group immediately instead of after <code>session.timeout.ms</code>.</li>
       </ul>
       <CodeBlock title="gradle run -Pmain=com.example.shop.PaymentConsumer" code={CONSUMER_OUTPUT} />
-      <CodeBlock title="after Ctrl-C: kafka-consumer-groups.sh --bootstrap-server kafka:19092 --describe --group billing" code={GROUP_DESCRIBE} />
+      <CodeBlock title="after Ctrl-C: kafka-consumer-groups.sh --bootstrap-server broker-1:9092 --describe --group billing" code={GROUP_DESCRIBE} />
 
       <h2>Try the group behaviour</h2>
       <ol>

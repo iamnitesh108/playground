@@ -57,3 +57,62 @@ export const SLOTS_AFTER_DELETE = ` slot_name      | plugin   | active | behind
 export const KAFKA_STARTED = `Formatting dynamic metadata voter directory /var/lib/kafka/data with metadata.version 4.3-IV0.
 …
 INFO [KafkaRaftServer nodeId=1] Kafka Server started (kafka.server.KafkaRaftServer)`
+
+// ── Ubuntu 24.04 + systemd (Kafka 4.3.1, OpenJDK 21, PostgreSQL 16) ──
+
+export const VERIFY_DOWNLOAD = `sha512 OK
+gpg: Good signature from "Bill Bejeck (CODE SIGNING KEY) <bbejeck@apache.org>" [unknown]`
+
+export const FORMAT_STANDALONE = `Formatting dynamic metadata voter directory /var/lib/kafka/data with metadata.version 4.3-IV0.`
+
+export const FORMATTED_DIR = `drwxrwxr-x kafka kafka __cluster_metadata-0
+-rw-rw-r-- kafka kafka bootstrap.checkpoint
+-rw-rw-r-- kafka kafka meta.properties`
+
+export const SYSTEMCTL_STATUS = `● kafka.service - Apache Kafka (KRaft broker and controller)
+     Loaded: loaded (/etc/systemd/system/kafka.service; enabled; preset: enabled)
+     Active: active (running) since Thu 2026-10-08 12:09:30 UTC; 9s ago
+       Docs: https://kafka.apache.org/documentation/
+   Main PID: 3434 (java)`
+
+export const OPEN_FILES = `Max open files            100000               100000               files`
+
+export const LOG_FILES = `controller.log  kafka-authorizer.log  kafka-request.log  kafkaServer-gc.log
+log-cleaner.log  server.log  state-change.log`
+
+export const GRACEFUL_STOP = `Result=success
+ExecMainStatus=143`
+
+export const NO_LOG_DIR = `mkdir: cannot create directory '/opt/kafka/bin/../logs': Permission denied
+[0.000s][error][logging] Error opening log file '/opt/kafka/bin/../logs/kafkaServer-gc.log': No such file or directory
+Invalid -Xlog option '-Xlog:gc*:file=/opt/kafka/bin/../logs/kafkaServer-gc.log:time,tags:filecount=10,filesize=100M', see error log for details.`
+
+export const FORMATTED_AS_ROOT = `drwxr-xr-x root root __cluster_metadata-0
+… AccessDeniedException: /var/lib/kafka/data/__cluster_metadata-0/leader-epoch-checkpoint`
+
+export const SECRET_PLACEHOLDER = `$ curl -s localhost:8083/connectors/orders-cdc/config | jq -r '."database.password"'
+\${file:/etc/kafka/connect-secrets.properties:password}`
+
+// ── Docker ──
+
+export const COMPOSE_HEALTHY = `kafka-stack-kafka-1      Up 28 seconds (healthy)
+kafka-stack-postgres-1   Up 28 seconds (healthy)
+kafka-stack-connect-1    Up 15 seconds (healthy)`
+
+// ── 3 controllers + 3 brokers ──
+
+export const QUORUM_STATUS = `LeaderId:               1
+CurrentVoters:          [{"id": 1, "endpoints": ["CONTROLLER://controller-1:9093"]}, {"id": 2, …}, {"id": 3, …}]
+CurrentObservers:       [{"id": 5, …}, {"id": 6, …}, {"id": 4, …}]`
+
+export const RF3_TOPIC = `Topic: payments  PartitionCount: 6  ReplicationFactor: 3  Configs: min.insync.replicas=2
+  Partition: 0  Leader: 6  Replicas: 6,4,5  Isr: 6,4,5
+  Partition: 1  Leader: 4  Replicas: 4,5,6  Isr: 4,5,6
+  Partition: 2  Leader: 5  Replicas: 5,6,4  Isr: 5,6,4
+  …`
+
+export const RF1_BY_MISTAKE = `Topic: payments  PartitionCount: 3  ReplicationFactor: 1  Configs: min.insync.replicas=1
+  Partition: 0  Leader: none  Replicas: 6  Isr:        ← broker 6 stopped: partition offline`
+
+export const FAILURE_TEST = `one broker stopped  → acks=all write succeeds
+two brokers stopped → ERROR … NotEnoughReplicasException   (nothing written)`
