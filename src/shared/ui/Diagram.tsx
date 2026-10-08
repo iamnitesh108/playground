@@ -34,7 +34,7 @@ export function Box({ title, caption, active, dimmed, tone, children, className 
 interface ConnectorProps {
   active?: boolean
   label?: ReactNode
-  direction?: 'right' | 'down' | 'left'
+  direction?: 'right' | 'down' | 'left' | 'up'
   /** Draws a dashed line, for asynchronous or optional links. */
   dashed?: boolean
 }

@@ -182,7 +182,8 @@
   font-family: var(--font-mono);
 }
 
-.down .connectorLabel {
+.down .connectorLabel,
+.up .connectorLabel {
   top: 50%;
   left: calc(50% + 8px);
   transform: translateY(-50%);
@@ -212,5 +213,43 @@
   }
   to {
     top: calc(100% - 8px);
+  }
+}
+
+.up {
+  flex: none;
+  min-height: 32px;
+  min-width: 0;
+  height: 32px;
+}
+
+.up .line {
+  width: 1.5px;
+  height: 100%;
+}
+
+.up .line::after {
+  top: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom: 6px solid var(--border-strong);
+  border-top: 0;
+}
+
+.flowing.up .line::after {
+  border-bottom-color: var(--accent);
+}
+
+.flowing.up .packet {
+  left: -3.5px;
+  animation: travel-y-reverse 1.2s var(--ease) infinite;
+}
+
+@keyframes travel-y-reverse {
+  from {
+    top: calc(100% - 8px);
+  }
+  to {
+    top: 0;
   }
 }
