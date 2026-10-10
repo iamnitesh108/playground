@@ -1,0 +1,76 @@
+.scroll {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: var(--space-2) 0;
+}
+
+.svg {
+  display: block;
+}
+
+.edge,
+.edgeLost {
+  fill: none;
+  stroke: var(--border-strong);
+  stroke-width: 2;
+}
+
+.edgeLost {
+  stroke-dasharray: 3 4;
+  opacity: 0.6;
+}
+
+.commit circle,
+.lost circle {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  transition: opacity 0.3s var(--ease);
+}
+
+.commit circle.merge {
+  fill: var(--surface);
+  stroke-width: 3;
+}
+
+.commit,
+.lost {
+  animation: pop 0.35s var(--ease);
+}
+
+.lost {
+  opacity: 0.35;
+}
+
+.id {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  fill: var(--text);
+}
+
+.message {
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+
+.branch {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--accent);
+}
+
+.detached {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  fill: var(--warn);
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+  }
+}

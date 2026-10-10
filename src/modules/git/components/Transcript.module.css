@@ -1,0 +1,73 @@
+.terminal {
+  margin: var(--space-3) 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px var(--space-3);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+.copy {
+  font: inherit;
+  background: none;
+  border: 0;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.copy:hover {
+  color: var(--accent);
+}
+
+.body {
+  padding: var(--space-2) var(--space-3);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.step + .step {
+  margin-top: 6px;
+}
+
+.cmd {
+  white-space: pre;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.prompt {
+  color: var(--accent);
+}
+
+.exit {
+  margin-left: var(--space-2);
+  font-size: 0.66rem;
+  font-weight: 400;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+  padding: 0 4px;
+}
+
+.out {
+  margin: 2px 0 0;
+  font: inherit;
+  font-weight: 400;
+  color: var(--text-muted);
+  white-space: pre;
+}
+
+.failed {
+  color: var(--danger);
+}
