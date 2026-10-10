@@ -1,0 +1,122 @@
+.lists {
+  display: grid;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+
+.label {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  margin-bottom: 4px;
+}
+
+.row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.item {
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 4px 12px;
+  background: var(--surface);
+  transition: background-color 0.3s var(--ease), border-color 0.3s var(--ease), transform 0.3s var(--ease);
+}
+
+.item sub {
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  margin-left: 2px;
+}
+
+.item[data-decision='keep'] {
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.item[data-decision='move'] {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.item[data-decision='insert'] {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.item[data-decision='delete'] {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  text-decoration: line-through;
+}
+
+.focus {
+  transform: translateY(-3px);
+  box-shadow: 0 2px 0 var(--accent);
+}
+
+.caption {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  min-height: 40px;
+}
+
+.counter {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  margin-right: var(--space-2);
+}
+
+.lpi {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.legend {
+  display: flex;
+  gap: 4px;
+}
+
+.legend .item {
+  font-size: 0.68rem;
+  padding: 1px 6px;
+}
+
+.buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.ops {
+  margin-top: var(--space-3);
+  border-top: 1px solid var(--border);
+  padding-top: var(--space-2);
+  font-size: 0.8rem;
+}
+
+.verdict {
+  margin-top: 4px;
+  color: var(--ok);
+  font-size: 0.78rem;
+}

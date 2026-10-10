@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# capture tools pin exact versions in package.json
+tools/*/package-lock.json
