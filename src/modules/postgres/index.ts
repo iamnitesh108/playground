@@ -4,8 +4,8 @@ export const postgresModule: LearningModule = {
   id: 'postgres',
   title: 'PostgreSQL internals',
   description:
-    'How PostgreSQL really works, shown with recordings of a real server: row versions and MVCC, vacuum, isolation levels, locks and deadlocks, constraints, B-tree indexes and query plans, WAL and crash recovery.',
-  tags: ['postgresql', 'mvcc', 'transactions', 'indexes', 'wal'],
+    'How PostgreSQL really works, shown with recordings of a real server: row versions and MVCC, vacuum, isolation levels, locks and deadlocks, constraints, B-tree indexes and query plans, WAL and crash recovery — then installing, pooling and backing it up.',
+  tags: ['postgresql', 'mvcc', 'transactions', 'indexes', 'wal', 'pgbouncer', 'backups'],
   groups: [
     {
       title: 'Foundations',
@@ -28,6 +28,14 @@ export const postgresModule: LearningModule = {
       lessons: [
         { slug: 'indexes', title: 'B-tree indexes and plans', summary: 'How a B-tree is searched and grows, and reading EXPLAIN for real queries on 100,000 rows.', load: () => import('./lessons/Indexes') },
         { slug: 'wal', title: 'WAL and crash recovery', summary: 'Write-ahead logging, checkpoints, crashes and replay — and how the WAL feeds replication.', load: () => import('./lessons/Wal') },
+      ],
+    },
+    {
+      title: 'Operations',
+      lessons: [
+        { slug: 'setup', title: 'Install and configure', summary: 'Ubuntu packages and Docker, postgresql.conf, pg_hba.conf, and roles with least privilege.', load: () => import('./lessons/Setup') },
+        { slug: 'pooling', title: 'Connection pooling', summary: 'Why connections are expensive, PgBouncer session and transaction modes, and what breaks.', load: () => import('./lessons/Pooling') },
+        { slug: 'backups', title: 'Backups and point-in-time recovery', summary: 'pg_dump, base and incremental backups, WAL archiving, and undoing a DROP TABLE.', load: () => import('./lessons/Backups') },
       ],
     },
   ],
