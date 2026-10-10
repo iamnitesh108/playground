@@ -1,0 +1,86 @@
+.predict {
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--tone-4);
+  border-radius: var(--radius);
+  background: var(--surface);
+  padding: var(--space-3) var(--space-4);
+  margin: var(--space-5) 0;
+}
+
+.eyebrow {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: var(--tone-4);
+}
+
+.question {
+  margin: var(--space-1) 0 var(--space-3);
+}
+
+.question > :last-child {
+  margin-bottom: 0;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.option {
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 5px 12px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), border-color 0.2s var(--ease);
+}
+
+.option:hover:not(:disabled) {
+  background: var(--surface-muted);
+}
+
+.option:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+.correct,
+.correct:disabled {
+  opacity: 1;
+  border-color: var(--ok);
+  background: var(--ok-soft);
+}
+
+.wrong,
+.wrong:disabled {
+  opacity: 1;
+  border-color: var(--danger);
+  background: var(--danger-soft);
+}
+
+.explanation {
+  margin-top: var(--space-3);
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  animation: reveal 0.3s var(--ease);
+}
+
+.retry {
+  margin-left: var(--space-2);
+  border: 0;
+  background: none;
+  color: var(--accent);
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+@keyframes reveal {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
