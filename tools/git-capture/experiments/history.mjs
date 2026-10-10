@@ -1,5 +1,5 @@
 import { transcript } from '../session.mjs'
-import { configure, write, commitFile } from './_util.mjs'
+import { configure, commitFile } from './_util.mjs'
 
 export function run(s) {
   configure(s)
