@@ -1,0 +1,106 @@
+.tree {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  padding: var(--space-3) var(--space-2);
+  overflow-x: auto;
+}
+
+.svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.line {
+  stroke: var(--border-strong);
+  stroke-width: 1.2;
+  transition: stroke 0.3s var(--ease);
+}
+
+.hotLine {
+  stroke: var(--accent);
+  stroke-width: 2;
+}
+
+.level {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  min-width: max-content;
+  padding-left: 52px;
+}
+
+.levelLabel {
+  position: absolute;
+  left: 0;
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.nodeWrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.node {
+  display: flex;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  transition: border-color 0.3s var(--ease), background 0.3s var(--ease), transform 0.3s var(--ease);
+  animation: grow 0.35s var(--ease);
+}
+
+.leaf {
+  background: var(--surface-muted);
+}
+
+.onPath {
+  border-color: var(--accent);
+}
+
+.focus {
+  background: var(--accent-soft);
+  transform: translateY(-2px);
+}
+
+.key {
+  padding: 2px 6px;
+  border-right: 1px solid var(--border);
+}
+
+.key:last-child {
+  border-right: 0;
+}
+
+.keyHot {
+  background: var(--warn-soft);
+  color: var(--warn);
+  font-weight: 600;
+}
+
+.empty {
+  padding: 2px 6px;
+  color: var(--text-faint);
+}
+
+.sibling {
+  color: var(--text-faint);
+  font-size: 0.7rem;
+}
+
+@keyframes grow {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}

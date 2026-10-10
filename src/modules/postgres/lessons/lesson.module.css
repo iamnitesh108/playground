@@ -1,0 +1,27 @@
+.note {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Five-column box-and-arrow grid: box, edge, box, edge, box. */
+.flow {
+  display: grid;
+  grid-template-columns: 140px minmax(40px, 1fr) 140px minmax(40px, 1fr) 140px;
+  align-items: center;
+  justify-items: stretch;
+  min-width: max-content;
+}
+
+.flow > :nth-child(5n + 3),
+.flow > :nth-child(5n + 5) {
+  justify-self: center;
+}
+
+.flow > div[class*='box'] {
+  justify-self: stretch;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}

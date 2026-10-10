@@ -1,0 +1,46 @@
+.log {
+  margin-top: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+  font-size: 0.82rem;
+  min-height: 3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.idle {
+  color: var(--text-faint);
+}
+
+.event {
+  animation: fade 0.3s var(--ease);
+}
+
+.event[data-kind='split'],
+.event[data-kind='root'] {
+  color: var(--warn);
+}
+
+.event[data-kind='found'] {
+  color: var(--ok);
+}
+
+.event[data-kind='missing'] {
+  color: var(--danger);
+}
+
+.n {
+  display: inline-block;
+  width: 1.4rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}

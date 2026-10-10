@@ -1,0 +1,12 @@
+{
+  "name": "postgres-capture",
+  "private": true,
+  "type": "module",
+  "description": "Records real PostgreSQL behaviour for the postgres module's lessons.",
+  "scripts": {
+    "capture": "node scenarios.mjs && node capture.mjs && node gen.mjs ../../src/modules/postgres/data"
+  },
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
+}
