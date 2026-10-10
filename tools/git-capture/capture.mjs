@@ -5,7 +5,7 @@ import { execSync } from 'node:child_process'
 import { Session } from './session.mjs'
 
 const [, , outFile] = process.argv
-const EXPERIMENTS = ['setup', 'objects', 'areas', 'history', 'branches', 'merging', 'rebase', 'remotes', 'accounts', 'undo', 'toolbox', 'workflow']
+const EXPERIMENTS = ['setup', 'objects', 'areas', 'history', 'branches', 'merging', 'rebase', 'remotes', 'accounts', 'accounts-setup', 'undo', 'toolbox', 'workflow']
 const version = execSync('git --version', { encoding: 'utf8' }).trim().replace('git version ', '')
 const capture = { git: version }
 for (const name of EXPERIMENTS) {

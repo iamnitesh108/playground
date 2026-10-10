@@ -3,6 +3,7 @@ import { Transcript } from '../components'
 import { CAPTURE } from '../data/captures'
 
 const a = CAPTURE.accounts
+const setup = CAPTURE['accounts-setup']
 
 export default function Accounts() {
   return (
@@ -12,6 +13,7 @@ export default function Accounts() {
           'create one SSH key per account and register it',
           'route each repository to the right account with SSH host aliases',
           'pick the right name and email automatically, by folder or by remote URL',
+          'scale it to any number of accounts with one setup script',
           'sign commits, and check which identity Git will use',
         ]}
         before="Lesson 1 — configuration levels; lesson 8 — remotes"
@@ -131,6 +133,51 @@ ssh -T git@github.com-personal    # … and the personal username here`}
         more as a <em>signing</em> key. Put these settings in the work or personal include file to sign with the matching key.
       </p>
 
+      <h2>More than two accounts</h2>
+      <p>
+        Nothing changes in principle: every extra account — a second employer, a client, an account on GitLab or Bitbucket — gets the same three things.
+      </p>
+      <Table
+        head={['For each account', 'Where', 'Example (a client on GitLab)']}
+        rows={[
+          ['a key pair', '~/.ssh/id_ed25519_<account>', '~/.ssh/id_ed25519_client'],
+          ['a host alias', '~/.ssh/config', 'Host gitlab.com-client → HostName gitlab.com, IdentityFile …_client'],
+          ['a folder and an include file', '~/.gitconfig + ~/.gitconfig-<account>', 'includeIf "gitdir:~/clients/acme/" → user.email, url…insteadOf'],
+        ]}
+      />
+      <p>
+        One account can stay the default: give plain <code>github.com</code> the personal key, so personal repositories need no alias at all, and only
+        the other accounts use aliases and folders. With a URL rewrite in each folder’s include file, even a URL copied from the website goes through
+        the right key — this also holds for <code>git clone</code> run inside the folder, because Git creates the repository there before fetching
+        (verified when this lesson was recorded).
+      </p>
+
+      <h2>Complete setup for a new laptop</h2>
+      <p>
+        Everything above in one script, for three accounts: personal (GitHub, the default), work (GitHub, under <code>~/work/</code>) and a client
+        (GitLab, under <code>~/clients/acme/</code>). Edit the first lines, run it once, add each printed public key to its account. It was run exactly
+        like this in a clean home directory; only the passphrase prompt was replaced for the recording.
+      </p>
+      <CodeBlock title="git-accounts.sh" code={setup.script} />
+      <Transcript steps={setup.run} />
+      <h3>Check it before the first push</h3>
+      <Transcript steps={setup.verifySsh} />
+      <Transcript steps={setup.verifyRepos} />
+      <p>
+        Each repository got the email of its folder, and the work and client remotes — although added with the website’s URLs — are pushed through
+        their aliases. Finally, test the keys against the sites (this needs the public keys added there first):
+      </p>
+      <CodeBlock
+        title="one-time connection test"
+        code={`ssh -T git@github.com            # "Hi <personal username>! …"
+ssh -T git@github.com-work       # "Hi <work username>! …"
+ssh -T git@gitlab.com-client     # "Welcome to GitLab, @<client username>!"`}
+      />
+      <Callout tone="tip" title="Adding an account later">
+        Append one more key, one more Host block and one more include file — the existing accounts are untouched. If you use an SSH agent with many
+        keys loaded, IdentitiesOnly yes on every Host keeps each alias on its own key.
+      </Callout>
+
       <h2>HTTPS instead of SSH</h2>
       <Table
         head={['Approach', 'How']}
@@ -158,6 +205,7 @@ ssh -T git@github.com-personal    # … and the personal username here`}
           'One SSH key per account, registered on that account.',
           'Host aliases in ~/.ssh/config (with IdentitiesOnly yes) choose the key; use the alias in remote URLs.',
           'includeIf (by folder or by remote URL) chooses the commit email automatically.',
+          'Any number of accounts: one key, one alias and one folder include each — the setup script does all three.',
           'Check with ssh -G, ssh -T, git config --show-origin and git var GIT_AUTHOR_IDENT.',
         ]}
       />

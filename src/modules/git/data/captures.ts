@@ -867,7 +867,7 @@ export const CAPTURE = {
    },
    {
     "cmd": "ssh-keygen -t ed25519 -C \"ann@work.example\" -f ~/.ssh/id_ed25519_work",
-    "out": "Generating public/private ed25519 key pair.\nYour identification has been saved in /home/ann/.ssh/id_ed25519_work\nYour public key has been saved in /home/ann/.ssh/id_ed25519_work.pub\nThe key fingerprint is:\nSHA256:T0dT3NbkWHUr09OlbTaUzBPrPYN6s9JEtX+HykeM2wg ann@work.example\nThe key's randomart image is:\n+--[ED25519 256]--+\n|             .+=@|\n|             .+%X|\n|            oo+BO|\n|           . o=++|\n|        S . o+ =o|\n|         oE.o.+ *|\n|          .+oO  o|\n|           .*.=  |\n|            .o   |\n+----[SHA256]-----+",
+    "out": "Generating public/private ed25519 key pair.\nYour identification has been saved in /home/ann/.ssh/id_ed25519_work\nYour public key has been saved in /home/ann/.ssh/id_ed25519_work.pub\nThe key fingerprint is:\nSHA256:jKWfLBibJOeGFv+e4k0EOhm/q6qbPrUTz7Svk/mv57U ann@work.example\nThe key's randomart image is:\n+--[ED25519 256]--+\n|                 |\n|                 |\n|  . .   .        |\n|   = . =         |\n|  * = + S        |\n|   % O o .       |\n|  + # * +  .     |\n| + +.% o .. .    |\n|B+oo++X+=o E     |\n+----[SHA256]-----+",
     "exit": 0
    },
    {
@@ -877,7 +877,7 @@ export const CAPTURE = {
    },
    {
     "cmd": "cat ~/.ssh/id_ed25519_personal.pub        # this is what you paste into the hosting site",
-    "out": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFgo",
+    "out": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJLo",
     "exit": 0
    }
   ],
@@ -957,12 +957,12 @@ export const CAPTURE = {
    },
    {
     "cmd": "git commit -m \"Start blog\"",
-    "out": "[main (root-commit) f7a0611] Start blog\n 1 file changed, 1 insertion(+)\n create mode 100644 README.md",
+    "out": "[main (root-commit) 94e74c2] Start blog\n 1 file changed, 1 insertion(+)\n create mode 100644 README.md",
     "exit": 0
    },
    {
     "cmd": "git log --show-signature -1",
-    "out": "commit f7a0611f24a9c3a588d6c09f674adf3e40f9b8c8\nGood \"git\" signature for ann@personal.example with ED25519 key SHA256:sinzIsRzhW+tHYJ/VGPYiLlTdr/0QiNsWbm+dHSiaTs\nAuthor: Ann Lee <ann@personal.example>\nDate:   Mon Oct 5 09:24:00 2026 +0000\n\n    Start blog",
+    "out": "commit 94e74c2807c796a1d3523835ab4abbc3029f7191\nGood \"git\" signature for ann@personal.example with ED25519 key SHA256:NcrqtKhNS4bQ937/hIw7sKQ83t6qJ6kehUMB3o8Nj5E\nAuthor: Ann Lee <ann@personal.example>\nDate:   Mon Oct 5 09:24:00 2026 +0000\n\n    Start blog",
     "exit": 0
    }
   ],
@@ -978,6 +978,52 @@ export const CAPTURE = {
     "exit": 0
    }
   ]
+ },
+ "accounts-setup": {
+  "script": "#!/usr/bin/env bash\n# One-time Git setup for several accounts. Edit these lines, then run: bash git-accounts.sh\nset -euo pipefail\n\nNAME=\"Ann Lee\"\nPERSONAL_EMAIL=\"ann@personal.example\"   # GitHub, personal account (the default everywhere)\nWORK_EMAIL=\"ann@work.example\"           # GitHub, work account   → repositories under ~/work/\nCLIENT_EMAIL=\"ann@client.example\"       # GitLab, client account → repositories under ~/clients/acme/\n\nmkdir -p ~/.ssh ~/work ~/clients/acme\nchmod 700 ~/.ssh\n\n# 1. One key per account (you will be asked for a passphrase — use one).\n[ -f ~/.ssh/id_ed25519_personal ] || ssh-keygen -t ed25519 -C \"$PERSONAL_EMAIL\" -f ~/.ssh/id_ed25519_personal\n[ -f ~/.ssh/id_ed25519_work ]     || ssh-keygen -t ed25519 -C \"$WORK_EMAIL\"     -f ~/.ssh/id_ed25519_work\n[ -f ~/.ssh/id_ed25519_client ]   || ssh-keygen -t ed25519 -C \"$CLIENT_EMAIL\"   -f ~/.ssh/id_ed25519_client\n\n# 2. Which key for which host. Plain github.com is the personal account.\ncat >> ~/.ssh/config <<'SSH'\n\nHost github.com\n    IdentityFile ~/.ssh/id_ed25519_personal\n    IdentitiesOnly yes\n\nHost github.com-work\n    HostName github.com\n    User git\n    IdentityFile ~/.ssh/id_ed25519_work\n    IdentitiesOnly yes\n\nHost gitlab.com-client\n    HostName gitlab.com\n    User git\n    IdentityFile ~/.ssh/id_ed25519_client\n    IdentitiesOnly yes\nSSH\nchmod 600 ~/.ssh/config\n\n# 3. Commit identity: personal by default, work and client by folder.\ngit config --global user.name \"$NAME\"\ngit config --global user.email \"$PERSONAL_EMAIL\"\ngit config --global init.defaultBranch main\ngit config --global includeIf.\"gitdir:~/work/\".path ~/.gitconfig-work\ngit config --global includeIf.\"gitdir:~/clients/acme/\".path ~/.gitconfig-client\n\ngit config --file ~/.gitconfig-work user.email \"$WORK_EMAIL\"\ngit config --file ~/.gitconfig-work url.\"git@github.com-work:\".insteadOf \"git@github.com:\"\n\ngit config --file ~/.gitconfig-client user.email \"$CLIENT_EMAIL\"\ngit config --file ~/.gitconfig-client url.\"git@gitlab.com-client:\".insteadOf \"git@gitlab.com:\"\n\n# 4. Public keys to add on each site (GitHub: Settings → SSH and GPG keys; GitLab: Preferences → SSH Keys).\nfor account in personal work client; do\n  echo \"== $account\"\n  cat ~/.ssh/id_ed25519_$account.pub\ndone\n",
+  "run": [
+   {
+    "cmd": "bash git-accounts.sh        # recorded with an empty passphrase; public keys shortened",
+    "out": "== personal\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ/w/Pz3DfgTMdDfQ6vi/sUB\n== work\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFseZQAhGdVnovaenLYaGmM1\n== client\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM2UIlUCtJguE5VN4jdms9eq",
+    "exit": 0
+   }
+  ],
+  "verifySsh": [
+   {
+    "cmd": "ssh -G github.com | grep -E \"^(hostname|identityfile) \"",
+    "out": "hostname github.com\nidentityfile ~/.ssh/id_ed25519_personal",
+    "exit": 0
+   },
+   {
+    "cmd": "ssh -G github.com-work | grep -E \"^(hostname|identityfile) \"",
+    "out": "hostname github.com\nidentityfile ~/.ssh/id_ed25519_work",
+    "exit": 0
+   },
+   {
+    "cmd": "ssh -G gitlab.com-client | grep -E \"^(hostname|identityfile) \"",
+    "out": "hostname gitlab.com\nidentityfile ~/.ssh/id_ed25519_client",
+    "exit": 0
+   }
+  ],
+  "verifyRepos": [
+   {
+    "cmd": "cd ~/code/blog && git config --show-origin user.email && git remote get-url --push origin",
+    "out": "file:/home/ann/.gitconfig\tann@personal.example\ngit@github.com:ann-example/blog.git",
+    "exit": 0
+   },
+   {
+    "cmd": "cd ~/work/api && git config --show-origin user.email && git remote get-url --push origin",
+    "out": "file:/home/ann/.gitconfig-work\tann@work.example\ngit@github.com-work:acme-example/api.git",
+    "exit": 0
+   },
+   {
+    "cmd": "cd ~/clients/acme/portal && git config --show-origin user.email && git remote get-url --push origin",
+    "out": "file:/home/ann/.gitconfig-client\tann@client.example\ngit@gitlab.com-client:acme-client/portal.git",
+    "exit": 0
+   }
+  ],
+  "cloneUsesRewrite": true,
+  "laterFetchUsesRewrite": true
  },
  "undo": {
   "amend": [
