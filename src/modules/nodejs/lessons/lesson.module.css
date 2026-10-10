@@ -1,0 +1,51 @@
+.grid2 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+/* The event loop phases as a row of pills. */
+.loop {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin: var(--space-3) 0;
+}
+
+.loopPhase {
+  font-size: 0.78rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 3px 12px;
+  background: var(--surface);
+}
+
+.loopBack {
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+/* Seven-column variant: box, edge, box, edge, box, edge, box; .under places a cell below the middle box. */
+.flow7 {
+  display: grid;
+  grid-template-columns: 120px minmax(28px, 1fr) 120px minmax(28px, 1fr) 120px minmax(28px, 1fr) 120px;
+  align-items: center;
+  min-width: max-content;
+}
+
+.under {
+  grid-column: 5;
+  display: flex;
+  justify-content: center;
+}
+
+.under > * {
+  flex: 1;
+}
+
+.note {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}

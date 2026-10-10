@@ -1,0 +1,122 @@
+.flow {
+  display: grid;
+  grid-template-columns: 150px 1fr 150px;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+@media (max-width: 600px) {
+  .flow {
+    grid-template-columns: 1fr;
+  }
+}
+
+.node {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  transition: border-color 0.3s var(--ease), background-color 0.3s var(--ease);
+}
+
+.node strong {
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.paused {
+  border-color: var(--warn);
+  background: var(--warn-soft);
+}
+
+.buffer {
+  position: relative;
+  height: 44px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  overflow: hidden;
+}
+
+.fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--accent-soft);
+  border-right: 2px solid var(--accent);
+  transition: width 0.12s linear;
+}
+
+.fill[data-over='true'] {
+  background: var(--warn-soft);
+  border-right-color: var(--warn);
+}
+
+.hwm {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1px dashed var(--text-faint);
+  font-size: 0.62rem;
+  color: var(--text-faint);
+  padding: 2px 4px;
+}
+
+.bufferText {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  height: 120px;
+  margin-top: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
+}
+
+.hwmLine {
+  stroke: var(--text-faint);
+  stroke-dasharray: 4 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  margin-top: 4px;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-5);
+  margin: var(--space-3) 0 0;
+}
+
+.stats dt {
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.stats dd {
+  margin: 0;
+  font-family: var(--font-mono);
+}
