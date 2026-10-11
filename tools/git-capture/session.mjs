@@ -1,10 +1,24 @@
 // A sandboxed shell for recording git: its own HOME, no system config, fixed dates, neutral identity.
 import { execSync } from 'node:child_process'
-import { mkdtempSync, mkdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, mkdirSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir, userInfo, homedir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 
 const BASE = Date.parse('2026-10-05T09:00:00Z')
+
+/**
+ * Output to a pipe is buffered, so normal output and error messages can appear out of order.
+ * coreutils' libstdbuf (what `stdbuf -o0` uses) makes it unbuffered, giving the order a terminal shows.
+ */
+const STDBUF = (() => {
+  try {
+    const bin = realpathSync(execSync('command -v stdbuf', { shell: '/bin/bash', encoding: 'utf8' }).trim())
+    const lib = join(dirname(dirname(bin)), 'libexec', 'coreutils', 'libstdbuf.so')
+    return existsSync(lib) ? { LD_PRELOAD: lib, _STDBUF_O: '0', _STDBUF_E: '0' } : {}
+  } catch {
+    return {}
+  }
+})()
 
 export class Session {
   constructor({ user = 'ann' } = {}) {
@@ -40,6 +54,7 @@ export class Session {
       GIT_AUTHOR_DATE: date,
       GIT_COMMITTER_DATE: date,
       TZ: 'UTC',
+      ...STDBUF,
       ...extra,
     }
   }

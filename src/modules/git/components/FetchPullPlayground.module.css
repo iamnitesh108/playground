@@ -1,0 +1,130 @@
+.preset {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.preset span {
+  flex: 1;
+  min-width: 200px;
+}
+
+.places {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) 0 var(--space-3);
+}
+
+@media (max-width: 640px) {
+  .places {
+    grid-template-columns: 1fr;
+  }
+}
+
+.place {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  transition: border-color 0.3s var(--ease), background-color 0.3s var(--ease);
+}
+
+.server {
+  border-style: dashed;
+}
+
+.moved {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  animation: nudge 0.5s var(--ease);
+}
+
+@keyframes nudge {
+  30% {
+    transform: translateY(-3px);
+  }
+}
+
+.where {
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+}
+
+.name {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.tip {
+  display: block;
+  margin: 4px 0;
+  font-size: 0.74rem;
+}
+
+.note {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.status {
+  margin-top: var(--space-3);
+  font-size: 0.85rem;
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--border-strong);
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  margin-right: var(--space-2);
+}
+
+.truth {
+  margin-top: 4px;
+  color: var(--warn);
+}
+
+.output {
+  margin-top: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  min-height: 48px;
+}
+
+.prompt {
+  color: var(--accent);
+}
+
+.result {
+  font-family: var(--font-sans);
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.empty {
+  font-family: var(--font-sans);
+  color: var(--text-faint);
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}

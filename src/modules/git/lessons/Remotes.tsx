@@ -53,6 +53,10 @@ export default function Remotes() {
         ]}
       />
 
+      <Callout tone="tip" title="fetch or pull?">
+        The next lesson, <a href="#/git/fetch-pull">git fetch vs git pull</a>, takes them apart step by step, with a playground and every common situation.
+      </Callout>
+
       <h2>When both sides have new commits</h2>
       <p>Bob pushed again while Ann committed locally. Her push is rejected — the server will not throw Bob’s commit away:</p>
       <Transcript steps={r.rejected} />

@@ -28,6 +28,7 @@ export const gitModule: LearningModule = {
       title: 'Working with others',
       lessons: [
         { slug: 'remotes', title: 'Remotes: clone, fetch, pull, push', summary: 'Sharing a repository, tracking branches, rejected pushes, and pulling with rebase.', load: () => import('./lessons/Remotes') },
+        { slug: 'fetch-pull', title: 'git fetch vs git pull', summary: 'Exactly what each one changes — the server, origin/main and your branch — with recordings, a playground and every common situation.', load: () => import('./lessons/FetchPull') },
         { slug: 'accounts', title: 'Work and personal accounts on one machine', summary: 'SSH keys per account, host aliases, identity by folder or by remote, and signed commits.', load: () => import('./lessons/Accounts') },
         { slug: 'workflow', title: 'Team workflow', summary: 'Feature branches and pull requests, good commit messages, .gitignore, hooks and aliases.', load: () => import('./lessons/Workflow') },
       ],

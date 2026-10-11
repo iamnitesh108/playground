@@ -366,7 +366,7 @@ export const CAPTURE = {
    },
    {
     "cmd": "git log --format=\"%h %an %ar %s\"",
-    "out": "59980cf Ann Lee 5 days ago Compute the cart total\n3dc32e4 Bob Kim 5 days ago Add payment call\ne9198ac Ann Lee 5 days ago Add items to the cart\n172cbe0 Ann Lee 5 days ago Add cart",
+    "out": "59980cf Ann Lee 6 days ago Compute the cart total\n3dc32e4 Bob Kim 6 days ago Add payment call\ne9198ac Ann Lee 6 days ago Add items to the cart\n172cbe0 Ann Lee 6 days ago Add cart",
     "exit": 0
    }
   ],
@@ -858,6 +858,224 @@ export const CAPTURE = {
    }
   ]
  },
+ "fetchpull": {
+  "stale": [
+   {
+    "cmd": "git status",
+    "out": "On branch main\nYour branch is up to date with 'origin/main'.\n\nnothing to commit, working tree clean",
+    "exit": 0
+   },
+   {
+    "cmd": "git log --oneline --graph --all",
+    "out": "* a024d5b (HEAD -> main, origin/main) Add app",
+    "exit": 0
+   }
+  ],
+  "fetch": [
+   {
+    "cmd": "git fetch",
+    "out": "From /srv/git/shop\n   a024d5b..2e4340e  main       -> origin/main",
+    "exit": 0
+   },
+   {
+    "cmd": "git status",
+    "out": "On branch main\nYour branch is behind 'origin/main' by 2 commits, and can be fast-forwarded.\n  (use \"git pull\" to update your local branch)\n\nnothing to commit, working tree clean",
+    "exit": 0
+   },
+   {
+    "cmd": "git log --oneline --graph --all",
+    "out": "* 2e4340e (origin/main, origin/HEAD) Bob: retry payments\n* 3b7bdea Bob: add currency\n* a024d5b (HEAD -> main) Add app",
+    "exit": 0
+   }
+  ],
+  "untouched": [
+   {
+    "cmd": "cat app.js",
+    "out": "export const name = 'shop'\nexport const version = 1\nexport const debug = false\nexport const theme = 'light'",
+    "exit": 0
+   },
+   {
+    "cmd": "ls",
+    "out": "app.js",
+    "exit": 0
+   }
+  ],
+  "preview": [
+   {
+    "cmd": "git log --oneline main..origin/main",
+    "out": "2e4340e (origin/main, origin/HEAD) Bob: retry payments\n3b7bdea Bob: add currency",
+    "exit": 0
+   },
+   {
+    "cmd": "git diff --stat main origin/main",
+    "out": " app.js | 1 +\n pay.js | 1 +\n 2 files changed, 2 insertions(+)",
+    "exit": 0
+   },
+   {
+    "cmd": "git diff main origin/main -- app.js",
+    "out": "diff --git a/app.js b/app.js\nindex e02e00d..6a1f30f 100644\n--- a/app.js\n+++ b/app.js\n@@ -2,3 +2,4 @@ export const name = 'shop'\n export const version = 1\n export const debug = false\n export const theme = 'light'\n+export const currency = 'EUR'",
+    "exit": 0
+   }
+  ],
+  "integrate": [
+   {
+    "cmd": "git merge origin/main",
+    "out": "Updating a024d5b..2e4340e\nFast-forward\n app.js | 1 +\n pay.js | 1 +\n 2 files changed, 2 insertions(+)\n create mode 100644 pay.js",
+    "exit": 0
+   },
+   {
+    "cmd": "git log --oneline --graph --all",
+    "out": "* 2e4340e (HEAD -> main, origin/main, origin/HEAD) Bob: retry payments\n* 3b7bdea Bob: add currency\n* a024d5b Add app",
+    "exit": 0
+   },
+   {
+    "cmd": "ls",
+    "out": "app.js\npay.js",
+    "exit": 0
+   }
+  ],
+  "pull": [
+   {
+    "cmd": "git pull",
+    "out": "From /srv/git/shop\n   2e4340e..59eafa3  main       -> origin/main\nUpdating 2e4340e..59eafa3\nFast-forward\n cart.js | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 cart.js",
+    "exit": 0
+   },
+   {
+    "cmd": "git log --oneline -3",
+    "out": "59eafa3 (HEAD -> main, origin/main, origin/HEAD) Bob: add cart\n2e4340e Bob: retry payments\n3b7bdea Bob: add currency",
+    "exit": 0
+   }
+  ],
+  "undoPull": [
+   {
+    "cmd": "git reset --hard ORIG_HEAD",
+    "out": "HEAD is now at 2e4340e Bob: retry payments",
+    "exit": 0
+   },
+   {
+    "cmd": "git log --oneline -1",
+    "out": "2e4340e (HEAD -> main) Bob: retry payments",
+    "exit": 0
+   },
+   {
+    "cmd": "git status",
+    "out": "On branch main\nYour branch is behind 'origin/main' by 1 commit, and can be fast-forwarded.\n  (use \"git pull\" to update your local branch)\n\nnothing to commit, working tree clean",
+    "exit": 0
+   },
+   {
+    "cmd": "git pull --ff-only",
+    "out": "Updating 2e4340e..59eafa3\nFast-forward\n cart.js | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 cart.js",
+    "exit": 0
+   }
+  ],
+  "dirty": [
+   {
+    "cmd": "git status --short",
+    "out": " M app.js",
+    "exit": 0
+   },
+   {
+    "cmd": "git fetch",
+    "out": "From /srv/git/shop\n   59eafa3..4f034d4  main       -> origin/main",
+    "exit": 0
+   },
+   {
+    "cmd": "git pull",
+    "out": "Updating 59eafa3..4f034d4\nerror: Your local changes to the following files would be overwritten by merge:\n\tapp.js\nPlease commit your changes or stash them before you merge.\nAborting",
+    "exit": 1
+   },
+   {
+    "cmd": "git stash",
+    "out": "Saved working directory and index state WIP on main: 59eafa3 Bob: add cart",
+    "exit": 0
+   },
+   {
+    "cmd": "git pull",
+    "out": "Updating 59eafa3..4f034d4\nFast-forward\n app.js | 2 +-\n 1 file changed, 1 insertion(+), 1 deletion(-)",
+    "exit": 0
+   },
+   {
+    "cmd": "git stash pop",
+    "out": "Auto-merging app.js\nOn branch main\nYour branch is up to date with 'origin/main'.\n\nChanges not staged for commit:\n  (use \"git add <file>...\" to update what will be committed)\n  (use \"git restore <file>...\" to discard changes in working directory)\n\tmodified:   app.js\n\nno changes added to commit (use \"git add\" and/or \"git commit -a\")\nDropped refs/stash@{0} (443cb17ab5533c265a590960c5cbc1d0a0bd6ab4)",
+    "exit": 0
+   }
+  ],
+  "diverged": [
+   {
+    "cmd": "git fetch",
+    "out": "From /srv/git/shop\n   4f034d4..85d9ace  main       -> origin/main",
+    "exit": 0
+   },
+   {
+    "cmd": "git status",
+    "out": "On branch main\nYour branch and 'origin/main' have diverged,\nand have 1 and 1 different commits each, respectively.\n  (use \"git pull\" if you want to integrate the remote branch with yours)\n\nnothing to commit, working tree clean",
+    "exit": 0
+   },
+   {
+    "cmd": "git log --oneline --graph --all",
+    "out": "* 985f57f (HEAD -> main, before-pull) Ann: add search\n| * 85d9ace (origin/main, origin/HEAD) Bob: add stock\n|/  \n* 4f034d4 Bob: switch to USD\n* 59eafa3 Bob: add cart\n* 2e4340e Bob: retry payments\n* 3b7bdea Bob: add currency\n* a024d5b Add app",
+    "exit": 0
+   },
+   {
+    "cmd": "git pull",
+    "out": "hint: You have divergent branches and need to specify how to reconcile them.\nhint: You can do so by running one of the following commands sometime before\nhint: your next pull:\nhint:\nhint:   git config pull.rebase false  # merge\nhint:   git config pull.rebase true   # rebase\nhint:   git config pull.ff only       # fast-forward only\nhint:\nhint: You can replace \"git config\" with \"git config --global\" to set a default\nhint: preference for all repositories. You can also pass --rebase, --no-rebase,\nhint: or --ff-only on the command line to override the configured default per\nhint: invocation.\nfatal: Need to specify how to reconcile divergent branches.",
+    "exit": 128
+   }
+  ],
+  "ffOnly": [
+   {
+    "cmd": "git pull --ff-only",
+    "out": "hint: Diverging branches can't be fast-forwarded, you need to either:\nhint:\nhint: \tgit merge --no-ff\nhint:\nhint: or:\nhint:\nhint: \tgit rebase\nhint:\nhint: Disable this message with \"git config set advice.diverging false\"\nfatal: Not possible to fast-forward, aborting.",
+    "exit": 128
+   }
+  ],
+  "pullMerge": [
+   {
+    "cmd": "git pull --no-rebase --no-edit",
+    "out": "Merge made by the 'ort' strategy.\n stock.js | 1 +\n 1 file changed, 1 insertion(+)\n create mode 100644 stock.js",
+    "exit": 0
+   },
+   {
+    "cmd": "git log --oneline --graph -5",
+    "out": "*   7f01635 (HEAD -> main) Merge branch 'main' of /srv/git/shop\n|\\  \n| * 85d9ace (origin/main, origin/HEAD) Bob: add stock\n* | 985f57f (before-pull) Ann: add search\n|/  \n* 4f034d4 Bob: switch to USD\n* 59eafa3 Bob: add cart",
+    "exit": 0
+   }
+  ],
+  "pullRebase": [
+   {
+    "cmd": "git pull --rebase",
+    "out": "Successfully rebased and updated refs/heads/main.",
+    "exit": 0
+   },
+   {
+    "cmd": "git log --oneline --graph -5",
+    "out": "* 479b584 (HEAD -> main) Ann: add search\n* 85d9ace (origin/main, origin/HEAD) Bob: add stock\n* 4f034d4 Bob: switch to USD\n* 59eafa3 Bob: add cart\n* 2e4340e Bob: retry payments",
+    "exit": 0
+   },
+   {
+    "cmd": "git push",
+    "out": "To /srv/git/shop.git\n   85d9ace..479b584  main -> main",
+    "exit": 0
+   }
+  ],
+  "prune": [
+   {
+    "cmd": "git branch -r",
+    "out": "  origin/HEAD -> origin/main\n  origin/feature/old\n  origin/main",
+    "exit": 0
+   },
+   {
+    "cmd": "git fetch --prune",
+    "out": "From /srv/git/shop\n - [deleted]         (none)     -> origin/feature/old",
+    "exit": 0
+   },
+   {
+    "cmd": "git branch -r",
+    "out": "  origin/HEAD -> origin/main\n  origin/main",
+    "exit": 0
+   }
+  ]
+ },
  "accounts": {
   "keys": [
    {
@@ -867,7 +1085,7 @@ export const CAPTURE = {
    },
    {
     "cmd": "ssh-keygen -t ed25519 -C \"ann@work.example\" -f ~/.ssh/id_ed25519_work",
-    "out": "Generating public/private ed25519 key pair.\nYour identification has been saved in /home/ann/.ssh/id_ed25519_work\nYour public key has been saved in /home/ann/.ssh/id_ed25519_work.pub\nThe key fingerprint is:\nSHA256:jKWfLBibJOeGFv+e4k0EOhm/q6qbPrUTz7Svk/mv57U ann@work.example\nThe key's randomart image is:\n+--[ED25519 256]--+\n|                 |\n|                 |\n|  . .   .        |\n|   = . =         |\n|  * = + S        |\n|   % O o .       |\n|  + # * +  .     |\n| + +.% o .. .    |\n|B+oo++X+=o E     |\n+----[SHA256]-----+",
+    "out": "Generating public/private ed25519 key pair.\nYour identification has been saved in /home/ann/.ssh/id_ed25519_work\nYour public key has been saved in /home/ann/.ssh/id_ed25519_work.pub\nThe key fingerprint is:\nSHA256:Nb63W/wf4vsMontPCBYOZJynbMAYqqucu1A+GH7XtR0 ann@work.example\nThe key's randomart image is:\n+--[ED25519 256]--+\n|   .+ .o.        |\n|  .. ooo .       |\n| .    o.o.o      |\n|.      +oo..     |\n|o .   . S=.E     |\n|.*    . o +.o.   |\n|+.o. . . ..+.+o. |\n|+ o..     .o+o+..|\n|.=o      oo +=oo+|\n+----[SHA256]-----+",
     "exit": 0
    },
    {
@@ -877,7 +1095,7 @@ export const CAPTURE = {
    },
    {
     "cmd": "cat ~/.ssh/id_ed25519_personal.pub        # this is what you paste into the hosting site",
-    "out": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJLo",
+    "out": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKsJ",
     "exit": 0
    }
   ],
@@ -957,12 +1175,12 @@ export const CAPTURE = {
    },
    {
     "cmd": "git commit -m \"Start blog\"",
-    "out": "[main (root-commit) 94e74c2] Start blog\n 1 file changed, 1 insertion(+)\n create mode 100644 README.md",
+    "out": "[main (root-commit) 98f4519] Start blog\n 1 file changed, 1 insertion(+)\n create mode 100644 README.md",
     "exit": 0
    },
    {
     "cmd": "git log --show-signature -1",
-    "out": "commit 94e74c2807c796a1d3523835ab4abbc3029f7191\nGood \"git\" signature for ann@personal.example with ED25519 key SHA256:NcrqtKhNS4bQ937/hIw7sKQ83t6qJ6kehUMB3o8Nj5E\nAuthor: Ann Lee <ann@personal.example>\nDate:   Mon Oct 5 09:24:00 2026 +0000\n\n    Start blog",
+    "out": "commit 98f4519a3dac2682c45cfe5aa54089df0035a227\nGood \"git\" signature for ann@personal.example with ED25519 key SHA256:xvEcrHmXnybDAHGdmudDokFF/H4a5T8PwBQghJyXgHA\nAuthor: Ann Lee <ann@personal.example>\nDate:   Mon Oct 5 09:24:00 2026 +0000\n\n    Start blog",
     "exit": 0
    }
   ],
@@ -984,7 +1202,7 @@ export const CAPTURE = {
   "run": [
    {
     "cmd": "bash git-accounts.sh        # recorded with an empty passphrase; public keys shortened",
-    "out": "== personal\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIJ/w/Pz3DfgTMdDfQ6vi/sUB\n== work\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIFseZQAhGdVnovaenLYaGmM1\n== client\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM2UIlUCtJguE5VN4jdms9eq",
+    "out": "== personal\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIq2SloyZbV/GHcMly/Hr2Fa\n== work\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIyTbOMqbYmr+nqmN2Jd+AW4\n== client\nssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIBbiyh/f+zpcdTW/8+W7Eo2J",
     "exit": 0
    }
   ],

@@ -9,3 +9,13 @@
   font-size: 0.85rem;
   color: var(--text-muted);
 }
+
+.faq dt {
+  font-weight: 600;
+  margin-top: var(--space-3);
+}
+
+.faq dd {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+}
