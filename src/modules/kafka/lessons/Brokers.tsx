@@ -79,7 +79,8 @@ const STEPS = [
     body: (
       <p>
         If a broker dies, the controller elects a new leader and the client gets a <code>NOT_LEADER_OR_FOLLOWER</code> error. It
-        refreshes its metadata and retries against the new leader automatically.
+        refreshes its metadata and retries against the new leader automatically. In the figure broker 2 is down
+        (dimmed) and broker 3 now leads P1, so the retry goes to broker 3.
       </p>
     ),
   },
@@ -117,7 +118,6 @@ function BootstrapFlow() {
           ['client', 'b3', 'client>b3', 'ctrl', 'ctrl>b3'],
         ][i],
       }))}
-      caption="Step 5: broker 2 is down (dimmed); the controller made broker 3 the new leader of P1, so the client’s retry for P1 goes to broker 3."
     />
   )
 }
@@ -130,9 +130,9 @@ function Topology() {
       rows={3}
       rowHeight={76}
       nodes={[
-        { id: 'c1', label: 'controller 1', sub: 'active (quorum leader)', col: 0, row: 0, hue: 5 },
-        { id: 'c2', label: 'controller 2', sub: 'metadata log replica', col: 1, row: 0, hue: 5 },
-        { id: 'c3', label: 'controller 3', sub: 'metadata log replica', col: 2, row: 0, hue: 5 },
+        { id: 'c1', label: 'controller 1', sub: 'follower (voter)', col: 0, row: 0, hue: 5 },
+        { id: 'c2', label: 'controller 2', sub: 'active · Raft leader', col: 1, row: 0, hue: 5 },
+        { id: 'c3', label: 'controller 3', sub: 'follower (voter)', col: 2, row: 0, hue: 5 },
         { id: 'b1', label: 'broker 1', sub: 'partitions on disk', col: 0, row: 1, hue: 3 },
         { id: 'b2', label: 'broker 2', sub: 'partitions on disk', col: 1, row: 1, hue: 3 },
         { id: 'b3', label: 'broker 3', sub: 'partitions on disk', col: 2, row: 1, hue: 3 },
@@ -140,17 +140,17 @@ function Topology() {
         { id: 'cons', label: 'consumers', sub: 'read from leaders', col: 2, row: 2, hue: 1, shape: 'actor' },
       ]}
       edges={[
-        { from: 'c1', to: 'c2', label: 'Raft', both: true, hue: 5 },
-        { from: 'c2', to: 'c3', label: 'Raft', both: true, hue: 5 },
-        { from: 'c1', to: 'b1', label: 'metadata', dashed: true, hue: 5 },
-        { from: 'c2', to: 'b2', dashed: true, hue: 5 },
-        { from: 'c3', to: 'b3', dashed: true, hue: 5 },
+        { from: 'c2', to: 'c1', label: 'Raft', hue: 5 },
+        { from: 'c2', to: 'c3', label: 'Raft', hue: 5 },
+        { from: 'c2', to: 'b1', dashed: true, hue: 5 },
+        { from: 'c2', to: 'b2', label: 'metadata', dashed: true, hue: 5 },
+        { from: 'c2', to: 'b3', dashed: true, hue: 5 },
         { from: 'prod', to: 'b1', flow: true, hue: 7 },
         { from: 'prod', to: 'b2', flow: true, hue: 7 },
         { from: 'b2', to: 'cons', flow: true, hue: 1 },
         { from: 'b3', to: 'cons', flow: true, hue: 1 },
       ]}
-      caption="Schematic of a 3 + 3 layout. Brokers fetch the metadata log from the controllers (every broker keeps a copy); clients never talk to controllers. A laptop setup runs one process with both roles."
+      caption="Schematic of a 3 + 3 layout. The active controller is the Raft leader of the metadata log; the other controllers replicate it, and every broker fetches it from the active controller and keeps a copy. Producers and consumers only talk to brokers. A laptop setup runs one process with both roles."
     />
   )
 }
@@ -223,6 +223,12 @@ inter.broker.listener.name=PLAINTEXT
 listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
 
 log.dirs=/var/lib/kafka
+
+# One node cannot hold 3 copies: without these, consumer groups and
+# transactions fail (their internal topics default to replication factor 3)
+offsets.topic.replication.factor=1
+transaction.state.log.replication.factor=1
+transaction.state.log.min.isr=1
 
 # KRaft storage must be formatted once before the first start:
 #   kafka-storage.sh format -t $(kafka-storage.sh random-uuid) -c server.properties

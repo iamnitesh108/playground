@@ -185,8 +185,9 @@ export default function Offsets() {
           <strong>Log-end offset (LEO)</strong> — the offset the <em>next</em> record will get.
         </li>
         <li>
-          <strong>High watermark</strong> — the newest offset safely copied to all in-sync replicas. Consumers can only
-          read up to here (lesson 9).
+          <strong>High watermark</strong> — the first offset not yet copied to every in-sync replica. Records below it
+          are safe, and consumers can only read up to here (see{' '}
+          <a href="#/kafka/replication">Replication and failover</a>).
         </li>
         <li>
           <strong>Position</strong> — the next offset a particular consumer will fetch. Kept in the consumer’s memory.
@@ -196,8 +197,8 @@ export default function Offsets() {
           resumes after a restart.
         </li>
         <li>
-          <strong>Lag</strong> — log-end offset minus committed offset: how far behind the group is. The single most
-          important consumer health metric.
+          <strong>Lag</strong> — end offset minus committed offset: how far behind the group is. The end offset here
+          is the one consumers can see, the high watermark. Lag is the single most important consumer health metric.
         </li>
       </ul>
 
@@ -208,17 +209,17 @@ export default function Offsets() {
             label: 'orders-0',
             end: 12,
             start: 2,
-            span: { from: 6, to: 12, label: 'lag = 12 − 6 = 6', hue: 4 },
+            span: { from: 6, to: 10, label: 'lag = 10 − 6 = 4', hue: 4 },
             markers: [
               { at: 2, label: 'log-start 2', hue: 8 },
-              { at: 6, label: 'committed 6 (in Kafka)', hue: 1 },
-              { at: 8, label: 'position 8 (in memory)', hue: 1 },
+              { at: 6, label: 'committed 6', hue: 1 },
+              { at: 8, label: 'position 8', hue: 1 },
               { at: 10, label: 'high watermark 10', hue: 5, above: true },
               { at: 12, label: 'log-end 12', hue: 3, above: true },
             ],
           },
         ]}
-        caption="Dashed cells 0–1 were deleted by retention. The consumer has fetched up to 7 but saved progress only up to 6. Records 10 and 11 are written but not yet on every in-sync replica, so no consumer can read them yet. The dashed box on the right is where the next record goes."
+        caption="Dashed cells 0–1 were deleted by retention. The consumer has fetched up to offset 7, so its position (in memory) is 8, but its committed offset (in Kafka) is 6: after a crash it would read 6 and 7 again. Records 10 and 11 are written but not yet on every in-sync replica, so no consumer can read them and they do not count as lag yet. The dashed box on the right is where the next record goes."
       />
 
       <OffsetDemo />
@@ -323,7 +324,7 @@ export default function Offsets() {
           { term: 'Log-start offset', definition: 'The earliest offset still retained.' },
           { term: 'Position', definition: 'A consumer’s in-memory pointer to the next record to fetch.' },
           { term: 'Committed offset', definition: 'Saved progress of a group for a partition; survives restarts.' },
-          { term: 'Lag', definition: 'Records written but not yet committed by a group.' },
+          { term: 'Lag', definition: 'End offset (high watermark) minus committed offset: records consumers could read that the group has not committed yet.' },
           { term: '__consumer_offsets', definition: 'Internal topic where committed offsets are stored.' },
           { term: 'auto.offset.reset', definition: 'Where to start when a group has no committed offset: earliest, latest, none, or (4.0+) by_duration.' },
         ]}

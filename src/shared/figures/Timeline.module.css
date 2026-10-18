@@ -1,4 +1,5 @@
 .figure {
+  overflow-x: auto;
   margin: var(--space-4) 0;
   padding: var(--space-3);
   border: 1px solid var(--border);
@@ -18,9 +19,12 @@
   font-weight: 600;
 }
 
+/* narrow screens scroll the lanes sideways rather than cutting segment labels short */
 .grid {
   display: grid;
   gap: 12px;
+  min-width: 560px;
+  padding-bottom: 14px;
 }
 
 .lane {
@@ -111,4 +115,21 @@
   margin-left: calc(18% + var(--space-2));
   font-size: 0.7rem;
   color: var(--text-faint);
+}
+
+/* stripes behind text are unreadable: the label gets its own chip */
+.striped .segLabel {
+  width: fit-content;
+  max-width: calc(100% - 4px);
+  margin: 1px 2px;
+  padding: 0 4px;
+  line-height: 13px;
+  border-radius: 3px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.eventLabelEnd {
+  left: auto;
+  right: -4px;
 }

@@ -14,11 +14,11 @@ function frames(raw: string): ByteField[] {
     const kind: [string, string, Hue] =
       t.startsWith('*') ? ['array', t, 7]
       : t === '$-1' ? ['nil', t, 8]
-      : t.startsWith('$') ? ['length', t, 5]
+      : t.startsWith('$') ? ['length', t, 7]
       : t.startsWith('+') ? ['status', t, 6]
       : t.startsWith('-') ? ['error', t, 8]
       : t.startsWith(':') ? ['integer', t, 3]
-      : ['data', t, 1]
+      : ['data', t, 3]
     return { label: kind[0], content: kind[1], bytes: t.length + 2, hue: kind[2] }
   })
 }
@@ -45,6 +45,7 @@ export default function Protocol() {
       />
 
       <h2>RESP: the bytes on the wire</h2>
+      <p>RESP is the small text protocol every Redis client speaks: each value is announced by one type byte and, for strings, its length.</p>
       <p>
         Clients talk to Redis over TCP with <strong>RESP</strong> (REdis Serialization Protocol). A command is sent as an <em>array of bulk
         strings</em>: <code>*3</code> means three elements follow, each one announced by <code>$</code> and its length in bytes. Lines end in{' '}
@@ -57,7 +58,7 @@ export default function Protocol() {
           { label: `client → server: ${P.wire[0].cmd}`, fields: frames(P.wire[0].sent) },
           ...P.wire.slice(0, 5).map((w) => ({ label: `server → client: reply to ${w.cmd}`, fields: frames(w.received) })),
         ]}
-        caption="Each block is one line of the protocol, sized in bytes including its \r\n. The first byte names the type: * array, $ a length (the data follows on the next line), + status, : integer, - error; $-1 is nil."
+        caption="Each block is one line of the protocol, sized in bytes including its \r\n. The first byte names the type: * array and $ length are framing (the data follows on the next line); + status; : integer; - error; $-1 is nil. The label under each block says which it is."
       />
       <p>These are the exact bytes recorded for a few commands (prefix characters highlighted):</p>
       <WireView rows={P.wire} />
@@ -89,6 +90,7 @@ export default function Protocol() {
       />
 
       <h2>Round trips are the real cost</h2>
+      <p>For most programs the network round trip, not the server, decides how fast Redis feels.</p>
       <p>
         Executing a simple command takes the server about a microsecond or two (reading the request and writing the reply cost a little more). But a client that sends a command and waits for its reply before sending the next
         one pays a full round trip for every command. The recording: {P.incr.n.toLocaleString()} <code>INCR</code>s against a server on the same
@@ -133,6 +135,7 @@ export default function Protocol() {
       />
 
       <h2>What redis-benchmark measured</h2>
+      <p>The same effect shows up in server throughput: more clients and pipelining both keep the one command thread busier.</p>
       <p>The bundled <code>redis-benchmark</code> tool, 200,000 SETs on the recorded server:</p>
       <StatTiles
         title="SET requests per second, recorded"
@@ -151,28 +154,33 @@ export default function Protocol() {
       </p>
 
       <h2>Pipeline, MULTI or script?</h2>
+      <p>Pipelining, transactions and scripts all save round trips, but only the last two keep other clients out.</p>
       <p>
         A pipeline is only a way of using the network: the commands still execute one by one, and <strong>another client’s commands can run between
-        them</strong>. If the commands must run together, with nothing in between, use a transaction or a script (lesson 8):
+        them</strong>. When a read from a socket brings several complete commands, Redis runs all of them before serving the next ready client — so the
+        gaps fall where a long pipeline is split across socket reads. If the commands must run together, with nothing in between, use a transaction or a
+        script (lesson 8):
       </p>
       <Timeline
-        title="Schematic: what the server thread runs when client A pipelines three commands and client B sends one"
+        title="Schematic: client A's long pipeline arrives in two reads; client B's command runs in between"
         unit="steps"
-        end={5}
+        end={6}
         lanes={[
           { id: 'server', label: 'server thread' },
           { id: 'a', label: 'client A (pipeline)' },
           { id: 'b', label: 'client B' },
         ]}
         segments={[
-          { lane: 'a', from: 0, to: 0.5, label: 'A1 A2 A3 sent', hue: 1 },
-          { lane: 'b', from: 1.2, to: 1.6, label: 'B1', hue: 7 },
-          { lane: 'server', from: 0.6, to: 1.5, label: 'A1', hue: 2 },
-          { lane: 'server', from: 1.6, to: 2.5, label: 'A2', hue: 2 },
-          { lane: 'server', from: 2.6, to: 3.5, label: 'B1', hue: 8 },
-          { lane: 'server', from: 3.6, to: 4.5, label: 'A3', hue: 2 },
+          { lane: 'a', from: 0, to: 0.6, label: 'A1 A2', hue: 1 },
+          { lane: 'a', from: 1.4, to: 2, label: 'A3 A4', hue: 1 },
+          { lane: 'b', from: 1.1, to: 1.6, label: 'B1', hue: 1 },
+          { lane: 'server', from: 0.7, to: 1.4, label: 'A1', hue: 2 },
+          { lane: 'server', from: 1.5, to: 2.2, label: 'A2', hue: 2 },
+          { lane: 'server', from: 2.3, to: 3.0, label: 'B1', hue: 2 },
+          { lane: 'server', from: 3.1, to: 3.8, label: 'A3', hue: 2 },
+          { lane: 'server', from: 3.9, to: 4.6, label: 'A4', hue: 2 },
         ]}
-        events={[{ lane: 'server', at: 2.6, label: 'B runs between A2 and A3', hue: 8 }]}
+        events={[{ lane: 'server', at: 2.3, label: 'B1 runs between A2 and A3', hue: 2 }]}
       />
       <CliSession title="recorded: MULTI queues commands and EXEC runs them together" steps={P.multi} />
       <Table

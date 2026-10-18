@@ -50,7 +50,7 @@ export function LineChart({ title, series, xLabel, yLabel, formatX = String, for
   const path = (pts: LineSeries['points']) =>
     pts.map((p, i) => (i === 0 ? `M${x(p[0])},${y(p[1])}` : step ? `H${x(p[0])}V${y(p[1])}` : `L${x(p[0])},${y(p[1])}`)).join('')
   const at = hover === null ? null : xs[hover]
-  // direct labels at the end of each line, pushed apart so they never overlap
+  // direct labels in the right margin (never on top of a longer line), pushed apart so they never overlap
   const labelY = new Map<string, number>()
   ;[...series]
     .map((s) => ({ label: s.label, y: y(s.points[s.points.length - 1][1]) }))
@@ -108,7 +108,7 @@ export function LineChart({ title, series, xLabel, yLabel, formatX = String, for
           <g key={s.label} style={seriesColor(series.indexOf(s))}>
             <path d={path(s.points)} className={s.emphasis || series.length === 1 ? styles.lineMain : styles.lineOther} />
             {s.points.length <= 12 && s.points.map((p) => <circle key={p[0]} cx={x(p[0])} cy={y(p[1])} r={4} className={s.emphasis || series.length === 1 ? styles.dotMain : styles.dotOther} />)}
-            {series.length > 1 && <text x={x(s.points[s.points.length - 1][0]) + 8} y={labelY.get(s.label)} className={styles.directLabel}>{s.label}</text>}
+            {series.length > 1 && <text x={W - PAD.right + 8} y={labelY.get(s.label)} className={styles.directLabel}>{s.label}</text>}
           </g>
         ))}
         {at !== null && (

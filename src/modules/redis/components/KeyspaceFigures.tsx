@@ -82,7 +82,7 @@ export function KeyspaceCursorFigure({ title, size, order, seen }: CursorFigureP
       <div className={styles.label}>the cursor sequence: bits as returned, and read backwards</div>
       <div className={styles.cursorRow}>
         {visits.map((c, i) => (
-          <div key={c} className={styles.cursor} style={hue((seen.includes(c) || c === 0 ? 1 : 7) as Hue)}>
+          <div key={c} className={styles.cursor} style={hue((seen.includes(c) || c === 0 ? 1 : 2) as Hue)}>
             <span className={styles.cursorStep}>#{i + 1}</span>
             <span className={styles.cursorValue}>{c}</span>
             <code className={styles.cursorBits}>{bits(c, size)}</code>
@@ -92,7 +92,7 @@ export function KeyspaceCursorFigure({ title, size, order, seen }: CursorFigureP
       </div>
       <div className={styles.legend}>
         <span style={hue(1)}><i /> returned by a recorded SCAN call</span>
-        <span style={hue(7)}><i /> visited inside a call (COUNT is a hint) — not returned as a cursor</span>
+        <span style={hue(2)}><i /> visited inside a call (COUNT is a hint) — not returned as a cursor</span>
         <span className={styles.note}>last row: the bits reversed — 0, 1, 2, 3… in binary</span>
       </div>
     </figure>

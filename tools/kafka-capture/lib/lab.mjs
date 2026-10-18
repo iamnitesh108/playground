@@ -65,11 +65,17 @@ export class Running {
     this.lines = []
     this.t0 = Date.now()
     this.proc = spawn(command, args, { env: { ...process.env, ...env }, stdio: ['pipe', 'pipe', 'pipe'] })
-    const take = (d) => {
-      for (const l of d.toString().split('\n')) if (l.trim() && !NOISE.test(l)) this.lines.push({ at: Date.now(), line: l })
+    const keep = (l) => { if (l.trim() && !NOISE.test(l)) this.lines.push({ at: Date.now(), line: l }) }
+    // output arrives in chunks that can end mid-line: hold the unfinished tail until its newline comes
+    for (const stream of [this.proc.stdout, this.proc.stderr]) {
+      let tail = ''
+      stream.on('data', (d) => {
+        const parts = (tail + d.toString()).split('\n')
+        tail = parts.pop()
+        parts.forEach(keep)
+      })
+      stream.on('end', () => keep(tail))
     }
-    this.proc.stdout.on('data', take)
-    this.proc.stderr.on('data', take)
     this.exited = new Promise((r) => this.proc.on('exit', r))
   }
 

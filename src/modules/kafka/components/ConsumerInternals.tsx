@@ -69,6 +69,7 @@ function Diagram({ index }: { index: number }) {
     </g>
   )
   return (
+    <div className={styles.scroll}>
     <svg viewBox="0 0 760 230" className={styles.svg} role="img" aria-label="Inside a consumer">
       {/* broker */}
       <rect x={12} y={30} width={340} height={190} rx={10} className={styles.box} />
@@ -109,6 +110,7 @@ function Diagram({ index }: { index: number }) {
         )
       })}
     </svg>
+    </div>
   )
 }
 

@@ -91,6 +91,15 @@ export function Flow({ title, nodes, edges, cols, rows, steps, width = 760, rowH
     return { d: `M${ac.x},${sy} C${ac.x},${my} ${bc.x},${my} ${bc.x},${ey}`, label: { x: (ac.x + bc.x) / 2, y: my } }
   }
 
+  const boxes = nodes.map(box)
+  /** Where an edge label fits without covering a box: on the edge, just above or just below it. */
+  const placeLabel = (mid: { x: number; y: number }, text: string) => {
+    const w = text.length * 6 + 10
+    const clear = (p: { x: number; y: number }) =>
+      boxes.every((b) => p.x + w / 2 < b.x - 2 || p.x - w / 2 > b.x + b.w + 2 || p.y + 8 < b.y - 2 || p.y - 8 > b.y + b.h + 2)
+    return [mid, { x: mid.x, y: mid.y - 14 }, { x: mid.x, y: mid.y + 14 }].find(clear)
+  }
+
   const current = steps?.[step]
   return (
     <figure className={styles.figure}>
@@ -104,13 +113,18 @@ export function Flow({ title, nodes, edges, cols, rows, steps, width = 760, rowH
         {edges.map((e) => {
           const id = `${e.from}>${e.to}`
           const { d, label: mid } = route(e)
+          // a label that cannot fit between the boxes becomes a tooltip on the edge instead
+          const at = e.label ? placeLabel(mid, e.label) : undefined
+          if (e.label && !at && import.meta.env.DEV) console.warn(`Flow: edge label "${e.label}" does not fit; shown as a tooltip`)
           const on = isOn(id)
           const pid = `${uid}-${id.replace(/[^a-z0-9]/gi, '_')}`
           return (
             <g key={id} className={cx(styles.edge, !on && styles.dim)} style={hue(e.hue)}>
-              <path id={pid} d={d} className={cx(styles.edgeLine, e.dashed && styles.dashed)} markerEnd={`url(#${uid}-arrow)`} markerStart={e.both ? `url(#${uid}-arrow)` : undefined} />
-              {e.label && (
-                <g transform={`translate(${mid.x} ${mid.y})`}>
+              <path id={pid} d={d} className={cx(styles.edgeLine, e.dashed && styles.dashed)} markerEnd={`url(#${uid}-arrow)`} markerStart={e.both ? `url(#${uid}-arrow)` : undefined}>
+                {e.label && !at && <title>{e.label}</title>}
+              </path>
+              {e.label && at && (
+                <g transform={`translate(${at.x} ${at.y})`}>
                   <rect x={-e.label.length * 3 - 5} y={-8} width={e.label.length * 6 + 10} height={16} rx={8} className={styles.edgeLabelBg} />
                   <text className={styles.edgeLabel} y={4}>{e.label}</text>
                 </g>
@@ -130,6 +144,8 @@ export function Flow({ title, nodes, edges, cols, rows, steps, width = 760, rowH
           const b = box(n)
           const on = isOn(n.id)
           const shape = n.shape ?? 'box'
+          // a cylinder's top rim takes the first 16px, so its text sits lower
+          const labelDrop = shape === 'store' ? 7 : 0
           return (
             <g key={n.id} className={cx(styles.node, !on && styles.dim, active && on && styles.lit)} style={hue(n.hue)}>
               {shape === 'store' ? (
@@ -154,8 +170,8 @@ export function Flow({ title, nodes, edges, cols, rows, steps, width = 760, rowH
               ) : (
                 <rect x={b.x} y={b.y} width={b.w} height={b.h} rx={10} className={styles.shape} />
               )}
-              <text x={b.x + b.w / 2} y={b.y + b.h / 2 + (n.sub ? -3 : 4)} className={styles.label}>{n.label}</text>
-              {n.sub && <text x={b.x + b.w / 2} y={b.y + b.h / 2 + 13} className={styles.sub}>{n.sub}</text>}
+              <text x={b.x + b.w / 2} y={b.y + b.h / 2 + (n.sub ? -3 : 4) + labelDrop} className={styles.label}>{n.label}</text>
+              {n.sub && <text x={b.x + b.w / 2} y={b.y + b.h / 2 + 13 + labelDrop} className={styles.sub}>{n.sub}</text>}
             </g>
           )
         })}

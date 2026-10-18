@@ -226,7 +226,7 @@ export default function Producers() {
       </ul>
 
       <Timeline
-        title="Two batches for one partition: one leaves at linger.ms, one leaves full (schematic, linger.ms=5)"
+        title="Two batches for one partition: batch 1 leaves when linger.ms runs out, batch 2 when it reaches batch.size (schematic, linger.ms=5)"
         lanes={[
           { id: 'arrive', label: 'send() calls' },
           { id: 'batch', label: 'batch for P0' },
@@ -243,8 +243,8 @@ export default function Producers() {
           { lane: 'arrive', at: 1.5, label: 'r2', hue: 7 },
           { lane: 'arrive', at: 3, label: 'r3', hue: 7 },
           { lane: 'arrive', at: 6, label: 'r4…', hue: 7 },
-          { lane: 'batch', at: 5, label: 'linger.ms reached', hue: 5 },
-          { lane: 'batch', at: 9, label: 'batch.size full', hue: 5 },
+          { lane: 'batch', at: 5, label: 'linger.ms up', hue: 7 },
+          { lane: 'batch', at: 9, label: 'full', hue: 7 },
         ]}
         end={12}
         playable
@@ -264,7 +264,7 @@ export default function Producers() {
         ]}
       />
       <Timeline
-        title="When does the producer hear “OK”? (schematic time)"
+        title="When does the producer hear “OK”? acks=0 never waits, acks=1 waits for the leader, acks=all for every in-sync replica (schematic time)"
         lanes={[
           { id: 'a0', label: 'acks=0' },
           { id: 'a1', label: 'acks=1' },
@@ -273,17 +273,17 @@ export default function Producers() {
         segments={[
           { lane: 'a0', from: 0, to: 1, label: 'send', hue: 7 },
           { lane: 'a1', from: 0, to: 1, label: 'send', hue: 7 },
-          { lane: 'a1', from: 1, to: 2, label: 'leader writes', hue: 3 },
+          { lane: 'a1', from: 1, to: 3, label: 'leader writes', hue: 3 },
           { lane: 'aall', from: 0, to: 1, label: 'send', hue: 7 },
-          { lane: 'aall', from: 1, to: 2, label: 'leader writes', hue: 3 },
-          { lane: 'aall', from: 2, to: 4.5, label: 'followers fetch a copy', hue: 3 },
+          { lane: 'aall', from: 1, to: 3, label: 'leader writes', hue: 3 },
+          { lane: 'aall', from: 3, to: 6.5, label: 'followers fetch', hue: 3 },
         ]}
         events={[
-          { lane: 'a0', at: 1, label: 'done — nobody confirmed anything', hue: 8 },
-          { lane: 'a1', at: 2.6, label: 'ack: 1 copy', hue: 6 },
-          { lane: 'aall', at: 5.1, label: 'ack: every in-sync replica has it', hue: 6 },
+          { lane: 'a0', at: 1, label: 'done, unconfirmed', hue: 8 },
+          { lane: 'a1', at: 3, label: 'ack: 1 copy', hue: 6 },
+          { lane: 'aall', at: 6.5, label: 'ack: all ISR', hue: 6 },
         ]}
-        end={8}
+        end={9}
         unit="steps"
         playable
       />
@@ -311,8 +311,8 @@ export default function Producers() {
           { id: 'log', label: 'P0 log', sub: 'each batch stored once', col: 2, row: 0, hue: 3, shape: 'log' },
         ]}
         edges={[
-          { from: 'prod', to: 'leader', label: 'batch + seq', flow: true, hue: 7 },
-          { from: 'leader', to: 'log', label: 'new seq only', flow: true, hue: 3 },
+          { from: 'prod', to: 'leader', flow: true, hue: 7 },
+          { from: 'leader', to: 'log', flow: true, hue: 3 },
         ]}
         steps={[
           { title: 'Every batch is numbered', body: <p>The producer gets a producer id (and epoch) when it starts and numbers its batches per partition: 0, 1, 2…</p>, active: ['prod', 'prod>leader'] },

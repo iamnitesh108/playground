@@ -29,6 +29,7 @@ export default function Expiry() {
       />
 
       <h2>A TTL is a deadline attached to a key</h2>
+      <p>A TTL tells Redis when to delete a key; the tricky part is which commands keep it and which drop it.</p>
       <p>
         Any key can get an expiry time. Redis stores it as an absolute Unix time in milliseconds in a second table (the <em>expires</em> dict, next to
         the keyspace). <code>TTL</code> and <code>PTTL</code> compute the time left. The rules about which commands keep or drop the TTL are where
@@ -75,31 +76,33 @@ export default function Expiry() {
       <p>Redis does not run a timer per key. Expired keys are removed in two ways.</p>
       <Flow
         title="Two ways out: lazily when touched, actively by a cursor"
-        cols={5}
-        rows={2}
+        cols={4}
+        rows={3}
+        rowHeight={92}
         nodes={[
           { id: 'client', label: 'a command', sub: 'GET session:42', col: 0, row: 0, hue: 1, shape: 'actor' },
-          { id: 'check', label: 'deadline?', sub: 'looked up first', col: 1, row: 0, hue: 2 },
+          { id: 'check', label: 'deadline passed?', sub: 'checked on lookup', col: 1, row: 0, hue: 2 },
           { id: 'lazy', label: 'delete now', sub: 'then act as missing', col: 2, row: 0, hue: 8 },
-          { id: 'cron', label: 'cron tick', sub: 'hz times a second', col: 0, row: 1, hue: 4 },
-          { id: 'round', label: 'next 20 keys', sub: 'cursor continues', col: 1, row: 1, hue: 3 },
-          { id: 'active', label: 'delete expired', sub: 'of those 20', col: 2, row: 1, hue: 8 },
-          { id: 'more', label: '> 10% expired?', sub: 'yes: another round', col: 3, row: 1, hue: 4 },
-          { id: 'expires', label: 'expires dict', sub: 'key → deadline', col: 4, row: 0, rowSpan: 2, hue: 3, shape: 'store' },
+          { id: 'expires', label: 'expires dict', sub: 'key → deadline', col: 1, row: 1, hue: 3, shape: 'store' },
+          { id: 'cron', label: 'cron tick', sub: 'hz times a second', col: 0, row: 2, hue: 4 },
+          { id: 'round', label: 'next 20 keys', sub: 'cursor continues', col: 1, row: 2, hue: 2 },
+          { id: 'active', label: 'delete expired', sub: 'of those 20', col: 2, row: 2, hue: 8 },
+          { id: 'more', label: '> 10% expired?', sub: 'yes: another round', col: 3, row: 2, hue: 4 },
         ]}
         edges={[
           { from: 'client', to: 'check', flow: true, hue: 1 },
-          { from: 'check', to: 'lazy', label: 'passed', flow: true, hue: 8 },
+          { from: 'check', to: 'expires', dashed: true, hue: 3 },
+          { from: 'check', to: 'lazy', label: 'yes', flow: true, hue: 8 },
           { from: 'cron', to: 'round', flow: true, hue: 4 },
-          { from: 'round', to: 'active', flow: true, hue: 3 },
+          { from: 'round', to: 'expires', dashed: true, hue: 3 },
+          { from: 'round', to: 'active', flow: true, hue: 2 },
           { from: 'active', to: 'more', hue: 4 },
-          { from: 'more', to: 'expires', label: 'walks', dashed: true, hue: 3 },
         ]}
         steps={[
-          { title: 'Lazy: a command touches the key', body: <p>Every lookup checks the key’s deadline first. If it has passed, the key is deleted right there and the command sees no key.</p>, active: ['client', 'check', 'lazy', 'client>check', 'check>lazy'] },
+          { title: 'Lazy: a command touches the key', body: <p>Every lookup checks the key’s deadline in the expires dict first. If it has passed, the key is deleted right there and the command sees no key.</p>, active: ['client', 'check', 'lazy', 'expires', 'client>check', 'check>expires', 'check>lazy'] },
           { title: 'Active: the cron wakes up', body: <p>{CAPTURE.operations.defaults.hz} times a second (<code>hz</code>) the server runs the active expire cycle for each database.</p>, active: ['cron', 'round', 'cron>round'] },
-          { title: 'A round looks at 20 keys with a TTL', body: <p>A cursor walks the expires dict; each round looks at the next 20 keys there and deletes the ones whose deadline passed.</p>, active: ['round', 'active', 'expires', 'round>active', 'more>expires'] },
-          { title: 'Another round only if it paid off', body: <p>More than 10% of the round expired? Then more probably have — do another round, until the time budget runs out. Otherwise stop; the cursor remembers where it was for the next tick.</p>, active: ['active', 'more', 'active>more', 'more>expires'] },
+          { title: 'A round looks at 20 keys with a TTL', body: <p>A cursor walks the expires dict; each round looks at the next 20 keys there and deletes the ones whose deadline passed.</p>, active: ['round', 'active', 'expires', 'round>expires', 'round>active'] },
+          { title: 'Another round only if it paid off', body: <p>More than 10% of the round expired? Then more probably have — do another round, until the time budget runs out. Otherwise stop; the cursor remembers where it was for the next tick.</p>, active: ['active', 'more', 'round', 'active>more'] },
         ]}
       />
       <h3>1. Lazily, when touched</h3>
@@ -121,10 +124,14 @@ export default function Expiry() {
       <p>
         Keys nobody reads again would stay forever with lazy expiry alone. So <code>hz</code> times per second (default 10) the server runs the
         <strong> active expire cycle</strong>: per database it walks on through the table of keys that have a TTL with a cursor (since Redis 6), looking at 20 keys
-        per round and deleting the expired ones. If more than 10% of a round had expired, the table probably holds many more, so it does another round —
-        until a round is mostly alive or the cycle’s time budget (a share of CPU time) runs out. The next cycle continues where the cursor stopped. A shorter extra cycle also runs before the event loop goes idle. <code>active-expire-effort</code> (1–10, default{' '}
-        {E.activeExpireEffort}) raises the keys per round and the budget.
+        per round and deleting the expired ones.
       </p>
+      <ul>
+        <li>If more than 10% of a round had expired, the table probably holds many more, so it does another round.</li>
+        <li>It stops when a round is mostly alive or the cycle’s time budget (a share of CPU time) runs out; the next cycle continues where the cursor stopped.</li>
+        <li>A shorter extra cycle also runs before the event loop goes idle.</li>
+        <li><code>active-expire-effort</code> (1–10, default {E.activeExpireEffort}) raises the keys per round and the budget.</li>
+      </ul>
       <LineChart
         title={`${drain[0].total.toLocaleString()} keys written with PX 1000: keys left over time`}
         series={drain.map((d) => ({ label: `hz ${d.hz}`, points: d.samples.map((s) => [s.ms, s.keys] as const), emphasis: d.hz === 10 }))}
@@ -134,7 +141,7 @@ export default function Expiry() {
       />
       <StatTiles
         stats={drain.flatMap((d) => [
-          { label: `hz ${d.hz}: all ${d.total.toLocaleString()} removed`, value: `${d.end} ms`, sub: `first removal at ${d.start} ms`, hue: (d.hz === 10 ? 1 : 2) as 1 | 2, bar: { value: d.end, max: Math.max(...drain.map((x) => x.end)) } },
+          { label: `hz ${d.hz}: all ${d.total.toLocaleString()} removed`, value: `${d.end} ms`, sub: `first removal at ${d.start} ms`, hue: 2 as const, bar: { value: d.end, max: Math.max(...drain.map((x) => x.end)) } },
           { label: `hz ${d.hz}: CPU in expire cycles`, value: `${d.cycleCpuMs} ms`, sub: 'for the whole drain', hue: 4 as const },
         ])}
       />
@@ -144,6 +151,7 @@ export default function Expiry() {
       </p>
 
       <h2>When few keys expire, they linger</h2>
+      <p>The cycle stops early when it finds little to delete — so a few expired keys among many live ones can stay in memory for minutes.</p>
       <p>
         The recording wrote {mixed.keys.toLocaleString()} keys, of which {mixed.shortLived.toLocaleString()} (10%) expired after half a second and the
         rest lived an hour. Three seconds later only <strong>{mixed.after3s.expired}</strong> of the {mixed.shortLived.toLocaleString()} expired keys had

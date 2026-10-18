@@ -1,0 +1,146 @@
+# Headless Service: gives every pod a stable DNS name, redis-0.redis-headless.<namespace>.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-headless
+  labels:
+    app.kubernetes.io/name: redis
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app.kubernetes.io/name: redis
+  ports:
+    - name: redis
+      port: 6379
+---
+# What applications use for writes: always the pod redis-0
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-primary
+  labels:
+    app.kubernetes.io/name: redis
+spec:
+  selector:
+    app.kubernetes.io/name: redis
+    statefulset.kubernetes.io/pod-name: redis-0
+  ports:
+    - name: redis
+      port: 6379
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+spec:
+  serviceName: redis-headless
+  replicas: 3
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+    spec:
+      terminationGracePeriodSeconds: 60
+      securityContext:
+        runAsUser: 999
+        runAsGroup: 999
+        runAsNonRoot: true
+        fsGroup: 999
+      affinity:
+        podAntiAffinity:
+          # Spread the three pods over three nodes when the cluster has them
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: redis
+      containers:
+        - name: redis
+          image: docker.io/redis:8.10.2
+          command: ["sh", "/etc/redis/start.sh"]
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: REPLICATION_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-users
+                  key: REPLICATION_PASSWORD
+            - name: PROBE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-users
+                  key: PROBE_PASSWORD
+          ports:
+            - name: redis
+              containerPort: 6379
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              memory: 1Gi
+          livenessProbe:
+            exec:
+              command: ["sh", "/etc/redis/probe.sh", "live"]
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command: ["sh", "/etc/redis/probe.sh", "ready"]
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /etc/redis
+            - name: users
+              mountPath: /etc/redis-acl
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: redis-config
+        - name: users
+          secret:
+            secretName: redis-users
+            defaultMode: 0440
+            items:
+              - key: users.acl
+                path: users.acl
+  # One PersistentVolumeClaim per pod: data-redis-0, data-redis-1, data-redis-2
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi
+---
+# Voluntary disruptions (node drains, upgrades) may take down at most one pod at a time
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: redis
+spec:
+  maxUnavailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis

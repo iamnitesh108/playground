@@ -125,7 +125,7 @@ export default function Replication() {
           behind for longer than <code>replica.lag.time.max.ms</code> (30 s) is dropped from the ISR until it catches up.
         </li>
         <li>
-          The <strong>high watermark</strong> is the last offset every ISR member has. Consumers only see records below
+          The <strong>high watermark</strong> is the first offset that is not yet on every ISR member. Consumers only see records below
           it, so they never read something that could disappear in a failover.
         </li>
       </ul>

@@ -1,0 +1,83 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  min-width: 520px;
+  border-collapse: separate;
+  border-spacing: 0 6px;
+  font-size: 0.8rem;
+}
+
+.table thead th {
+  text-align: center;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 0 6px;
+}
+
+.table thead th:first-child {
+  text-align: left;
+}
+
+.table tbody th {
+  text-align: left;
+  padding: 6px 10px;
+  border-left: 4px solid var(--hue);
+  background: var(--hue-soft);
+  border-radius: var(--radius) 0 0 var(--radius);
+  font-weight: 400;
+  width: 38%;
+}
+
+.table td {
+  text-align: center;
+  padding: 6px;
+  background: var(--surface-muted);
+}
+
+.table td:last-child {
+  border-radius: 0 var(--radius) var(--radius) 0;
+}
+
+.who {
+  display: block;
+  font-weight: 600;
+}
+
+.note {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.op {
+  display: inline-block;
+  padding: 2px 8px;
+  border: 1px solid var(--hue);
+  border-radius: 999px;
+  background: var(--surface);
+  font-family: var(--font-mono, monospace);
+  font-size: 0.76rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.none {
+  color: var(--text-muted);
+}

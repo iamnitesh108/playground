@@ -1,0 +1,14 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- Lettuce logs reconnects at INFO; keep those, hide the rest -->
+    <logger name="io.lettuce.core.protocol.ConnectionWatchdog" level="INFO"/>
+    <logger name="io.lettuce" level="WARN"/>
+    <logger name="io.micronaut" level="WARN"/>
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>

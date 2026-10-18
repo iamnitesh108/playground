@@ -1,0 +1,115 @@
+.figure {
+  margin: var(--space-4) 0;
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+/* the figure may scroll sideways on a phone; the page must not */
+.scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.grid {
+  display: grid;
+  gap: 4px;
+  min-width: min-content;
+  align-items: stretch;
+}
+
+/* reader rows are flattened into the grid */
+.contents {
+  display: contents;
+}
+
+.rowLabel {
+  --hue: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  padding-right: var(--space-2);
+  white-space: nowrap;
+}
+
+.swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--hue);
+  flex: none;
+}
+
+.offset {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: 6px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--hue);
+  background: var(--hue-soft);
+  text-align: center;
+}
+
+.striped {
+  background: repeating-linear-gradient(135deg, var(--hue-soft) 0 6px, color-mix(in oklab, var(--hue) 28%, var(--surface)) 6px 9px);
+  border-style: dashed;
+}
+
+.text {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text);
+  overflow-wrap: break-word;
+  hyphens: none;
+  line-height: 1.2;
+}
+
+.note {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  line-height: 1.2;
+}
+
+.read {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  border-radius: var(--radius-sm);
+  font-size: 0.7rem;
+  text-align: center;
+  padding: 2px 4px;
+}
+
+.yes {
+  background: var(--hue-soft);
+  border: 1px solid var(--hue);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.no {
+  color: var(--text-faint);
+  border: 1px dashed var(--border);
+}
+
+.caption {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}

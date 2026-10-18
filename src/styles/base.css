@@ -74,6 +74,7 @@ code {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
   padding: 0.05em 0.35em;
+  overflow-wrap: anywhere;
 }
 
 strong {

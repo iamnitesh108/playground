@@ -1,0 +1,51 @@
+# Nightly copy of the dataset, streamed from a replica with redis-cli --rdb onto a separate volume
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: redis-backup
+spec:
+  schedule: "15 2 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            redis-client: "true"
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsUser: 999
+            runAsGroup: 999
+            fsGroup: 999
+          containers:
+            - name: backup
+              image: docker.io/redis:8.10.2
+              command:
+                - sh
+                - -c
+                - redis-cli -h redis-1.redis-headless --user backup --rdb "/backup/dump-$(date +%Y%m%d-%H%M).rdb"
+              env:
+                - name: REDISCLI_AUTH
+                  valueFrom:
+                    secretKeyRef:
+                      name: redis-users
+                      key: BACKUP_PASSWORD
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          volumes:
+            - name: backup
+              persistentVolumeClaim:
+                claimName: redis-backup
+---
+# Or: a CSI snapshot of one pod's volume (needs a CSI driver with snapshot support)
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshot
+metadata:
+  name: redis-data-redis-1-nightly
+spec:
+  volumeSnapshotClassName: csi-snapclass
+  source:
+    persistentVolumeClaimName: data-redis-1

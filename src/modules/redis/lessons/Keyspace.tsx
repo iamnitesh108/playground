@@ -88,6 +88,7 @@ export default function Keyspace() {
       </div>
 
       <h2>Growing without stopping</h2>
+      <p>When the table fills up, Redis builds a bigger one and moves the keys over a little at a time, so no command ever pays for the whole move.</p>
       <p>
         4 keys in 4 buckets is a load factor of 1. The 5th key makes Redis allocate a <strong>second</strong> table of 8 buckets. It does not copy
         everything there at once — that could take seconds on a big database, and with one thread, every client would wait (lesson 1). Instead the
@@ -136,6 +137,7 @@ export default function Keyspace() {
       <DictPlayground />
 
       <h2>KEYS: one command that reads everything</h2>
+      <p>Listing keys is where the single thread hurts most: one KEYS call reads the whole table while everyone waits.</p>
       <p>
         <code>KEYS pattern</code> walks every bucket of the table in one go and returns all matching keys. With one thread, nothing else runs until it
         finishes. On the recorded server with {A.keyspace.toLocaleString()} keys, <code>KEYS nomatch*</code> (which matches nothing — so this is pure
@@ -150,7 +152,7 @@ export default function Keyspace() {
         ]}
       />
       <Timeline
-        title="Who can run, and when (KEYS and its PING recorded; the SCAN lane draws 25 of its calls)"
+        title="Who can run, and when (KEYS and its PING recorded; the SCAN lane draws 25 of its calls; the PING during SCAN is illustrative)"
         start={0}
         end={A.scanFull.totalMs}
         lanes={[
@@ -161,12 +163,12 @@ export default function Keyspace() {
         ]}
         segments={[
           { lane: 'keys', from: 0, to: A.keysPing.slowMs, label: 'one command', hue: 2 },
-          { lane: 'ping1', from: A.keysPing.slowMs - A.keysPing.pingMs, to: A.keysPing.slowMs, label: 'waits', hue: 8, striped: true },
+          { lane: 'ping1', from: A.keysPing.slowMs - A.keysPing.pingMs, to: A.keysPing.slowMs, label: 'waits', hue: 8 },
           ...Array.from({ length: SCAN_DRAWN }, (_, i) => ({ lane: 'scan', from: (i * A.scanFull.totalMs) / SCAN_DRAWN, to: (i * A.scanFull.totalMs) / SCAN_DRAWN + scanCall, hue: 2 as const })),
         ]}
         events={[
           { lane: 'ping1', at: A.keysPing.slowMs, label: 'PONG', hue: 6 },
-          { lane: 'ping2', at: A.keysPing.slowMs - A.keysPing.pingMs, label: 'PONG at once', hue: 6 },
+          { lane: 'ping2', at: A.keysPing.slowMs - A.keysPing.pingMs, label: 'PONG after at most one call', hue: 6 },
         ]}
         playable
       />
@@ -183,6 +185,7 @@ export default function Keyspace() {
       </p>
 
       <h2>SCAN: a cursor over the buckets</h2>
+      <p>SCAN does the same walk in small steps, remembering its place in a cursor.</p>
       <p>
         <code>SCAN cursor</code> returns a few keys and the next cursor. You start at 0 and stop when the server hands 0 back. Twenty keys, five at a time:
       </p>
@@ -202,7 +205,10 @@ export default function Keyspace() {
       </p>
       <p>
         The full order is {order.join(', ')}. Read each cursor’s bits from right to left and it counts up: 0, 1, 2, 3… with the bits <strong>reversed</strong>
-        {skipped.length > 0 && <> (here the calls skipped {skipped.join(', ')}: COUNT 1 is a hint, and a call may visit more than one bucket)</>}. Why? When the table doubles, bucket <code>b</code> splits into <code>b</code> and <code>b + size</code> — the new
+        {skipped.length > 0 && <> (here the calls skipped {skipped.join(', ')}: COUNT 1 is a hint, and a call may visit more than one bucket)</>}.
+      </p>
+      <p>
+        Why? When the table doubles, bucket <code>b</code> splits into <code>b</code> and <code>b + size</code> — the new
         highest bit. Counting from the high bit down means every bucket the scan already visited maps to buckets it will not visit again, in a table of
         any size. So a scan that runs across a resize still covers everything.
       </p>
@@ -228,6 +234,7 @@ export default function Keyspace() {
       </Callout>
 
       <h2>Databases and key names</h2>
+      <p>Numbered databases do not isolate anything; key prefixes are the usual way to organise a keyspace.</p>
       <p>
         A Redis server has 16 numbered databases by default (<code>databases 16</code>); <code>SELECT 3</code> switches a connection to number 3. They
         are just separate dicts in one process: they share memory, the event loop, persistence and ACLs, and Redis Cluster supports only database 0.

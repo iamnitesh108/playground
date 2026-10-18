@@ -23,7 +23,7 @@ export function PipelinePlayground() {
       controls={
         <>
           <Slider label="commands" value={commands} min={100} max={100_000} step={100} format={(v) => v.toLocaleString()} onChange={setCommands} />
-          <Slider label="round trip" value={rtt} min={0.05} max={30} step={0.05} format={(v) => `${v} ms`} onChange={setRtt} />
+          <Slider label="round trip" value={rtt} min={0.05} max={30} step={0.05} format={(v) => `${+v.toFixed(2)} ms`} onChange={setRtt} />
           <Slider label="pipeline size" value={batch} min={2} max={1000} format={(v) => `${v}`} onChange={setBatch} />
         </>
       }

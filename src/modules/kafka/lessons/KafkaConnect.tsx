@@ -39,7 +39,7 @@ function ConnectFlow() {
         { from: 'conv', to: 'topic', label: 'produce', hue: 3, flow: true },
         { from: 'topic', to: 'offsets', label: 'then save offset', hue: 5, dashed: true },
         { from: 'topic', to: 'ktask', label: 'consume (group connect-…)', hue: 3, flow: true },
-        { from: 'ktask', to: 'target', label: 'write batch', hue: 4, flow: true },
+        { from: 'ktask', to: 'target', hue: 4, flow: true },
       ]}
       steps={FLOW_STEPS}
     />

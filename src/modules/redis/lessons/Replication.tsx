@@ -82,23 +82,23 @@ export default function Replication() {
       </p>
       <Flow
         title="A full sync in Redis 8: the snapshot on one connection, the live stream on another"
-        cols={4}
+        cols={5}
         rows={2}
         nodes={[
           { id: 'replica', label: 'replica', sub: 'no history yet', col: 0, row: 0, rowSpan: 2, hue: 5 },
-          { id: 'primary', label: 'primary', sub: 'keeps serving', col: 3, row: 0, hue: 2 },
-          { id: 'child', label: 'fork child', sub: 'diskless BGSAVE', col: 3, row: 1, hue: 4 },
-          { id: 'buffer', label: 'live stream', sub: 'buffered by the replica', col: 2, row: 0, hue: 3, shape: 'queue' },
+          { id: 'primary', label: 'primary', sub: 'keeps serving', col: 4, row: 0, hue: 2 },
+          { id: 'child', label: 'fork child', sub: 'diskless BGSAVE', col: 4, row: 1, hue: 4 },
+          { id: 'buffer', label: 'live stream', sub: 'replica buffers it', col: 2, row: 0, hue: 3, shape: 'queue' },
           { id: 'disk', label: 'replica disk', sub: 'snapshot, then load', col: 2, row: 1, hue: 4, shape: 'store' },
         ]}
         edges={[
-          { from: 'primary', to: 'buffer', label: 'main', hue: 2, flow: true, both: true },
-          { from: 'child', to: 'disk', label: 'rdb', hue: 4, flow: true },
+          { from: 'primary', to: 'buffer', label: 'main link', hue: 2, flow: true, both: true },
+          { from: 'child', to: 'disk', label: 'rdb channel', hue: 4, flow: true },
           { from: 'buffer', to: 'replica', label: 'apply after load', hue: 3 },
           { from: 'disk', to: 'replica', label: 'load', hue: 4 },
         ]}
         steps={[
-          { title: 'The replica asks to continue — it cannot', body: <p>Over the main connection, a new replica has no replication id, so the primary answers with a full resync (log: <code>Partial resynchronization not possible (no cached master)</code>).</p>, active: ['replica', 'primary', 'primary>buffer'] },
+          { title: 'The replica asks to continue — it cannot', body: <p>Over the main connection the replica asks to continue, but it has no cached replication id (its log: <code>Partial resynchronization not possible (no cached master)</code>). Both sides support the rdb channel, so the replica opens a second connection for the snapshot.</p>, active: ['replica', 'primary', 'primary>buffer'] },
           { title: 'The primary waits, then forks', body: <p><code>Delay next BGSAVE for diskless SYNC</code>: it waits <code>repl-diskless-sync-delay</code> so more replicas can share one snapshot, then a fork child streams the snapshot straight to the replica’s socket ({SNAPSHOT_BYTES.toLocaleString()} bytes here).</p>, active: ['primary', 'child', 'disk', 'child>disk'] },
           { title: 'New writes travel in parallel', body: <p>Over the main connection the replica already receives the live stream and buffers it — the primary does not hold the writes of a long transfer in memory.</p>, active: ['primary', 'buffer', 'primary>buffer'] },
           { title: 'Load, then catch up', body: <p>The replica loads the snapshot, applies the buffered stream (<code>Successfully streamed replication buffer into the db</code>) and from then on follows the live stream.</p>, active: ['replica', 'buffer', 'disk', 'buffer>replica', 'disk>replica'] },
@@ -107,16 +107,25 @@ export default function Replication() {
       <LogLines title="primary log (recorded)" lines={R.fullSyncMaster} highlight={/Full resync|BGSAVE done|succeeded/} />
       <LogLines title="replica log (recorded)" lines={R.fullSyncReplica} highlight={/not possible|Finished with success/} />
       <p>
-        The primary forks and streams a snapshot straight to the replica’s socket (diskless sync: no file on the primary). The replica, by default (<code>repl-diskless-load disabled</code>), still writes what it receives to disk and loads it from there — its log says <code>receiving streamed RDB … to disk</code>. Redis 8 sends the snapshot over a
-        separate <em>rdb channel</em>: the snapshot travels on a second connection while the replica already buffers the live stream on the main
-        one, so the primary does not have to hold every write of a long transfer in memory. Then the replica loads the snapshot and applies the
-        buffered writes. Note the line <code>Delay next BGSAVE for diskless SYNC</code>: with diskless sync the primary waits{' '}
-        <code>repl-diskless-sync-delay</code> seconds so that several replicas can share one snapshot.
+        The logs show three Redis 8 details worth knowing:
       </p>
-      <div className={own.grid2}>
-        <CodeBlock title="INFO replication on the primary" language="text" code={R.infoMaster} />
-        <CodeBlock title="INFO replication on the replica" language="text" code={R.infoReplica} />
-      </div>
+      <ul>
+        <li>
+          <strong>Diskless sync.</strong> The primary forks and streams the snapshot straight to the replica’s socket — no file on the primary.
+          It first waits <code>repl-diskless-sync-delay</code> seconds (<code>Delay next BGSAVE for diskless SYNC</code>) so several replicas can
+          share one snapshot.
+        </li>
+        <li>
+          <strong>The rdb channel.</strong> The snapshot travels on a second connection while the replica already buffers the live stream on the
+          main one, so the primary does not have to hold every write of a long transfer in memory.
+        </li>
+        <li>
+          <strong>Disk on the replica.</strong> By default (<code>repl-diskless-load disabled</code>) the replica still writes what it receives
+          to disk and loads it from there — its log says <code>receiving streamed RDB … to disk</code>. Then it applies the buffered writes.
+        </li>
+      </ul>
+      <CodeBlock title="INFO replication on the primary (recorded)" language="text" code={R.infoMaster} />
+      <CodeBlock title="INFO replication on the replica (recorded)" language="text" code={R.infoReplica} />
       <p>
         Redis still says <code>master</code> and <code>slave</code> in INFO. Both sides share one <code>master_replid</code>; the offsets show how
         far each has got, and <code>lag</code> is the seconds since the replica last confirmed its offset (replicas acknowledge every second).
@@ -222,6 +231,7 @@ sentinel parallel-syncs shop 1`}
       />
       <Flow
         title="Three sentinels watch one primary and its replica"
+        caption="Schematic: only a few links are drawn. Every sentinel pings both servers once a second, and the sentinels find each other through the __sentinel__:hello channel on the monitored servers."
         cols={3}
         rows={3}
         nodes={[
@@ -279,7 +289,7 @@ sentinel parallel-syncs shop 1`}
       <StatTiles
         stats={[
           { label: 'kill → new primary announced', value: `${(R.failoverMs / 1000).toFixed(1)} s`, sub: 'down-after-milliseconds 1000', hue: 2 },
-          { label: 'old primary back as a primary', value: `${(R.convertedAfterMs / 1000).toFixed(1)} s`, sub: 'until Sentinel demoted it', hue: 8 },
+          { label: 'old primary still a primary after restart', value: `${(R.convertedAfterMs / 1000).toFixed(1)} s`, sub: 'until Sentinel demoted it', hue: 8 },
           { label: 'partial resync sent', value: `${PARTIAL_BYTES} B`, sub: 'from the backlog', hue: 6 },
           { label: 'full sync snapshot', value: `${(SNAPSHOT_BYTES / 1024 / 1024).toFixed(1)} MB`, sub: '100,000 keys, over the network', hue: 4 },
         ]}
@@ -293,6 +303,7 @@ sentinel parallel-syncs shop 1`}
       <CodeBlock title="the returned server, after Sentinel reconfigured it (recorded)" language="text" code={R.oldPrimaryRole} />
 
       <h2>What clients must do</h2>
+      <p>Failover only helps if the application finds the new primary; that is the client library’s job, configured by you.</p>
       <Table
         head={['Situation', 'What a correct client does']}
         rows={[

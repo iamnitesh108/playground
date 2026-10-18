@@ -4,7 +4,7 @@ import styles from './TopicsPartitionsSegments.module.css'
 /** Inside one partition directory: closed segments, the active segment, and their index files (schematic). */
 export function TopicsPartitionsSegments() {
   const segments = [
-    { base: '00000000000000000000', range: 'offsets 0 … 41 230', state: 'closed · full (segment.bytes, 1 GB by default)', active: false, width: 300 },
+    { base: '00000000000000000000', range: 'offsets 0 … 41 230', state: 'closed · rolled at 1 GB or after 7 days', active: false, width: 300 },
     { base: '00000000000000041231', range: 'offsets 41 231 …', state: 'active · new writes go here', active: true, width: 180 },
   ]
   let x = 36
@@ -31,10 +31,10 @@ export function TopicsPartitionsSegments() {
               </g>
               <text x={sx} y={118} className={styles.small}>{seg.range}</text>
               <text x={sx} y={132} className={styles.small}>{seg.state}</text>
-              <g style={hue(5)}>
-                <rect x={sx} y={144} width={Math.min(150, seg.width - 10)} height={20} rx={4} className={styles.index} />
+              <g style={hue(3)}>
+                <rect x={sx} y={144} width={Math.min(172, seg.width - 8)} height={20} rx={4} className={styles.index} />
                 <text x={sx + 6} y={158} className={styles.indexText}>.index: offset → position</text>
-                <rect x={sx} y={168} width={Math.min(150, seg.width - 10)} height={20} rx={4} className={styles.index} />
+                <rect x={sx} y={168} width={Math.min(172, seg.width - 8)} height={20} rx={4} className={styles.index} />
                 <text x={sx + 6} y={182} className={styles.indexText}>.timeindex: time → offset</text>
               </g>
               {seg.active && (

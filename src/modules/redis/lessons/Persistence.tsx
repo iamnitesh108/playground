@@ -82,7 +82,10 @@ export default function Persistence() {
       <h2>RDB: a snapshot by forking</h2>
       <p>
         <code>BGSAVE</code> (or a <code>save</code> rule) forks the server. The child sees the memory exactly as it was at the fork, writes it to
-        a temporary file and renames it to <code>dump.rdb</code>. The parent keeps serving clients the whole time. Thanks to copy-on-write the
+        a temporary file and renames it to <code>dump.rdb</code>. The parent keeps serving clients the whole time.
+      </p>
+      <p>
+        Thanks to copy-on-write the
         child costs almost no memory — only the pages the parent changes during the save get copied. Recorded with {P.rdb.keys.toLocaleString()}{' '}
         keys:
       </p>
@@ -133,11 +136,18 @@ export default function Persistence() {
       />
       <LogLines title="server log during BGSAVE (recorded)" lines={P.rdb.log} highlight={/CoW/} />
       <p>
-        Two things in these numbers matter for design. The file is much smaller than memory (no pointers, compact encodings, and compression), so
-        snapshots are good backups and fast to load. And the fork itself is the only pause: it copies the page tables, so it grows with the size
-        of the dataset — a few milliseconds here, but hundreds of milliseconds for tens of gigabytes. During heavy writes many pages get copied,
-        so a busy server can need much more memory while a snapshot runs.
+        Two things in these numbers matter for design.
       </p>
+      <ul>
+        <li>
+          The file is much smaller than memory (no pointers, compact encodings, and compression), so snapshots are good backups and fast to load.
+        </li>
+        <li>
+          The fork itself is the only pause: it copies the page tables, so it grows with the size of the dataset — a few milliseconds here, but
+          hundreds of milliseconds for tens of gigabytes. During heavy writes many pages get copied, so a busy server can need much more memory
+          while a snapshot runs.
+        </li>
+      </ul>
       <Callout tone="warn" title="Leave memory for the fork">
         In the worst case (every page written during the save) the parent and the child together need twice the memory. Set{' '}
         <code>maxmemory</code> well below the machine’s memory and set the kernel’s <code>vm.overcommit_memory = 1</code>, which Redis
@@ -180,10 +190,14 @@ export default function Persistence() {
       <h3>When the data reaches the disk</h3>
       <p>
         Redis collects the writes of one event-loop iteration in a buffer and <code>write()</code>s it to the file before it sends the replies.
-        So an acknowledged write is normally already in the kernel. The exception is <code>everysec</code> on a disk that cannot keep up: if the
-        previous background fsync is still running, Redis postpones the <code>write()</code> itself (for up to 2 s) while it keeps replying — in that
-        window even a process crash can lose acknowledged writes. <code>appendfsync</code> decides when the kernel is told to put the data on the
-        disk:
+        So an acknowledged write is normally already in the kernel.
+      </p>
+      <p>
+        The exception is <code>everysec</code> on a disk that cannot keep up: if the previous background fsync is still running, Redis postpones
+        the <code>write()</code> itself (for up to 2 s) while it keeps replying. In that window even a process crash can lose acknowledged writes.
+      </p>
+      <p>
+        <code>appendfsync</code> decides when the kernel is told to put the data on the disk:
       </p>
       <Flow
         title="Where an acknowledged write is, and how fsync moves it to the disk"
@@ -252,7 +266,7 @@ export default function Persistence() {
         cols={4}
         rows={2}
         nodes={[
-          { id: 'man', label: 'manifest', sub: 'which files count', col: 0, row: 0, rowSpan: 2, hue: 5, shape: 'log' },
+          { id: 'man', label: 'manifest', sub: 'which files count', col: 0, row: 0, rowSpan: 2, hue: 4, shape: 'log' },
           { id: 'b1', label: aofFiles(P.aofFilesAtStart).find((n) => n.includes('base'))?.replace('appendonly.', '') ?? 'base 1', sub: 'old base', col: 1, row: 0, hue: 4, shape: 'store' },
           { id: 'i1', label: aofFiles(P.aofFilesAtStart).find((n) => n.includes('incr'))?.replace('appendonly.', '') ?? 'incr 1', sub: 'old commands', col: 1, row: 1, hue: 4, shape: 'log' },
           { id: 'child', label: 'fork child', sub: 'snapshots current data', col: 2, row: 0, hue: 2 },
@@ -260,15 +274,15 @@ export default function Persistence() {
           { id: 'i2', label: aofFiles(P.aofFilesAfterRewrite).find((n) => n.includes('incr'))?.replace('appendonly.', '') ?? 'incr 2', sub: 'new writes go here', col: 3, row: 1, hue: 6, shape: 'log' },
         ]}
         edges={[
-          { from: 'man', to: 'b1', hue: 5, dashed: true },
-          { from: 'man', to: 'i1', hue: 5, dashed: true },
+          { from: 'man', to: 'b1', hue: 4, dashed: true },
+          { from: 'man', to: 'i1', hue: 4, dashed: true },
           { from: 'child', to: 'b2', hue: 2, flow: true },
           { from: 'i1', to: 'i2', label: 'writes switch over', hue: 4 },
         ]}
         steps={[
           { title: 'Before', body: <p>The manifest lists base 1 and incremental 1; every write is appended to incremental 1.</p>, active: ['man', 'b1', 'i1', 'man>b1', 'man>i1'] },
-          { title: 'The rewrite starts', body: <p>Redis opens incremental 2 for new writes and forks; the child writes the current data as base 2 (an RDB file, because of <code>aof-use-rdb-preamble</code>).</p>, active: ['child', 'b2', 'i2', 'child>b2', 'i1>i2'] },
-          { title: 'Switch and clean up', body: <p>When base 2 is complete the manifest is rewritten to list base 2 + incremental 2 — that is the switch — and the old pair is deleted in the background (see the log below).</p>, active: ['man', 'b2', 'i2'] },
+          { title: 'The rewrite starts', body: <p>Redis opens incremental 2 for new writes (the manifest now lists base 1 + incremental 1 + incremental 2, so a crash right now loses nothing) and forks; the child writes the current data as base 2 — an RDB file, because of <code>aof-use-rdb-preamble</code>.</p>, active: ['child', 'b2', 'i2', 'child>b2', 'i1>i2'] },
+          { title: 'Switch and clean up', body: <p>When base 2 is complete the manifest is rewritten to list only base 2 + incremental 2 — that is the switch — and the old pair is deleted in the background (see the log below).</p>, active: ['man', 'b2', 'i2'] },
         ]}
       />
       <CodeBlock title="appendonlydir/ after BGREWRITEAOF (recorded)" language="text" code={`${P.aofFilesAfterRewrite}\n\n${P.aofManifestAfterRewrite}`} />

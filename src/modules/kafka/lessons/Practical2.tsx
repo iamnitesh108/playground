@@ -99,7 +99,7 @@ export default function Practical2() {
         a group splits the work by partition, so more consumers process more in parallel — up to the number of partitions. Every assignment below
         was read from a real Kafka {PRACTICALS.version} broker.
       </p>
-      <PracticalTopology topic="orders" partitions={3} groups={['billing']} />
+      <PracticalTopology topics="orders (console tools) and orders-p2 (app)" partitions={3} groups={[{ name: 'billing', who: 'console' }, { name: 'billing-app', who: 'Micronaut app' }]} />
       <ScenarioPlayer title="Practical 2: three partitions, one group, one to four consumers" setup={{ topic: 'orders', partitions: 3, groups: [{ id: 'billing', consumers: 0 }] }} steps={STEPS} />
 
       <h2>Part A — the command-line tools</h2>
@@ -215,11 +215,12 @@ ${RUN_APP.producer.replace('APP_TOPIC=orders', 'APP_TOPIC=orders-p2')}`}
       <PracticalAssignments
         title="The Micronaut instances (named by what they received; member ids from the recording)"
         partitions={3}
+        groupHue={2}
         stages={[appStage('3 instances', P.app.assignments.out), appStage('a 4th instance joins', P.app.fourth.out)]}
       />
       <BarChart
         title="Orders each instance received (recorded)"
-        bars={Object.entries(P.app.logs).map(([name, l]) => ({ label: name, value: l.received.length, hue: 1, display: `${l.received.length} orders` }))}
+        bars={Object.entries(P.app.logs).map(([name, l]) => ({ label: name, value: l.received.length, hue: 2, display: `${l.received.length} orders` }))}
       />
       <TermList
         items={[

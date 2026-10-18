@@ -2,6 +2,7 @@
   display: block;
   width: 100%;
   height: auto;
+  min-width: 640px;
   font-family: var(--font-sans);
 }
 
@@ -15,6 +16,13 @@
 
 .topic {
   fill: var(--surface-muted);
+  stroke: var(--hue);
+}
+
+/* legend: producer c7, topic c3 */
+.producer {
+  fill: var(--hue-soft);
+  stroke: var(--hue);
 }
 
 .group {
@@ -203,4 +211,9 @@
   .caret {
     transition: none;
   }
+}
+
+/* narrow screens scroll the stage instead of shrinking its text */
+.scroll {
+  overflow-x: auto;
 }

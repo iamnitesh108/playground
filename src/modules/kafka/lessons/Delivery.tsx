@@ -144,7 +144,7 @@ export default function Delivery() {
         playable
       />
       <Timeline
-        title="Process, then commit: the crash lands before the commit (at-least-once)"
+        title="Process, then commit: the crash lands before the commit (at-least-once) — after the restart the payment may be written twice"
         lanes={[
           { id: 'consumer', label: 'consumer' },
           { id: 'kafka', label: 'committed' },
@@ -155,9 +155,9 @@ export default function Delivery() {
           { lane: 'consumer', from: 12, to: 35, label: 'processing #2', hue: 1 },
           { lane: 'kafka', from: 0, to: 100, label: '2 — never moved', hue: 5 },
           { lane: 'db', from: 35, to: 100, label: 'payment #2 written', hue: 6 },
-          { lane: 'consumer', from: 70, to: 95, label: 'restart: #2 again', hue: 4 },
+          { lane: 'consumer', from: 70, to: 95, label: 'restart: #2 again', hue: 1 },
         ]}
-        events={[{ lane: 'consumer', at: 40, label: 'crash', hue: 8 }, { lane: 'db', at: 90, label: 'written twice?', hue: 8 }]}
+        events={[{ lane: 'consumer', at: 40, label: 'crash', hue: 8 }, { lane: 'db', at: 85, label: 'duplicate?', hue: 8 }]}
         end={100}
         unit="ms"
         playable
@@ -196,8 +196,8 @@ export default function Delivery() {
           { id: 'down', label: 'downstream consumer', sub: 'isolation.level=read_committed', col: 2, row: 2, hue: 2, shape: 'actor' },
         ]}
         edges={[
-          { from: 'in', to: 'app', label: 'poll', flow: true, hue: 3 },
-          { from: 'app', to: 'out', label: 'send', flow: true, hue: 1 },
+          { from: 'in', to: 'app', flow: true, hue: 3 },
+          { from: 'app', to: 'out', flow: true, hue: 1 },
           { from: 'app', to: 'tx', label: 'begin / commit', hue: 5 },
           { from: 'app', to: 'off', label: 'offsets', hue: 5, dashed: true },
           { from: 'out', to: 'down', label: 'only committed', flow: true, hue: 2 },
@@ -206,13 +206,13 @@ export default function Delivery() {
           { title: 'Begin', body: <p>The app polls a batch from <code>payments</code> and begins a transaction with its <code>transactional.id</code>.</p>, active: ['in', 'app', 'tx', 'in>app', 'app>tx'] },
           { title: 'Write output', body: <p>Results go to <code>balances</code> — written to the log but marked as part of an open transaction.</p>, active: ['app', 'out', 'app>out'] },
           { title: 'Offsets join the transaction', body: <p>The consumed offsets are sent to the same transaction instead of a normal commit, so “processed” and “output written” become one fact.</p>, active: ['app', 'off', 'app>off'] },
-          { title: 'Commit — or abort', body: <p>The coordinator writes commit markers to every partition involved. On a crash the transaction aborts: output and offsets disappear together, and the batch is processed again.</p>, active: ['tx', 'out', 'off', 'app>tx'] },
+          { title: 'Commit — or abort', body: <p>The coordinator writes commit markers to every partition involved. On a crash the transaction aborts: the output and the offsets are aborted together. The aborted records stay in the log, but <code>read_committed</code> readers skip them, the offsets never take effect, and the batch is processed again.</p>, active: ['tx', 'out', 'off', 'app>tx'] },
           { title: 'Readers see only committed data', body: <p>Downstream consumers with <code>isolation.level=read_committed</code> skip aborted records, so each payment is applied to the balances exactly once.</p>, active: ['out', 'down', 'out>down'] },
         ]}
       />
       <Callout tone="tip" title="At-least-once + idempotent consumer">
         Commit after processing, and make processing safe to repeat. Typical tricks: a unique constraint on a business
-        ID (a duplicate insert fails and you treat that as “already done”), an “processed events” table, or upserts
+        ID (a duplicate insert fails and you treat that as “already done”), a “processed events” table, or upserts
         instead of inserts.
       </Callout>
 
@@ -232,7 +232,7 @@ export default function Delivery() {
         </li>
         <li>
           <strong>Park it in a table</strong>: store the failed ID and error in a database table that a job or the
-          outbox (lesson 13) will send again later.
+          outbox (see <a href="#/kafka/outbox">the outbox pattern</a>) will send again later.
         </li>
       </ul>
       <Flow
@@ -243,15 +243,15 @@ export default function Delivery() {
           { id: 'orders', label: 'orders', sub: 'main topic', col: 0, row: 0, hue: 3, shape: 'log' },
           { id: 'main', label: 'consumer', sub: 'group billing', col: 1, row: 0, hue: 1 },
           { id: 'db', label: 'database', sub: 'success', col: 3, row: 0, hue: 6, shape: 'store' },
-          { id: 'r1', label: 'orders.retry.1m', sub: 'after a delay', col: 1, row: 1, hue: 4, shape: 'log' },
+          { id: 'r1', label: 'orders.retry.1m', sub: 'retry topic', col: 1, row: 1, hue: 3, shape: 'log' },
           { id: 'retry', label: 'retry consumer', sub: 'waits, then tries', col: 3, row: 1, hue: 1 },
           { id: 'dlq', label: 'orders.dlq', sub: 'for a human', col: 3, row: 2, hue: 8, shape: 'log' },
         ]}
         edges={[
           { from: 'orders', to: 'main', flow: true, hue: 3 },
           { from: 'main', to: 'db', label: 'ok → commit', flow: true, hue: 6 },
-          { from: 'main', to: 'r1', label: 'fails', hue: 4 },
-          { from: 'r1', to: 'retry', flow: true, hue: 4 },
+          { from: 'main', to: 'r1', label: 'fails', hue: 8 },
+          { from: 'r1', to: 'retry', flow: true, hue: 3 },
           { from: 'retry', to: 'db', label: 'ok', hue: 6 },
           { from: 'retry', to: 'dlq', label: 'still failing', hue: 8 },
         ]}

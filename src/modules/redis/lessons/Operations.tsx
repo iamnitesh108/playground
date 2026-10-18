@@ -20,6 +20,17 @@ const SLOW = [...(O.slowlog[0].out ?? '').matchAll(/3\) \(integer\) (\d+)\n\s+4\
 const slowThreshold = Number(O.defaults['slowlog-log-slower-than'])
 const latency = (O.latency[0].out ?? '').match(/"([^"]+)"[\s\S]*?3\) \(integer\) (\d+)[\s\S]*?4\) \(integer\) (\d+)/)
 const MEM = O.memoryUsage.map((s) => ({ key: s.cmd.split(' ').pop()!, bytes: Number(s.out.match(/\d+/)?.[0] ?? 0) }))
+/** Re-wraps prose output to a column so it reads without scrolling (blank lines kept). */
+const wrap = (text: string, width: number) =>
+  text
+    .split('\n')
+    .map((line) => line.split(' ').reduce<string[]>((out, word) => {
+      const last = out.length - 1
+      if (last >= 0 && (out[last] + ' ' + word).length <= width) out[last] += ' ' + word
+      else out.push(word)
+      return out
+    }, []).join('\n'))
+    .join('\n')
 const aclReply = (prefix: string) => O.acl.find((s) => s.cmd.startsWith(prefix))?.out.split(' ').slice(0, 2).join(' ') ?? ''
 
 export default function Operations() {
@@ -79,7 +90,7 @@ redis-cli ping`}
           { id: 'primary', label: 'primary', sub: 'all writes', col: 2, row: 1, hue: 2 },
           { id: 'r1', label: 'replica 1', sub: 'reads, standby', col: 4, row: 0, hue: 5 },
           { id: 'r2', label: 'replica 2', sub: 'reads, standby', col: 4, row: 1, hue: 5 },
-          { id: 'sentinels', label: '3 Sentinels', sub: 'watch, fail over', col: 2, row: 0, hue: 5, shape: 'queue' },
+          { id: 'sentinels', label: '3 Sentinels', sub: 'watch, fail over', col: 2, row: 0, hue: 7, shape: 'queue' },
           { id: 'disk', label: 'RDB / AOF', sub: 'local disk', col: 2, row: 2, hue: 4, shape: 'store' },
           { id: 'backup', label: 'backups', sub: 'another machine', col: 4, row: 2, hue: 4, shape: 'store' },
         ]}
@@ -87,8 +98,8 @@ redis-cli ping`}
           { from: 'apps', to: 'primary', label: 'commands', flow: true, hue: 1 },
           { from: 'primary', to: 'r1', flow: true, hue: 2 },
           { from: 'primary', to: 'r2', label: 'replication', flow: true, hue: 2 },
-          { from: 'sentinels', to: 'primary', label: 'PING', hue: 5, dashed: true },
-          { from: 'apps', to: 'sentinels', label: 'who is primary?', hue: 5, dashed: true },
+          { from: 'sentinels', to: 'primary', label: 'PING', hue: 7, dashed: true },
+          { from: 'apps', to: 'sentinels', label: 'who is primary?', hue: 1, dashed: true },
           { from: 'primary', to: 'disk', label: 'persist', hue: 4 },
           { from: 'disk', to: 'backup', label: 'copy off host', flow: true, hue: 4 },
         ]}
@@ -121,22 +132,22 @@ redis-cli ping`}
       <h2>Users and permissions</h2>
       <p>
         Every application gets its own ACL user, limited to its key prefixes (<code>~checkout:*</code>) and to command categories
-        (<code>+@read</code>, <code>-@dangerous</code>). Recorded:
+        (<code>+@read</code>, <code>-@dangerous</code>). Redis checks three things in order — who you are, the command, then the keys. Recorded:
       </p>
       <Flow
         title="How Redis decides, for every command of user checkout (replies as recorded)"
-        cols={5}
-        rows={2}
-        rowHeight={84}
+        cols={3}
+        rows={5}
+        rowHeight={74}
         nodes={[
           { id: 'cmd', label: 'command', sub: 'from the app', col: 0, row: 0, hue: 1, shape: 'actor' },
-          { id: 'auth', label: 'authenticated?', sub: 'AUTH user pass', col: 1, row: 0, hue: 2 },
-          { id: 'category', label: 'command allowed?', sub: '+@read +@write …', col: 2, row: 0, hue: 2 },
-          { id: 'keys', label: 'keys allowed?', sub: '~checkout:* ~session:*', col: 3, row: 0, hue: 2 },
-          { id: 'run', label: 'executed', sub: aclReply('SET checkout:cart:7'), col: 4, row: 0, hue: 6 },
-          { id: 'wrongpass', label: 'refused', sub: aclReply('AUTH checkout wrong'), col: 1, row: 1, hue: 8 },
-          { id: 'nocmd', label: 'refused', sub: aclReply('FLUSHALL'), col: 2, row: 1, hue: 8 },
-          { id: 'nokey', label: 'refused', sub: aclReply('GET billing'), col: 3, row: 1, hue: 8 },
+          { id: 'auth', label: 'authenticated?', sub: 'AUTH user pass', col: 0, row: 1, hue: 2 },
+          { id: 'category', label: 'command allowed?', sub: '+@read +@write -@dangerous …', col: 0, row: 2, hue: 2 },
+          { id: 'keys', label: 'keys allowed?', sub: '~checkout:* ~session:*', col: 0, row: 3, hue: 2 },
+          { id: 'run', label: 'executed', sub: aclReply('SET checkout:cart:7'), col: 0, row: 4, hue: 6 },
+          { id: 'wrongpass', label: 'refused', sub: aclReply('AUTH checkout wrong'), col: 2, row: 1, hue: 8 },
+          { id: 'nocmd', label: 'refused', sub: aclReply('FLUSHALL'), col: 2, row: 2, hue: 8 },
+          { id: 'nokey', label: 'refused', sub: aclReply('GET billing'), col: 2, row: 3, hue: 8 },
         ]}
         edges={[
           { from: 'cmd', to: 'auth', flow: true, hue: 1 },
@@ -149,7 +160,7 @@ redis-cli ping`}
         ]}
         steps={[
           { title: 'Wrong password', body: <p><code>AUTH checkout wrong-password</code> fails before any command: <code>WRONGPASS</code>.</p>, active: ['cmd', 'auth', 'wrongpass', 'cmd>auth', 'auth>wrongpass'] },
-          { title: 'A command outside the user’s categories', body: <p><code>FLUSHALL</code> (and <code>KEYS</code>, and even <code>ACL WHOAMI</code>) is not in the granted categories: <code>NOPERM</code> for the command.</p>, active: ['cmd', 'auth', 'category', 'nocmd', 'cmd>auth', 'auth>category', 'category>nocmd'] },
+          { title: 'A command outside the user’s categories', body: <p><code>FLUSHALL</code> is a write command, but <code>-@dangerous</code> takes it (and <code>KEYS</code>) away again; <code>ACL WHOAMI</code> is in none of the granted categories. Either way: <code>NOPERM</code> for the command.</p>, active: ['cmd', 'auth', 'category', 'nocmd', 'cmd>auth', 'auth>category', 'category>nocmd'] },
           { title: 'A key outside the user’s patterns', body: <p><code>GET billing:invoice:1</code>: GET is allowed, but the key matches neither <code>~checkout:*</code> nor <code>~session:*</code> — <code>NOPERM</code> for the key, before the key is even read.</p>, active: ['cmd', 'auth', 'category', 'keys', 'nokey', 'cmd>auth', 'auth>category', 'category>keys', 'keys>nokey'] },
           { title: 'Everything matches', body: <p><code>SET checkout:cart:7 apple</code> passes all three checks and runs: <code>OK</code>.</p>, active: ['cmd', 'auth', 'category', 'keys', 'run', 'cmd>auth', 'auth>category', 'category>keys', 'keys>run'] },
         ]}
@@ -162,7 +173,7 @@ redis-cli ping`}
         client before rollout, grant <code>+@connection</code> if it needs them, and read <code>ACL LOG</code> when something is denied.
       </p>
       <Predict
-        question={<p>User <code>checkout</code> has <code>~checkout:* ~session:* +@read +@write</code>. What does <code>GET billing:invoice:1</code> return?</p>}
+        question={<p>User <code>checkout</code> has <code>~checkout:* ~session:* +@read +@write -@dangerous</code>. What does <code>GET billing:invoice:1</code> return?</p>}
         options={['(nil) — the key does not exist for this user', '(error) NOPERM No permissions to access a key', 'The value: GET is a read command']}
         answer={1}
         explanation="The command is allowed (+@read), but the key does not match the user's key patterns, so Redis refuses with NOPERM before looking at the key — recorded above."
@@ -182,19 +193,18 @@ redis-cli ping`}
         ]}
       />
       <Proportion
-        title="Where the memory limit stands (recorded INFO memory)"
+        title={`used_memory against maxmemory (recorded) — eviction compares these two; the RSS of ${mbOf(rssMemory)} the OS sees is not counted`}
         parts={[
           { label: 'used_memory (data, buffers)', value: usedMemory, display: mbOf(usedMemory), hue: 3 },
-          { label: 'extra the OS sees (RSS − used)', value: Math.max(0, rssMemory - usedMemory), display: mbOf(Math.max(0, rssMemory - usedMemory)), hue: 7 },
-          { label: 'free below maxmemory', value: Math.max(0, maxMemory - rssMemory), display: mbOf(Math.max(0, maxMemory - rssMemory)), hue: 6 },
+          { label: 'headroom below maxmemory', value: Math.max(0, maxMemory - usedMemory), display: mbOf(Math.max(0, maxMemory - usedMemory)), hue: 6 },
         ]}
       />
       <div className={styles.grid2}>
         <CodeBlock title="INFO memory (excerpt)" language="text" code={O.infoMemory} />
         <CodeBlock title="INFO stats (excerpt)" language="text" code={O.infoStats} />
         <CodeBlock title="INFO clients (excerpt)" language="text" code={O.infoClients} />
-        <CodeBlock title="INFO keyspace" language="text" code={O.infoKeyspace} />
       </div>
+      <CodeBlock title="INFO keyspace" language="text" code={O.infoKeyspace} />
       <Table
         head={['Field', 'Means', 'Alert when']}
         rows={[
@@ -241,9 +251,10 @@ redis-cli ping`}
         />
       )}
       <CliSession title="recorded: after a 20,000,000-iteration Lua loop" steps={O.latency} />
-      <CodeBlock title="LATENCY DOCTOR (recorded, start)" language="text" code={O.latencyDoctor.split('\n').slice(0, 9).join('\n')} />
+      <CodeBlock title="LATENCY DOCTOR (recorded, start, re-wrapped)" language="text" code={wrap(O.latencyDoctor.split('\n').slice(0, 9).join('\n'), 76)} />
 
       <h2>Memory: per key, and big keys</h2>
+      <p>One oversized key can block the server and fill its memory, so find them before they find you.</p>
       <CliSession title="recorded: MEMORY USAGE" steps={O.memoryUsage} />
       <BarChart
         title="MEMORY USAGE of three keys (recorded): one small, two big"
@@ -260,6 +271,7 @@ redis-cli ping`}
       </p>
 
       <h2>Who is connected</h2>
+      <p><code>CLIENT LIST</code> shows every connection: who it is, how long it has been idle and how much memory it holds. Recorded:</p>
       <Table
         head={['id', 'addr', 'name', 'age (s)', 'idle (s)', 'flags', 'cmd', 'tot-mem']}
         rows={O.clientList.map((c) => [c.id, c.addr, c.name || '—', c.age, c.idle, c.flags, c.cmd, c['tot-mem']])}
@@ -273,6 +285,7 @@ redis-cli ping`}
       />
 
       <h2>Backups and upgrades</h2>
+      <p>Most data loss in practice comes from operations, not from crashes: untested backups, rushed upgrades and forgotten settings.</p>
       <ul>
         <li><strong>Backups:</strong> copy the RDB file (or the whole <code>appendonlydir</code>) after a successful <code>BGSAVE</code> to another machine or object storage; keep several generations; restore one regularly to prove it works.</li>
         <li><strong>Upgrades:</strong> replicas first, then fail over and upgrade the old primary (Sentinel or Cluster do the switch). Read the release notes for changed behaviour — this module found, for example, that an embedded string’s limit now includes the key, and that full syncs use a separate rdb channel.</li>
@@ -280,6 +293,7 @@ redis-cli ping`}
       </ul>
 
       <h2>Production checklist</h2>
+      <p>Everything this module taught, as a list to go through before a server takes real traffic.</p>
       <OperationsChecklist
         title="Before go-live"
         areas={[

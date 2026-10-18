@@ -82,14 +82,14 @@ const retentionRow = (hours: number): { label: string; cells: LogCell[] } => {
         label: seg.active ? 'active · kept' : kept.has(seg.index) ? 'kept' : 'deleted',
         content: `${oldest}–${newest} h old`,
         weight: seg.entries.length,
-        hue: (seg.active ? 5 : kept.has(seg.index) ? 3 : 8) as Hue,
+        hue: (kept.has(seg.index) || seg.active ? 3 : 8) as Hue,
       }
     }),
   }
 }
 
 /** Keys of the compaction example get fixed colours, so a key looks the same in every row. */
-const KEY_HUE: Record<string, Hue> = { 'user-1': 1, 'user-2': 2, 'user-3': 7 }
+const KEY_HUE: Record<string, Hue> = { 'user-1': 3, 'user-2': 4, 'user-3': 7 }
 const compactRow = (label: string, entries: readonly LogEntry[]): { label: string; cells: LogCell[] } => ({
   label,
   cells: entries.map((e) => ({ label: `offset ${e.offset}`, content: `${e.key}=${e.value ?? 'null'}`, hue: KEY_HUE[e.key] })),
@@ -135,6 +135,7 @@ export default function Retention() {
       </p>
 
       <h2>Delete: retention by time or size</h2>
+      <p>With the delete policy, the broker removes old data once it is older or bigger than a limit. Three settings control it:</p>
       <ul>
         <li>
           <code>retention.ms</code> / broker-wide <code>log.retention.hours</code> — keep data this long (default 7
@@ -154,18 +155,18 @@ export default function Retention() {
         rows={2}
         nodes={[
           { id: 'producer', label: 'producer', sub: 'appends', col: 0, row: 0, hue: 7, shape: 'actor' },
-          { id: 'active', label: 'active segment', col: 1, row: 0, hue: 5, shape: 'log' },
+          { id: 'active', label: 'active segment', sub: 'being written', col: 1, row: 0, hue: 3, shape: 'log' },
           { id: 'closed', label: 'closed segments', sub: 'read-only', col: 2, row: 0, hue: 3, shape: 'queue' },
           { id: 'consumers', label: 'consumers', sub: 'read any segment', col: 3, row: 0, hue: 1 },
           { id: 'delete', label: 'delete', sub: 'by age or size', col: 2, row: 1, hue: 8 },
-          { id: 'compact', label: 'compact', sub: 'latest per key', col: 3, row: 1, hue: 6 },
+          { id: 'compact', label: 'compact', sub: 'latest per key', col: 3, row: 1, hue: 3 },
         ]}
         edges={[
           { from: 'producer', to: 'active', flow: true, hue: 7 },
-          { from: 'active', to: 'closed', label: 'roll', hue: 5 },
+          { from: 'active', to: 'closed', label: 'roll', hue: 3 },
           { from: 'closed', to: 'consumers', flow: true, hue: 1 },
           { from: 'closed', to: 'delete', label: 'retention', hue: 8, dashed: true },
-          { from: 'closed', to: 'compact', label: 'cleaner', hue: 6, dashed: true },
+          { from: 'closed', to: 'compact', label: 'cleaner', hue: 3, dashed: true },
         ]}
         caption="The active segment rolls into a closed one at segment.bytes (1 GB) or segment.ms. Only closed segments are deleted or compacted; cleanup.policy decides which."
       />

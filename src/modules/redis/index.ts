@@ -4,7 +4,7 @@ export const redisModule: LearningModule = {
   id: 'redis',
   title: 'Redis internals and design',
   description:
-    'How Redis really works, shown with recordings of a real server: the single-threaded event loop, the wire protocol, every data type and its encodings, expiry and eviction, transactions and scripts, locks and rate limits, persistence and crashes, replication, Sentinel and Cluster, Pub/Sub and Streams — then caching and design patterns for real systems, and running it in production.',
+    'Just want to use Redis? Start with “Using Redis day to day”. Otherwise: how Redis really works, shown with recordings of a real server: the single-threaded event loop, the wire protocol, every data type and its encodings, expiry and eviction, transactions and scripts, locks and rate limits, persistence and crashes, replication, Sentinel and Cluster, Pub/Sub and Streams — then caching and design patterns for real systems, and running it in production.',
   tags: ['redis', 'caching', 'data structures', 'persistence', 'replication', 'cluster', 'streams', 'system design'],
   groups: [
     {
@@ -56,6 +56,21 @@ export const redisModule: LearningModule = {
       title: 'Operations',
       lessons: [
         { slug: 'operations', title: 'Run it in production', summary: 'Install and configure, ACL users, memory and latency, the slow log, big keys and a checklist.', load: () => import('./lessons/Operations') },
+      ],
+    },
+    {
+      title: 'Using Redis in applications',
+      lessons: [
+        { slug: 'using-redis', title: 'Using Redis day to day', summary: 'The commands you will actually use — strings, hashes, lists, sets, sorted sets, TTLs — from redis-cli and from Java code, without the internals.', load: () => import('./lessons/UsingRedis') },
+        { slug: 'clients', title: 'Clients: pools, timeouts and retries', summary: 'Connecting from an application: Lettuce in Micronaut, connection handling, timeouts, retries, pipelining and failover from the client side.', load: () => import('./lessons/Clients') },
+      ],
+    },
+    {
+      title: 'Beyond the basics',
+      lessons: [
+        { slug: 'security', title: 'Securing Redis', summary: 'Network exposure, protected mode, ACL users, TLS and secrets — what an attacker tries and how each setting stops it.', load: () => import('./lessons/Security') },
+        { slug: 'kubernetes', title: 'Redis on Kubernetes', summary: 'StatefulSets, persistent volumes, Sentinel or Cluster in pods, probes, resources and the traps of running a stateful store there.', load: () => import('./lessons/Kubernetes') },
+        { slug: 'beyond-core', title: 'Beyond the core types', summary: 'JSON documents, search and indexing, vector sets and probabilistic structures — what Redis 8 adds and when to use them.', load: () => import('./lessons/BeyondCore') },
       ],
     },
   ],

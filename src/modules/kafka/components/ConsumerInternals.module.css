@@ -2,6 +2,7 @@
   display: block;
   width: 100%;
   height: auto;
+  min-width: 640px;
   font-family: var(--font-sans);
 }
 
@@ -129,4 +130,8 @@
   .beating circle {
     animation: none;
   }
+}
+
+.scroll {
+  overflow-x: auto;
 }

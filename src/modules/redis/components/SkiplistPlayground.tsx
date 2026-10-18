@@ -17,12 +17,13 @@ export function SkiplistPlayground() {
   }, [n])
   const t = list.nodes[Math.min(target, list.nodes.length - 1)]
   const path = list.path(t.score, t.member)
+  const touched = list.comparisons(t.score, t.member)
   const visited = new Set(path.map((p) => `${p.level}:${p.node}`))
   const levels = list.levels
   return (
     <Demo
       title="A skiplist: ordered by score, with express lanes"
-      hint="Each node is on level 1; one in four is also on level 2, one in sixteen on level 3… A lookup starts on the highest level and drops down when the next node would overshoot."
+      hint="Each node is on level 1; one in four is also on level 2, one in sixteen on level 3… A lookup starts on the highest level, moves right while the next node is not past the target, and drops a level when it would overshoot."
       controls={
         <>
           <Button size="sm" disabled={n >= PLAYERS.length} onClick={() => setN(n + 1)}>ZADD a member</Button>
@@ -49,7 +50,7 @@ export function SkiplistPlayground() {
         ))}
       </div>
       <p className={styles.caption}>
-        {list.nodes.length} members · {levels} levels · finding <b>{t.member}</b> touched {path.length} nodes instead of {list.nodes.indexOf(t) + 1}.
+        {list.nodes.length} members · {levels} levels · finding <b>{t.member}</b> touched {touched} {touched === 1 ? 'node' : 'nodes'}; walking level 1 alone would touch {list.nodes.indexOf(t) + 1}. With ten members the gain is small — it grows with log n.
       </p>
     </Demo>
   )

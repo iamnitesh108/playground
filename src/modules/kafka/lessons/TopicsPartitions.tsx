@@ -126,7 +126,8 @@ export default function TopicsPartitions() {
       <ul>
         <li>
           The number of partitions is the <strong>maximum number of consumers in a group</strong> that can work in
-          parallel (lesson 8; true for classic consumer groups). Plan for your peak throughput.
+          parallel (see <a href="#/kafka/consumer-groups">Consumers and groups</a>). Share groups lift this limit (see{' '}
+          <a href="#/kafka/practical-5">Practical 5</a>). Plan for your peak throughput.
         </li>
         <li>
           You can <strong>add</strong> partitions later but never remove them. Existing records stay where they are,
@@ -153,7 +154,8 @@ export default function TopicsPartitions() {
       <h2>What a partition looks like on disk</h2>
       <p>
         Each partition is a directory on the broker, e.g. <code>orders-0/</code>. Inside are{' '}
-        <strong>segment</strong> files: the log is chopped into chunks (by default 1 GB) so old data can be deleted a
+        <strong>segment</strong> files: the log is chopped into chunks (a new one starts at 1 GB, <code>segment.bytes</code>, or after 7 days,{' '}
+        <code>segment.ms</code>) so old data can be deleted a
         whole file at a time. Each segment has a <code>.log</code> file with the records and small{' '}
         <code>.index</code>/<code>.timeindex</code> files to find an offset or timestamp quickly.
       </p>

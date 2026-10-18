@@ -57,12 +57,12 @@ export default function Messaging() {
         title="The same three PUBLISH commands as the recording below, step by step"
         cols={5}
         rows={3}
-        rowHeight={74}
+        rowHeight={80}
         nodes={[
-          { id: 'pub', label: 'publisher', sub: 'PUBLISH orders …', col: 0, row: 1, hue: 1, shape: 'actor' },
+          { id: 'pub', label: 'publisher', sub: 'PUBLISH orders', col: 0, row: 1, hue: 1, shape: 'actor' },
           { id: 'chan', label: 'channel orders', sub: 'stores nothing', col: 2, row: 1, hue: 2 },
-          { id: 'sub1', label: 'sub-1', sub: 'SUBSCRIBE orders', col: 4, row: 0, hue: 1, shape: 'actor' },
-          { id: 'sub2', label: 'sub-2', sub: 'PSUBSCRIBE orders*', col: 4, row: 1, hue: 1, shape: 'actor' },
+          { id: 'sub1', label: 'sub-1', sub: 'channel orders', col: 4, row: 0, hue: 1, shape: 'actor' },
+          { id: 'sub2', label: 'sub-2', sub: 'pattern orders*', col: 4, row: 1, hue: 1, shape: 'actor' },
           { id: 'gone', label: 'nobody', sub: 'message dropped', col: 4, row: 2, hue: 8 },
         ]}
         edges={[
@@ -138,24 +138,24 @@ export default function Messaging() {
       </p>
       <Flow
         title="A reliable queue: a job is never only in the worker's memory"
-        cols={4}
-        rows={2}
+        cols={5}
+        rows={3}
         rowHeight={80}
         nodes={[
           { id: 'producer', label: 'producer', sub: 'LPUSH jobs:email', col: 0, row: 0, hue: 1, shape: 'actor' },
-          { id: 'queue', label: 'jobs:email', sub: 'list (the queue)', col: 1, row: 0, hue: 3, shape: 'queue' },
-          { id: 'proc', label: 'processing list', sub: 'jobs:email:processing', col: 2, row: 0, hue: 3, shape: 'queue' },
-          { id: 'worker', label: 'worker', sub: 'sends the email', col: 3, row: 0, hue: 1, shape: 'actor' },
-          { id: 'done', label: 'done', sub: 'LREM from processing', col: 3, row: 1, hue: 6 },
-          { id: 'reaper', label: 'reaper', sub: 'finds stale jobs', col: 2, row: 1, hue: 4 },
+          { id: 'queue', label: 'jobs:email', sub: 'the queue (list)', col: 2, row: 0, hue: 3, shape: 'queue' },
+          { id: 'proc', label: 'processing', sub: 'a list per worker', col: 4, row: 0, hue: 3, shape: 'queue' },
+          { id: 'worker', label: 'worker', sub: 'sends the email', col: 4, row: 2, hue: 1, shape: 'actor' },
+          { id: 'done', label: 'done', sub: 'job removed', col: 2, row: 2, hue: 6 },
+          { id: 'reaper', label: 'reaper', sub: 'your code', col: 3, row: 1, hue: 1 },
         ]}
         edges={[
           { from: 'producer', to: 'queue', label: 'LPUSH', flow: true, hue: 1 },
           { from: 'queue', to: 'proc', label: 'BLMOVE', flow: true, hue: 3 },
           { from: 'proc', to: 'worker', label: 'work', flow: true, hue: 3 },
           { from: 'worker', to: 'done', label: 'LREM', hue: 6 },
-          { from: 'reaper', to: 'queue', label: 'back', hue: 4, dashed: true },
-          { from: 'proc', to: 'reaper', hue: 4, dashed: true },
+          { from: 'reaper', to: 'queue', label: 'back', hue: 1, dashed: true },
+          { from: 'proc', to: 'reaper', hue: 1, dashed: true },
         ]}
         steps={[
           { title: 'The producer pushes jobs', body: <p><code>LPUSH jobs:email job-1 job-2</code>: the jobs wait in the list until a worker takes one.</p>, active: ['producer', 'queue', 'producer>queue'] },
@@ -184,17 +184,17 @@ export default function Messaging() {
       <Flow
         title="One stream, two groups, a crash and a claim — the recording below, step by step"
         cols={5}
-        rows={3}
-        rowHeight={78}
+        rows={4}
+        rowHeight={80}
         nodes={[
-          { id: 'producer', label: 'producer', sub: 'XADD orders *', col: 0, row: 1, hue: 1, shape: 'actor' },
-          { id: 'stream', label: 'stream orders', sub: 'entries stay', col: 1, row: 1, hue: 3, shape: 'log' },
-          { id: 'billing', label: 'group billing', sub: 'last delivered id', col: 2, row: 0, hue: 2 },
-          { id: 'analytics', label: 'group analytics', sub: 'its own position', col: 2, row: 2, hue: 2 },
-          { id: 'pel', label: 'pending (PEL)', sub: 'delivered, not acked', col: 3, row: 1, hue: 4, shape: 'queue' },
+          { id: 'producer', label: 'producer', sub: 'XADD orders *', col: 0, row: 0, hue: 1, shape: 'actor' },
+          { id: 'stream', label: 'stream orders', sub: 'entries stay', col: 0, row: 2, hue: 3, shape: 'log' },
+          { id: 'billing', label: 'group billing', sub: 'last delivered id', col: 2, row: 1, hue: 2 },
+          { id: 'analytics', label: 'group analytics', sub: 'its own position', col: 2, row: 3, hue: 2 },
+          { id: 'pel', label: 'pending (PEL)', sub: 'delivered, not acked', col: 4, row: 1, hue: 3, shape: 'queue' },
           { id: 'w1', label: 'worker-1', sub: 'XACK when done', col: 4, row: 0, hue: 1, shape: 'actor' },
-          { id: 'w2', label: 'worker-2', sub: 'crashes', col: 4, row: 1, hue: 8, shape: 'actor' },
-          { id: 'a1', label: 'a-1', sub: 'reads all again', col: 4, row: 2, hue: 1, shape: 'actor' },
+          { id: 'w2', label: 'worker-2', sub: 'crashes', col: 4, row: 2, hue: 8, shape: 'actor' },
+          { id: 'a1', label: 'a-1', sub: 'reads all again', col: 4, row: 3, hue: 1, shape: 'actor' },
         ]}
         edges={[
           { from: 'producer', to: 'stream', label: 'XADD', flow: true, hue: 1 },
@@ -203,7 +203,7 @@ export default function Messaging() {
           { from: 'billing', to: 'w1', label: '2 entries', flow: true, hue: 2 },
           { from: 'billing', to: 'w2', label: '2 entries', flow: true, hue: 2 },
           { from: 'w2', to: 'pel', label: 'never acked', hue: 8, dashed: true },
-          { from: 'pel', to: 'w1', label: 'XAUTOCLAIM', flow: true, hue: 4 },
+          { from: 'pel', to: 'w1', label: 'XAUTOCLAIM', flow: true, hue: 3 },
           { from: 'analytics', to: 'a1', label: 'all 4', flow: true, hue: 2 },
         ]}
         steps={[
@@ -228,6 +228,7 @@ export default function Messaging() {
       <StreamPlayground />
 
       <h3>Blocking reads and trimming</h3>
+      <p>A consumer can wait on the server for new entries instead of polling, just like BLPOP on a list.</p>
       <CliSession title="recorded: a consumer waiting for new entries" steps={M.streamsBlocking} />
       <p>
         Streams live in memory, so they must be capped. <code>MAXLEN ~</code> trims whole internal nodes (macro nodes of up to 100 entries by

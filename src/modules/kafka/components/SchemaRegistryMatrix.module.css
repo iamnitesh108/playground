@@ -1,0 +1,84 @@
+.figure {
+  margin: var(--space-4) 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.title {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-muted);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.grid {
+  width: 100%;
+  min-width: 560px;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+}
+
+.grid th,
+.grid td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  vertical-align: middle;
+}
+
+.grid thead th {
+  vertical-align: bottom;
+}
+
+.grid tbody th {
+  font-weight: 500;
+  color: var(--text);
+}
+
+.mode {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text);
+}
+
+.sub,
+.note {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.ok,
+.no {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  font-size: 0.76rem;
+}
+
+.ok {
+  color: var(--text-muted);
+  background: var(--surface-muted);
+}
+
+.no {
+  color: var(--text);
+  background: var(--hue-soft);
+  border: 1px solid var(--hue);
+}
+
+.caption {
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}

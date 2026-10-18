@@ -1,0 +1,123 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.plot {
+  position: relative;
+  margin-top: 1.6rem;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: 180px;
+}
+
+.grid {
+  stroke: var(--border);
+  stroke-dasharray: 3 4;
+  vector-effect: non-scaling-stroke;
+}
+
+.axis {
+  stroke: var(--text-muted);
+  vector-effect: non-scaling-stroke;
+}
+
+.event {
+  stroke: var(--text-muted);
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+
+.area {
+  fill: var(--hue-soft);
+}
+
+.line {
+  fill: none;
+  stroke: var(--hue);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+
+.yMax,
+.yMin {
+  position: absolute;
+  left: 4px;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.yMax {
+  top: 2px;
+  left: 1.6rem;
+  padding: 0 4px;
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--surface) 85%, transparent);
+}
+
+.yMin {
+  bottom: 4px;
+}
+
+.marker,
+.dot {
+  display: inline-grid;
+  place-items: center;
+  width: 1.3rem;
+  height: 1.3rem;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.marker {
+  position: absolute;
+  top: -1.45rem;
+  transform: translateX(-50%);
+}
+
+.xAxis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.legend {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px var(--space-4);
+  font-size: 0.8rem;
+}
+
+.legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.caption {
+  margin: var(--space-2) 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

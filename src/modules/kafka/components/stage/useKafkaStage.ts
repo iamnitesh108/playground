@@ -41,11 +41,12 @@ export interface StageOptions {
 const FLIGHT_MS = 650
 
 /** Keys take palette slots 3–8, groups slots 1–2, so a colour never means both. */
+/** Records are partition-log entries (c3); keys get c3–c7 so they never look like a group (c1, c2) or a failure (c8). */
 export function keyHue(key: string | null): number {
-  if (!key) return 8
+  if (!key) return 3
   let h = 0
   for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0
-  return 3 + (Math.abs(h) % 6)
+  return 3 + (Math.abs(h) % 5)
 }
 
 export const groupHue = (index: number): number => (index % 2) + 1

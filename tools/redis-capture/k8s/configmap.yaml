@@ -1,0 +1,59 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  labels:
+    app.kubernetes.io/name: redis
+data:
+  redis.conf: |
+    # Listen on the pod's interfaces; the NetworkPolicy decides who may connect
+    bind * -::*
+    port 6379
+    protected-mode yes
+    # Users come from the Secret, mounted read-only
+    aclfile /etc/redis-acl/users.acl
+    masteruser replication
+    # Data lives on the PersistentVolume
+    dir /data
+    appendonly yes
+    appendfsync everysec
+    # Well below the container's 1Gi memory limit: forks, buffers and fragmentation need the rest
+    maxmemory 640mb
+    maxmemory-policy noeviction
+    # Off by default in Redis; keep them off
+    enable-protected-configs no
+    enable-module-command no
+    enable-debug-command no
+  start.sh: |
+    #!/bin/sh
+    # redis-0 is the primary; every other pod replicates from it.
+    set -e
+    DOMAIN="redis-headless.${POD_NAMESPACE}.svc.cluster.local"
+    set -- /etc/redis/redis.conf --masterauth "$REPLICATION_PASSWORD" --replica-announce-ip "${POD_NAME}.${DOMAIN}"
+    if [ "${POD_NAME##*-}" != "0" ]; then
+      set -- "$@" --replicaof "redis-0.${DOMAIN}" 6379
+    fi
+    exec redis-server "$@"
+  probe.sh: |
+    #!/bin/sh
+    # probe.sh live|ready -> exit 0 when healthy.
+    # redis-cli exits 0 even when the reply is an error, so the reply text is checked.
+    export REDISCLI_AUTH="$PROBE_PASSWORD"
+    cli() { redis-cli --user probe -p 6379 "$@" 2>&1; }
+    reply=$(cli PING)
+    case "$1" in
+      live)
+        # Loading the dataset or waiting for a primary is not a reason to restart
+        case "$reply" in PONG|LOADING*|MASTERDOWN*) exit 0 ;; esac ;;
+      ready)
+        if [ "$reply" = "PONG" ]; then
+          info=$(cli INFO replication)
+          case "$info" in
+            *role:slave*) case "$info" in *master_link_status:up*) exit 0 ;; esac
+              reply="replica not linked to its primary" ;;
+            *) exit 0 ;;
+          esac
+        fi ;;
+    esac
+    echo "$reply"
+    exit 1

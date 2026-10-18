@@ -74,7 +74,8 @@ export function Timeline({ title, lanes, segments = [], events = [], start = 0, 
               {events.filter((e) => e.lane === l.id && visible(e.at)).map((e, i) => (
                 <span key={i} className={styles.event} style={{ ...hue(e.hue ?? 2), left: `${pos(e.at)}%` }}>
                   <span className={styles.dot} />
-                  <span className={styles.eventLabel}>{e.label}</span>
+                  {/* labels near the right end grow leftwards, so they never push past the figure */}
+                  <span className={pos(e.at) > 60 ? `${styles.eventLabel} ${styles.eventLabelEnd}` : styles.eventLabel}>{e.label}</span>
                 </span>
               ))}
               {t !== null && <span className={styles.playhead} style={{ left: `${pos(t)}%` }} />}

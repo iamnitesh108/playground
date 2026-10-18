@@ -38,7 +38,7 @@ export function ReplicationBacklogRing({ cases, title }: { cases: readonly Backl
                   style={{ ...hue(fits ? 6 : 8), strokeDasharray: `${Math.max(2, Math.min(1, share) * C)} ${C}` }}
                   transform="rotate(-90 80 80)"
                 />
-                <text x={80} y={76} className={styles.big}>{fits ? `${Math.max(0.1, share * 100).toFixed(share < 0.01 ? 2 : 0)}%` : `${share.toFixed(1)}×`}</text>
+                <text x={80} y={76} className={styles.big}>{fits ? (share < 0.001 ? '< 0.1%' : `${(share * 100).toFixed(share < 0.01 ? 1 : 0)}%`) : `${share.toFixed(1)}×`}</text>
                 <text x={80} y={94} className={styles.small}>{fits ? 'of the ring' : 'the ring size'}</text>
               </svg>
               <div className={styles.caseTitle}>{c.title}</div>

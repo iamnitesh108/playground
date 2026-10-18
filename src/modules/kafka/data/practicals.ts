@@ -55,7 +55,7 @@ export const PRACTICALS = {
    ],
    "describe": {
     "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group billing",
-    "out": "\nGROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                                    HOST            CLIENT-ID\nbilling         orders-p1       0          3               3               0               orders-app-order-listener-f13f2056… /127.0.0.1      orders-app-order-listener"
+    "out": "\nGROUP    TOPIC      PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID                          HOST        CLIENT-ID\nbilling  orders-p1  0          3               3               0    orders-app-order-listener-f13f2056…  /127.0.0.1  orders-app-order-listener"
    }
   },
   "liveConsumer": {
@@ -108,7 +108,7 @@ export const PRACTICALS = {
     "cmd": "kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic orders --group billing --from-beginning --command-property client.id=c1 --formatter-property print.partition=true --formatter-property print.offset=true --formatter-property print.key=true",
     "describe": {
      "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group billing --members --verbose",
-     "out": "\nGROUP           CONSUMER-ID                             HOST            CLIENT-ID       #PARTITIONS     CURRENT-EPOCH   CURRENT-ASSIGNMENT   TARGET-EPOCH    TARGET-ASSIGNMENT   \nbilling         c1-558cc6da… /127.0.0.1      c1              3               -               orders:0,1,2         -               -"
+     "out": "\nGROUP    CONSUMER-ID   HOST        CLIENT-ID  #PARTITIONS  CURRENT-EPOCH  CURRENT-ASSIGNMENT  TARGET-EPOCH  TARGET-ASSIGNMENT\nbilling  c1-558cc6da…  /127.0.0.1  c1         3            -              orders:0,1,2        -             -"
     },
     "output": {
      "c1": [
@@ -126,7 +126,7 @@ export const PRACTICALS = {
     "cmd": "kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic orders --group billing --from-beginning --command-property client.id=c2 --formatter-property print.partition=true --formatter-property print.offset=true --formatter-property print.key=true",
     "describe": {
      "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group billing --members --verbose",
-     "out": "\nGROUP           CONSUMER-ID                             HOST            CLIENT-ID       #PARTITIONS     CURRENT-EPOCH   CURRENT-ASSIGNMENT   TARGET-EPOCH    TARGET-ASSIGNMENT   \nbilling         c2-ac087a2c… /127.0.0.1      c2              1               -               orders:2             -               -                   \nbilling         c1-558cc6da… /127.0.0.1      c1              2               -               orders:0,1           -               -"
+     "out": "\nGROUP    CONSUMER-ID   HOST        CLIENT-ID  #PARTITIONS  CURRENT-EPOCH  CURRENT-ASSIGNMENT  TARGET-EPOCH  TARGET-ASSIGNMENT\nbilling  c2-ac087a2c…  /127.0.0.1  c2         1            -              orders:2            -             -\nbilling  c1-558cc6da…  /127.0.0.1  c1         2            -              orders:0,1          -             -"
     }
    },
    {
@@ -134,7 +134,7 @@ export const PRACTICALS = {
     "cmd": "kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic orders --group billing --from-beginning --command-property client.id=c3 --formatter-property print.partition=true --formatter-property print.offset=true --formatter-property print.key=true",
     "describe": {
      "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group billing --members --verbose",
-     "out": "\nGROUP           CONSUMER-ID                             HOST            CLIENT-ID       #PARTITIONS     CURRENT-EPOCH   CURRENT-ASSIGNMENT   TARGET-EPOCH    TARGET-ASSIGNMENT   \nbilling         c2-ac087a2c… /127.0.0.1      c2              1               -               orders:1             -               -                   \nbilling         c1-558cc6da… /127.0.0.1      c1              1               -               orders:0             -               -                   \nbilling         c3-d2e1468a… /127.0.0.1      c3              1               -               orders:2             -               -"
+     "out": "\nGROUP    CONSUMER-ID   HOST        CLIENT-ID  #PARTITIONS  CURRENT-EPOCH  CURRENT-ASSIGNMENT  TARGET-EPOCH  TARGET-ASSIGNMENT\nbilling  c2-ac087a2c…  /127.0.0.1  c2         1            -              orders:1            -             -\nbilling  c1-558cc6da…  /127.0.0.1  c1         1            -              orders:0            -             -\nbilling  c3-d2e1468a…  /127.0.0.1  c3         1            -              orders:2            -             -"
     }
    },
    {
@@ -142,14 +142,14 @@ export const PRACTICALS = {
     "cmd": "kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic orders --group billing --from-beginning --command-property client.id=c4 --formatter-property print.partition=true --formatter-property print.offset=true --formatter-property print.key=true",
     "describe": {
      "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group billing --members --verbose",
-     "out": "\nGROUP           CONSUMER-ID                             HOST            CLIENT-ID       #PARTITIONS     CURRENT-EPOCH   CURRENT-ASSIGNMENT   TARGET-EPOCH    TARGET-ASSIGNMENT   \nbilling         c2-ac087a2c… /127.0.0.1      c2              1               -               orders:1             -               -                   \nbilling         c1-558cc6da… /127.0.0.1      c1              1               -               orders:0             -               -                   \nbilling         c3-d2e1468a… /127.0.0.1      c3              1               -               orders:2             -               -                   \nbilling         c4-29a331b6… /127.0.0.1      c4              0               -               -                    -               -"
+     "out": "\nGROUP    CONSUMER-ID   HOST        CLIENT-ID  #PARTITIONS  CURRENT-EPOCH  CURRENT-ASSIGNMENT  TARGET-EPOCH  TARGET-ASSIGNMENT\nbilling  c2-ac087a2c…  /127.0.0.1  c2         1            -              orders:1            -             -\nbilling  c1-558cc6da…  /127.0.0.1  c1         1            -              orders:0            -             -\nbilling  c3-d2e1468a…  /127.0.0.1  c3         1            -              orders:2            -             -\nbilling  c4-29a331b6…  /127.0.0.1  c4         0            -              -                   -             -"
     }
    }
   ],
   "app": {
    "assignments": {
     "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group billing-app --members --verbose",
-    "out": "\nGROUP           CONSUMER-ID                                                    HOST            CLIENT-ID                 #PARTITIONS     CURRENT-EPOCH   CURRENT-ASSIGNMENT   TARGET-EPOCH    TARGET-ASSIGNMENT   \nbilling-app     orders-app-order-listener-05ad7675… /127.0.0.1      orders-app-order-listener 1               -               orders-p2:0          -               -                   \nbilling-app     orders-app-order-listener-7e343b2f… /127.0.0.1      orders-app-order-listener 1               -               orders-p2:2          -               -                   \nbilling-app     orders-app-order-listener-1241b986… /127.0.0.1      orders-app-order-listener 1               -               orders-p2:1          -               -"
+    "out": "\nGROUP        CONSUMER-ID                          HOST        CLIENT-ID                  #PARTITIONS  CURRENT-EPOCH  CURRENT-ASSIGNMENT  TARGET-EPOCH  TARGET-ASSIGNMENT\nbilling-app  orders-app-order-listener-05ad7675…  /127.0.0.1  orders-app-order-listener  1            -              orders-p2:0         -             -\nbilling-app  orders-app-order-listener-7e343b2f…  /127.0.0.1  orders-app-order-listener  1            -              orders-p2:2         -             -\nbilling-app  orders-app-order-listener-1241b986…  /127.0.0.1  orders-app-order-listener  1            -              orders-p2:1         -             -"
    },
    "producer": [
     "INFO  SendOrders - sent key=alice value=order-1001 -> partition=0 offset=0",
@@ -196,7 +196,7 @@ export const PRACTICALS = {
    },
    "fourth": {
     "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group billing-app --members --verbose",
-    "out": "\nGROUP           CONSUMER-ID                                                    HOST            CLIENT-ID                 #PARTITIONS     CURRENT-EPOCH   CURRENT-ASSIGNMENT   TARGET-EPOCH    TARGET-ASSIGNMENT   \nbilling-app     orders-app-order-listener-dae273cf… /127.0.0.1      orders-app-order-listener 0               -               -                    -               -                   \nbilling-app     orders-app-order-listener-05ad7675… /127.0.0.1      orders-app-order-listener 1               -               orders-p2:0          -               -                   \nbilling-app     orders-app-order-listener-7e343b2f… /127.0.0.1      orders-app-order-listener 1               -               orders-p2:2          -               -                   \nbilling-app     orders-app-order-listener-1241b986… /127.0.0.1      orders-app-order-listener 1               -               orders-p2:1          -               -"
+    "out": "\nGROUP        CONSUMER-ID                          HOST        CLIENT-ID                  #PARTITIONS  CURRENT-EPOCH  CURRENT-ASSIGNMENT  TARGET-EPOCH  TARGET-ASSIGNMENT\nbilling-app  orders-app-order-listener-dae273cf…  /127.0.0.1  orders-app-order-listener  0            -              -                   -             -\nbilling-app  orders-app-order-listener-05ad7675…  /127.0.0.1  orders-app-order-listener  1            -              orders-p2:0         -             -\nbilling-app  orders-app-order-listener-7e343b2f…  /127.0.0.1  orders-app-order-listener  1            -              orders-p2:2         -             -\nbilling-app  orders-app-order-listener-1241b986…  /127.0.0.1  orders-app-order-listener  1            -              orders-p2:1         -             -"
    }
   },
   "burst": {
@@ -228,12 +228,12 @@ export const PRACTICALS = {
    "label": "c2 stops (Ctrl-C): the partitions are dealt out again among c1, c3 and c4",
    "describe": {
     "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group billing --members --verbose",
-    "out": "\nGROUP           CONSUMER-ID                             HOST            CLIENT-ID       #PARTITIONS     CURRENT-EPOCH   CURRENT-ASSIGNMENT   TARGET-EPOCH    TARGET-ASSIGNMENT   \nbilling         c1-558cc6da… /127.0.0.1      c1              1               -               orders:0             -               -                   \nbilling         c3-d2e1468a… /127.0.0.1      c3              1               -               orders:1             -               -                   \nbilling         c4-29a331b6… /127.0.0.1      c4              1               -               orders:2             -               -"
+    "out": "\nGROUP    CONSUMER-ID   HOST        CLIENT-ID  #PARTITIONS  CURRENT-EPOCH  CURRENT-ASSIGNMENT  TARGET-EPOCH  TARGET-ASSIGNMENT\nbilling  c1-558cc6da…  /127.0.0.1  c1         1            -              orders:0            -             -\nbilling  c3-d2e1468a…  /127.0.0.1  c3         1            -              orders:1            -             -\nbilling  c4-29a331b6…  /127.0.0.1  c4         1            -              orders:2            -             -"
    }
   },
   "offsets": {
    "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group billing",
-   "out": "\nGROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                             HOST            CLIENT-ID\nbilling         orders          0          4               4               0               c1-558cc6da… /127.0.0.1      c1\nbilling         orders          1          4               4               0               c3-d2e1468a… /127.0.0.1      c3\nbilling         orders          2          4               4               0               c4-29a331b6… /127.0.0.1      c4"
+   "out": "\nGROUP    TOPIC   PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID   HOST        CLIENT-ID\nbilling  orders  0          4               4               0    c1-558cc6da…  /127.0.0.1  c1\nbilling  orders  1          4               4               0    c3-d2e1468a…  /127.0.0.1  c3\nbilling  orders  2          4               4               0    c4-29a331b6…  /127.0.0.1  c4"
   }
  },
  "p3": {
@@ -288,12 +288,12 @@ export const PRACTICALS = {
    },
    "describe": {
     "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group billing-app --group analytics-app",
-    "out": "\nGROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                                    HOST            CLIENT-ID\nanalytics-app   payments-p3     0          2               2               0               orders-app-order-listener-61d6d1a5… /127.0.0.1      orders-app-order-listener\nanalytics-app   payments-p3     1          2               2               0               orders-app-order-listener-61d6d1a5… /127.0.0.1      orders-app-order-listener\nanalytics-app   payments-p3     2          2               2               0               orders-app-order-listener-f0e199f8… /127.0.0.1      orders-app-order-listener\n\nGROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                                    HOST            CLIENT-ID\nbilling-app     payments-p3     0          2               2               0               orders-app-order-listener-2d6ab783… /127.0.0.1      orders-app-order-listener\nbilling-app     payments-p3     1          2               2               0               orders-app-order-listener-2d6ab783… /127.0.0.1      orders-app-order-listener\nbilling-app     payments-p3     2          2               2               0               orders-app-order-listener-2d6ab783… /127.0.0.1      orders-app-order-listener"
+    "out": "\nGROUP          TOPIC        PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID                          HOST        CLIENT-ID\nanalytics-app  payments-p3  0          2               2               0    orders-app-order-listener-61d6d1a5…  /127.0.0.1  orders-app-order-listener\nanalytics-app  payments-p3  1          2               2               0    orders-app-order-listener-61d6d1a5…  /127.0.0.1  orders-app-order-listener\nanalytics-app  payments-p3  2          2               2               0    orders-app-order-listener-f0e199f8…  /127.0.0.1  orders-app-order-listener\n\nGROUP        TOPIC        PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID                          HOST        CLIENT-ID\nbilling-app  payments-p3  0          2               2               0    orders-app-order-listener-2d6ab783…  /127.0.0.1  orders-app-order-listener\nbilling-app  payments-p3  1          2               2               0    orders-app-order-listener-2d6ab783…  /127.0.0.1  orders-app-order-listener\nbilling-app  payments-p3  2          2               2               0    orders-app-order-listener-2d6ab783…  /127.0.0.1  orders-app-order-listener"
    }
   },
   "assignedBefore": {
    "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group analytics --members --verbose",
-   "out": "\nGROUP           CONSUMER-ID                                      HOST            CLIENT-ID       #PARTITIONS     CURRENT-EPOCH   CURRENT-ASSIGNMENT   TARGET-EPOCH    TARGET-ASSIGNMENT   \nanalytics       analytics-1-8fe12d0a… /127.0.0.1      analytics-1     2               -               payments:0,1         -               -                   \nanalytics       analytics-2-064a390f… /127.0.0.1      analytics-2     1               -               payments:2           -               -"
+   "out": "\nGROUP      CONSUMER-ID            HOST        CLIENT-ID    #PARTITIONS  CURRENT-EPOCH  CURRENT-ASSIGNMENT  TARGET-EPOCH  TARGET-ASSIGNMENT\nanalytics  analytics-1-8fe12d0a…  /127.0.0.1  analytics-1  2            -              payments:0,1        -             -\nanalytics  analytics-2-064a390f…  /127.0.0.1  analytics-2  1            -              payments:2          -             -"
   },
   "groups": {
    "billing": {
@@ -330,7 +330,7 @@ export const PRACTICALS = {
   },
   "describeBoth": {
    "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group billing --group analytics",
-   "out": "\nGROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                      HOST            CLIENT-ID\nanalytics       payments        0          2               2               0               analytics-1-8fe12d0a… /127.0.0.1      analytics-1\nanalytics       payments        1          2               2               0               analytics-1-8fe12d0a… /127.0.0.1      analytics-1\nanalytics       payments        2          2               2               0               analytics-2-064a390f… /127.0.0.1      analytics-2\n\nGROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                    HOST            CLIENT-ID\nbilling         payments        0          2               2               0               billing-1-ed518329… /127.0.0.1      billing-1\nbilling         payments        1          2               2               0               billing-1-ed518329… /127.0.0.1      billing-1\nbilling         payments        2          2               2               0               billing-1-ed518329… /127.0.0.1      billing-1"
+   "out": "\nGROUP      TOPIC     PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID            HOST        CLIENT-ID\nanalytics  payments  0          2               2               0    analytics-1-8fe12d0a…  /127.0.0.1  analytics-1\nanalytics  payments  1          2               2               0    analytics-1-8fe12d0a…  /127.0.0.1  analytics-1\nanalytics  payments  2          2               2               0    analytics-2-064a390f…  /127.0.0.1  analytics-2\n\nGROUP    TOPIC     PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID          HOST        CLIENT-ID\nbilling  payments  0          2               2               0    billing-1-ed518329…  /127.0.0.1  billing-1\nbilling  payments  1          2               2               0    billing-1-ed518329…  /127.0.0.1  billing-1\nbilling  payments  2          2               2               0    billing-1-ed518329…  /127.0.0.1  billing-1"
   },
   "whileAway": {
    "cmd": "kafka-console-producer.sh --bootstrap-server localhost:9092 --topic payments --reader-property parse.key=true --reader-property key.separator=:",
@@ -346,7 +346,7 @@ export const PRACTICALS = {
    ],
    "describe": {
     "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group analytics",
-    "out": "\nGROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID     HOST            CLIENT-ID\nanalytics       payments        0          2               4               2               -               -               -\nanalytics       payments        1          2               2               0               -               -               -\nanalytics       payments        2          2               3               1               -               -               -"
+    "out": "\nGROUP      TOPIC     PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID  HOST  CLIENT-ID\nanalytics  payments  0          2               4               2    -            -     -\nanalytics  payments  1          2               2               0    -            -     -\nanalytics  payments  2          2               3               1    -            -     -"
    }
   },
   "caughtUp": {
@@ -358,17 +358,17 @@ export const PRACTICALS = {
    ],
    "describe": {
     "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group analytics",
-    "out": "\nGROUP           TOPIC           PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG             CONSUMER-ID                                      HOST            CLIENT-ID\nanalytics       payments        0          4               4               0               analytics-3-c30f694e… /127.0.0.1      analytics-3\nanalytics       payments        1          2               2               0               analytics-3-c30f694e… /127.0.0.1      analytics-3\nanalytics       payments        2          3               3               0               analytics-3-c30f694e… /127.0.0.1      analytics-3"
+    "out": "\nGROUP      TOPIC     PARTITION  CURRENT-OFFSET  LOG-END-OFFSET  LAG  CONSUMER-ID            HOST        CLIENT-ID\nanalytics  payments  0          4               4               0    analytics-3-c30f694e…  /127.0.0.1  analytics-3\nanalytics  payments  1          2               2               0    analytics-3-c30f694e…  /127.0.0.1  analytics-3\nanalytics  payments  2          3               3               0    analytics-3-c30f694e…  /127.0.0.1  analytics-3"
    }
   },
   "reset": {
    "dryRun": {
     "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group analytics --topic payments --reset-offsets --to-earliest --dry-run",
-    "out": "\nGROUP           TOPIC           PARTITION  NEW-OFFSET\nanalytics       payments        0          0\nanalytics       payments        2          0\nanalytics       payments        1          0"
+    "out": "\nGROUP      TOPIC     PARTITION  NEW-OFFSET\nanalytics  payments  0          0\nanalytics  payments  2          0\nanalytics  payments  1          0"
    },
    "execute": {
     "cmd": "kafka-consumer-groups.sh --bootstrap-server localhost:9092 --group analytics --topic payments --reset-offsets --to-earliest --execute",
-    "out": "\nGROUP           TOPIC           PARTITION  NEW-OFFSET\nanalytics       payments        0          0\nanalytics       payments        2          0\nanalytics       payments        1          0"
+    "out": "\nGROUP      TOPIC     PARTITION  NEW-OFFSET\nanalytics  payments  0          0\nanalytics  payments  2          0\nanalytics  payments  1          0"
    }
   },
   "replay": {

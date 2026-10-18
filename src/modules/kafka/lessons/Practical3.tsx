@@ -118,15 +118,15 @@ export default function Practical3() {
       <Flow
         title="One topic, two groups: who reads which partition (recorded assignment)"
         cols={4}
-        rows={3}
-        rowHeight={72}
+        rows={5}
+        rowHeight={76}
         nodes={[
-          { id: 'producer', label: 'producer', sub: 'console producer', col: 0, row: 1, hue: 7, shape: 'actor' },
-          ...[0, 1, 2].map((p) => ({ id: `p${p}`, label: `payments P${p}`, col: 1, row: p, hue: 3 as Hue, shape: 'log' as const })),
+          { id: 'producer', label: 'producer', sub: 'console producer', col: 0, row: 2, hue: 7, shape: 'actor' },
+          ...[0, 1, 2].map((p) => ({ id: `p${p}`, label: `payments P${p}`, col: 1, row: p * 2, hue: 3 as Hue, shape: 'log' as const })),
           ...CONSUMERS.map(([g, c]) => {
-            // analytics' two consumers next to the partitions, billing's single consumer on the right, so no line crosses a box
+            // analytics' two consumers next to the outer partitions, billing's single consumer on the right, so no line crosses a box
             const peers = CONSUMERS.filter(([pg]) => pg === g).map(([, pc]) => pc)
-            const row = g === 'billing' ? 1 : peers.indexOf(c) * 2
+            const row = g === 'billing' ? 2 : peers.indexOf(c) * 4
             return { id: c, label: c, sub: `group ${g}`, col: g === 'billing' ? 3 : 2, row, hue: groupHue(g) }
           }),
         ]}
@@ -174,12 +174,12 @@ export default function Practical3() {
       />
       <BarChart
         title="Payments each consumer printed (recorded)"
-        max={6}
+        max={FIRST_TYPED.length}
         bars={received.map((r) => ({ label: `${r.name} · ${r.group}`, value: r.n, hue: groupHue(r.group), display: `${r.n} payments` }))}
       />
       <StatTiles
         stats={[
-          { label: 'payments produced', value: 6, hue: 7 },
+          { label: 'payments produced', value: FIRST_TYPED.length, hue: 7 },
           { label: 'group billing processed', value: received[0].n, sub: 'one consumer', hue: 1 },
           { label: 'group analytics processed', value: received[1].n + received[2].n, sub: `split ${received[1].n} + ${received[2].n}`, hue: 2 },
           { label: 'deliveries in total', value: received.reduce((n, r) => n + r.n, 0), sub: 'each group gets everything', hue: 3 },
@@ -221,7 +221,7 @@ export default function Practical3() {
       <BarChart
         title={`analytics lag per partition while it was stopped — ${awayTotal} payments waiting (recorded)`}
         max={Math.max(1, ...awayLag.map((r) => r.lag ?? 0))}
-        bars={awayLag.map((r) => ({ label: `P${r.partition} · committed ${r.current} of ${r.end}`, value: r.lag ?? 0, hue: (r.lag ?? 0) > 0 ? 8 : 6, display: `lag ${r.lag}` }))}
+        bars={awayLag.map((r) => ({ label: `P${r.partition} · committed ${r.current} of ${r.end}`, value: r.lag ?? 0, hue: (r.lag ?? 0) > 0 ? 8 : 2, display: `lag ${r.lag}` }))}
       />
       <p>
         No CONSUMER-ID (nobody is running), and LAG where new records arrived: the committed offsets did not move. Start one analytics consumer
@@ -232,7 +232,7 @@ export default function Practical3() {
         stats={[
           { label: 'lag while stopped', value: awayTotal, hue: 8 },
           { label: 'printed on return', value: P.caughtUp.out.length, sub: 'only the missed ones', hue: 2 },
-          { label: 'lag afterwards', value: caughtLag, hue: 6 },
+          { label: 'lag afterwards', value: caughtLag, hue: 2 },
         ]}
       />
       <p>It printed only the three it missed, and the lag is back to 0. One consumer now owns all three partitions of analytics.</p>
@@ -253,7 +253,7 @@ export default function Practical3() {
       <Terminal steps={[{ cmd: P.replay.cmd, out: lines(P.replay.out) }]} title="terminal 3 — analytics reads everything again" />
       <p>All {P.replay.out.length} payments again. billing was not affected: its offsets are separate.</p>
       <Timeline
-        title="The whole practical, in order: two groups, one outage, a replay"
+        title="The whole practical, in order: two groups, one outage, a replay (steps, not to time scale)"
         lanes={[
           { id: 'topic', label: 'topic payments' },
           { id: 'billing', label: 'group billing' },
@@ -269,7 +269,7 @@ export default function Practical3() {
           { lane: 'analytics', from: 5, to: 6, label: `replays ${P.replay.out.length}`, hue: 2 },
         ]}
         events={[
-          { lane: 'topic', at: 0, label: '6 payments', hue: 7 },
+          { lane: 'topic', at: 0, label: `${FIRST_TYPED.length} payments`, hue: 7 },
           { lane: 'topic', at: 2, label: `${P.whileAway.typed.length} more`, hue: 7 },
           { lane: 'analytics', at: 4.5, label: 'reset to earliest', hue: 5 },
         ]}
@@ -323,7 +323,7 @@ export default function Practical3() {
       <Terminal steps={[P.app.describe]} title="both groups afterwards" />
       <BarChart
         title="Orders each Micronaut instance received (recorded)"
-        max={6}
+        max={P.app.producer.length}
         bars={Object.entries(P.app.logs).map(([name, l]) => ({ label: name, value: l.length, hue: name.startsWith('billing') ? 1 : 2, display: `${l.length} orders` }))}
       />
       <p>

@@ -12,7 +12,7 @@ const mb = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`
 const hsetArgs = (T.tour.find((s) => s.cmd?.startsWith('HSET user:1'))?.cmd ?? 'HSET user:1 name Ann').split(' ').slice(2)
 /** A listpack: 6-byte header, then per short entry 1 encoding byte + the data + 1 back-length byte, then 1 end byte. */
 const listpackFields: ByteField[] = [
-  { label: 'header', content: 'total · count', bytes: 6, hue: 2 },
+  { label: 'header', content: 'hdr', bytes: 6, hue: 2 },
   ...hsetArgs.map((a, i): ByteField => ({ label: i % 2 === 0 ? 'field' : 'value', content: a, bytes: a.length + 2, hue: i % 2 === 0 ? 3 : 1 })),
   { label: 'end', content: 'FF', bytes: 1, hue: 2 },
 ]
@@ -77,27 +77,27 @@ export default function Types() {
       />
       <Flow
         title="The same hash once it is big: a hash table of separately allocated entries (schematic)"
-        cols={4}
-        rows={2}
-        rowHeight={78}
+        cols={3}
+        rows={4}
+        rowHeight={62}
         nodes={[
-          { id: 'buckets', label: 'bucket array', sub: 'one pointer per bucket', col: 0, row: 0, rowSpan: 2, hue: 3, shape: 'log' },
-          { id: 'e1', label: 'entry', sub: 'field ptr · value ptr · next', col: 1, row: 0, hue: 3 },
-          { id: 'e2', label: 'entry', sub: 'field ptr · value ptr · next', col: 1, row: 1, hue: 3 },
+          { id: 'buckets', label: 'bucket array', sub: 'slot = hash(field)', col: 0, row: 0, rowSpan: 4, hue: 3, shape: 'log' },
+          { id: 'e1', label: 'entry', sub: 'field · value · next', col: 1, row: 0, rowSpan: 2, hue: 3 },
+          { id: 'e2', label: 'entry', sub: 'field · value · next', col: 1, row: 2, rowSpan: 2, hue: 3 },
           { id: 'f1', label: hsetArgs[0] ?? 'field', sub: 'field string', col: 2, row: 0, hue: 3 },
-          { id: 'v1', label: hsetArgs[1] ?? 'value', sub: 'value string', col: 3, row: 0, hue: 1 },
-          { id: 'f2', label: hsetArgs[2] ?? 'field', sub: 'field string', col: 2, row: 1, hue: 3 },
-          { id: 'v2', label: hsetArgs[3] ?? 'value', sub: 'value string', col: 3, row: 1, hue: 1 },
+          { id: 'v1', label: hsetArgs[1] ?? 'value', sub: 'value string', col: 2, row: 1, hue: 3 },
+          { id: 'f2', label: hsetArgs[2] ?? 'field', sub: 'field string', col: 2, row: 2, hue: 3 },
+          { id: 'v2', label: hsetArgs[3] ?? 'value', sub: 'value string', col: 2, row: 3, hue: 3 },
         ]}
         edges={[
-          { from: 'buckets', to: 'e1', label: 'hash(field)', hue: 3 },
+          { from: 'buckets', to: 'e1', hue: 3 },
           { from: 'buckets', to: 'e2', hue: 3 },
           { from: 'e1', to: 'f1', hue: 3 },
-          { from: 'f1', to: 'v1', hue: 1, dashed: true },
+          { from: 'e1', to: 'v1', hue: 3, dashed: true },
           { from: 'e2', to: 'f2', hue: 3 },
-          { from: 'f2', to: 'v2', hue: 1, dashed: true },
+          { from: 'e2', to: 'v2', hue: 3, dashed: true },
         ]}
-        caption="Every arrow is a pointer to a separate allocation. Lookups no longer scan, but each field now costs pointers, allocator overhead and a bucket — that is the memory jump below."
+        caption="Each arrow is a pointer from an entry to a separately allocated string (solid: the field, dashed: the value); the bucket for a field is chosen by hashing it. Lookups no longer scan, but each field now costs pointers, allocator overhead and a bucket — that is the memory jump below."
       />
       <EncodingExplorer />
 

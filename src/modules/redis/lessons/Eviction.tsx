@@ -23,6 +23,7 @@ export default function Eviction() {
       />
 
       <h2>A limit, and a decision</h2>
+      <p>When Redis runs out of the memory you allowed it, a policy decides whether writes fail or keys are deleted to make room.</p>
       <p>
         Redis keeps everything in RAM. <code>maxmemory</code> caps how much it may use for data (0, the default, means no limit — then the operating
         system decides, usually by killing the process). Once the limit is reached, every command that would add memory first asks the{' '}
@@ -50,6 +51,7 @@ export default function Eviction() {
       />
 
       <h2>noeviction: writes fail, reads continue</h2>
+      <p>The default policy never deletes anything: once the limit is reached, writes get an error.</p>
       <p>
         With a 2 MB limit, the recorded server accepted {V.noeviction.acceptedBeforeError.toLocaleString()} small keys and then refused the next write with:
       </p>
@@ -72,9 +74,13 @@ export default function Eviction() {
       />
 
       <h2>Approximated LRU: sample, then evict the oldest</h2>
+      <p>Redis does not keep keys in exact usage order; it samples a few and evicts the best candidate among them.</p>
       <p>
         Exact LRU needs every access to move the key to the front of one global list: a linked list with two pointers per key, updated millions of times a
-        second. Redis does something cheaper. Each key stores a 24-bit <strong>clock value</strong> of its last access, with a resolution of one second.
+        second. Redis does something cheaper.
+      </p>
+      <p>
+        Each key stores a 24-bit <strong>clock value</strong> of its last access, with a resolution of one second.
         To evict, Redis samples <code>maxmemory-samples</code> random keys (default 5), adds the best candidates to a small <strong>eviction pool</strong>{' '}
         (16 entries, kept sorted across evictions), and evicts the best candidate in the pool. More samples come closer to true LRU at more CPU cost.
       </p>
@@ -117,7 +123,7 @@ export default function Eviction() {
         title="Hot keys still present after the run (of 1,000), recorded"
         max={1000}
         marker={{ value: 1000, label: 'all 1,000 hot keys' }}
-        bars={baseline.map((r) => ({ label: r.policy, value: r.hotSurvived, hue: r.policy === 'allkeys-lfu' ? 6 : 4, note: `${r.evicted.toLocaleString()} keys evicted` }))}
+        bars={baseline.map((r) => ({ label: r.policy, value: r.hotSurvived, hue: r.policy === 'allkeys-lfu' ? 6 : 3, note: `${r.evicted.toLocaleString()} keys evicted` }))}
       />
       <p>
         LRU kept only {lru.hotSurvived} — far fewer than you would expect for keys read constantly. The suspect is the one-second clock: the whole run
@@ -132,7 +138,7 @@ export default function Eviction() {
         bars={V.lruPace.map((r, i) => ({
           label: 'pauseMsPerBatch' in r ? 'spread over ~20 s' : `one burst, run ${i + 1}`,
           value: r.hotSurvived,
-          hue: 'pauseMsPerBatch' in r ? 6 : 4,
+          hue: 'pauseMsPerBatch' in r ? 6 : 3,
         }))}
       />
       <Timeline
@@ -166,7 +172,7 @@ export default function Eviction() {
         bars={bySamples.map((r) => ({
           label: `samples ${'maxmemory-samples' in r ? r['maxmemory-samples'] : 5}`,
           value: r.hotSurvived,
-          hue: r.writeErrors ? 8 : 4,
+          hue: r.writeErrors ? 8 : 3,
           note: r.writeErrors ? `${r.writeErrors} writes failed with OOM although the policy allows evicting` : undefined,
           display: `${r.hotSurvived}${r.writeErrors ? ` · ${r.writeErrors} OOM errors` : ''}`,
         }))}
@@ -185,6 +191,7 @@ export default function Eviction() {
       </p>
 
       <h2>LFU: counting accesses in 8 bits</h2>
+      <p>LFU keeps a tiny, slowly growing access counter per key instead of a timestamp.</p>
       <p>
         LFU keeps a counter per key in the same 24 bits as the LRU clock: 16 bits for the last decrement time (minutes) and an 8-bit counter. A new key
         starts at {V.lfu.initial}. Each access increments it only with probability <code>1 / ((counter − 5) × lfu-log-factor + 1)</code>, so the counter
@@ -212,6 +219,7 @@ export default function Eviction() {
       <EvictionPlayground />
 
       <h2>Where the memory goes</h2>
+      <p>A Redis process needs more RAM than its data, so size the machine for the rest too.</p>
       <p>
         <code>maxmemory</code> limits Redis’s own accounting of data, not the process size. Leave headroom for what is not counted or not data:
       </p>

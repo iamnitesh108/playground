@@ -106,7 +106,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
         recording used the same image ({PRACTICALS.image}) with the same single-node setup written out explicitly (see{' '}
         <code>tools/kafka-capture</code>).
       </p>
-      <PracticalTopology topic="greetings" partitions={1} groups={['generated (console)', 'billing (app)']} />
+      <PracticalTopology topics="greetings (console tools) and orders-p1 (app)" partitions={1} groups={[{ name: 'generated', who: 'console' }, { name: 'billing', who: 'Micronaut app' }]} />
       <Callout tone="note" title="No ZooKeeper">
         Kafka 4 runs without ZooKeeper: the brokers keep their own metadata with the KRaft protocol. Many older tutorials (and videos) start a
         ZooKeeper process first — with Kafka 4 there is nothing to start besides the broker.
@@ -158,17 +158,17 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
         title="One log, three readers: which offsets each one read (recorded)"
         lanes={[
           { id: 'log', label: 'partition 0' },
-          { id: 'r1', label: 'read 1 · --from-beginning' },
-          { id: 'r2', label: 'read 2 · --from-beginning' },
-          { id: 'r3', label: 'live consumer · latest' },
+          { id: 'r1', label: 'read 1 (from start)' },
+          { id: 'r2', label: 'read 2 (from start)' },
+          { id: 'r3', label: 'live (latest)' },
         ]}
         segments={[
           ...LOG.map((r) => ({ lane: 'log', from: r.offset, to: r.offset + 1, label: r.value, hue: 3 as const })),
           { lane: 'r1', from: 0, to: firstRead.length, label: `${firstRead.length} records`, hue: 1 },
           { lane: 'r2', from: 0, to: secondReadCount, label: `${secondReadCount} records`, hue: 1 },
-          ...live.map((r) => ({ lane: 'r3', from: r.offset, to: r.offset + 1, label: `offset ${r.offset}`, hue: 2 as const })),
+          ...live.map((r) => ({ lane: 'r3', from: r.offset, to: r.offset + 1, label: `offset ${r.offset}`, hue: 1 as const })),
         ]}
-        events={[{ lane: 'r3', at: live[0]?.offset ?? 0, label: 'starts at the end', hue: 2 }]}
+        events={[{ lane: 'r3', at: live[0]?.offset ?? 0, label: 'starts at the end', hue: 1 }]}
         end={LOG.length}
         unit=""
       />
@@ -212,19 +212,20 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
       </p>
       <Flow
         title="The app's two modes, and where the progress is saved"
+        caption="SendOrders calls send(key, order) on the generated @KafkaClient (acks=all); the call returns RecordMetadata once the broker has stored the record. OrderListener (@KafkaListener) polls and auto-commits its offsets every 5 s."
         cols={5}
         rows={2}
         nodes={[
           { id: 'send', label: 'SendOrders', sub: 'producer mode', col: 0, row: 0, hue: 7, shape: 'actor' },
-          { id: 'client', label: 'OrderProducer', sub: '@KafkaClient, acks=all', col: 1, row: 0, hue: 7 },
+          { id: 'client', label: 'OrderProducer', sub: '@KafkaClient', col: 1, row: 0, hue: 7 },
           { id: 'topic', label: 'orders-p1', sub: '1 partition', col: 2, row: 0, hue: 3, shape: 'log' },
-          { id: 'listener', label: 'OrderListener', sub: '@KafkaListener, group billing', col: 3, row: 0, hue: 1 },
-          { id: 'offsets', label: '__consumer_offsets', sub: 'commit every 5 s', col: 3, row: 1, hue: 5, shape: 'store' },
-          { id: 'log', label: 'your log', sub: 'received …', col: 4, row: 0, hue: 1, shape: 'actor' },
+          { id: 'listener', label: 'OrderListener', sub: 'group billing', col: 3, row: 0, hue: 1 },
+          { id: 'offsets', label: '__consumer_offsets', sub: 'commit every 5 s', col: 3, row: 1, span: 2, hue: 5, shape: 'store' },
+          { id: 'log', label: 'your log', sub: 'one line per order', col: 4, row: 0, hue: 1, shape: 'actor' },
         ]}
         edges={[
-          { from: 'send', to: 'client', label: 'send(key, order)', flow: true, hue: 7 },
-          { from: 'client', to: 'topic', label: 'RecordMetadata', flow: true, hue: 7, both: true },
+          { from: 'send', to: 'client', flow: true, hue: 7 },
+          { from: 'client', to: 'topic', flow: true, hue: 7, both: true },
           { from: 'topic', to: 'listener', label: 'poll', flow: true, hue: 1 },
           { from: 'listener', to: 'offsets', label: 'auto-commit', hue: 5, dashed: true },
           { from: 'listener', to: 'log', flow: true, hue: 1 },
@@ -271,9 +272,9 @@ ${RUN_APP.consumer('app-1', 'billing', 'orders-p1')}`}
       <Terminal steps={[P.app.describe]} title="recorded: the group’s progress, as Kafka sees it" />
       <StatTiles
         stats={[
-          { label: 'CURRENT-OFFSET (committed)', value: appGroup?.current ?? '-', sub: 'next offset the group will read', hue: 1 },
+          { label: 'CURRENT-OFFSET (committed)', value: appGroup?.current ?? '-', sub: 'next offset the group will read', hue: 2 },
           { label: 'LOG-END-OFFSET', value: appGroup?.end ?? '-', sub: 'next offset a new record gets', hue: 3 },
-          { label: 'LAG', value: appGroup?.lag ?? '-', sub: 'records waiting for the group', hue: (appGroup?.lag ?? 0) > 0 ? 8 : 6 },
+          { label: 'LAG', value: appGroup?.lag ?? '-', sub: 'records waiting for the group', hue: (appGroup?.lag ?? 0) > 0 ? 8 : 2 },
         ]}
       />
       <p>

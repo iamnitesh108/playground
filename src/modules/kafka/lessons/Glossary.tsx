@@ -12,7 +12,7 @@ const GROUP_OF = new Map(kafkaModule.groups.flatMap((g) => g.lessons.map((l) => 
 const TERMS_PER_GROUP = kafkaModule.groups
   .map((g) => ({ title: g.title, count: GLOSSARY.filter((e) => GROUP_OF.get(e.lesson) === g.title).length }))
   .filter((g) => g.count > 0)
-const HUE_OF: Record<string, Hue> = { Foundations: 3, 'Producing and consuming': 7, Durability: 5, Ecosystem: 4 }
+const HUE_OF: Record<string, Hue> = { Foundations: 3, 'Producing and consuming': 7, Durability: 5, Ecosystem: 4, 'Using Kafka in applications': 1, 'Operating Kafka': 2, 'More hands-on': 6 }
 const count = (title: string) => TERMS_PER_GROUP.find((g) => g.title === title)?.count ?? 0
 
 export default function Glossary() {
@@ -29,19 +29,23 @@ export default function Glossary() {
       <Flow
         title="How the big ideas connect (terms defined in each part)"
         cols={4}
-        rows={2}
+        rows={3}
         nodes={[
           { id: 'found', label: 'Foundations', sub: `${count('Foundations')} terms`, col: 0, row: 0, hue: HUE_OF.Foundations },
           { id: 'pc', label: 'Producing & consuming', sub: `${count('Producing and consuming')} terms`, col: 1, row: 0, span: 2, hue: HUE_OF['Producing and consuming'] },
           { id: 'dur', label: 'Durability', sub: `${count('Durability')} terms`, col: 3, row: 0, hue: HUE_OF.Durability },
           { id: 'eco', label: 'Ecosystem', sub: `Connect, Debezium, outbox · ${count('Ecosystem')} terms`, col: 1, row: 1, span: 2, hue: HUE_OF.Ecosystem },
+          { id: 'apps', label: 'Using Kafka in apps', sub: `clients, schemas, Streams · ${count('Using Kafka in applications')} terms`, col: 0, row: 2, span: 2, hue: HUE_OF['Using Kafka in applications'] },
+          { id: 'ops', label: 'Operating Kafka', sub: `security, metrics · ${count('Operating Kafka')} terms`, col: 2, row: 2, span: 2, hue: HUE_OF['Operating Kafka'] },
         ]}
         edges={[
           { from: 'found', to: 'pc', hue: 3, flow: true },
           { from: 'pc', to: 'dur', hue: 5 },
           { from: 'eco', to: 'pc', label: 'built on', hue: 4, dashed: true },
+          { from: 'apps', to: 'eco', hue: 1, dashed: true },
+          { from: 'ops', to: 'eco', hue: 2, dashed: true },
         ]}
-        caption="Foundations feed producing and consuming, durability keeps those records safe, and the ecosystem is built on top."
+        caption="Foundations feed producing and consuming, durability keeps those records safe, and the ecosystem is built on top. Using Kafka in apps and operating it draw on all of these. Practicals 4 and 5 count under “More hands-on”."
       />
       <Proportion
         title={`${GLOSSARY.length} terms, by part of the module`}

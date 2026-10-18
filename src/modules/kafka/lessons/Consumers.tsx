@@ -37,7 +37,7 @@ export default function Consumers() {
           'choose auto.offset.reset and a commit style knowing what each costs on a crash',
           'keep a consumer alive: heartbeats, session.timeout.ms and max.poll.interval.ms',
         ]}
-        before="Lesson 6 — offsets"
+        before="the Offsets lesson"
       />
 
       <h2>A consumer is a loop in your program</h2>
@@ -59,10 +59,10 @@ export default function Consumers() {
         ]}
         edges={[
           { from: 'app', to: 'leader', label: 'fetch records', flow: true, hue: 3, both: true },
-          { from: 'hb', to: 'coord', label: 'heartbeat every 3 s', flow: true, hue: 5 },
-          { from: 'app', to: 'coord', label: 'commit offsets', hue: 5, dashed: true },
+          { from: 'hb', to: 'coord', label: 'heartbeats', flow: true, hue: 5 },
+          { from: 'app', to: 'coord', hue: 5, dashed: true },
         ]}
-        caption="Data comes from the leaders of the partitions you own; group membership and committed offsets go through the coordinator. Slow processing blocks your thread, never the heartbeat thread."
+        caption="Data comes from the leaders of the partitions you own (green, fetch). Group membership and commits go to the coordinator (pink): heartbeats every 3 s by default (heartbeat.interval.ms), and offset commits from your thread (dashed). Slow processing blocks your thread, never the heartbeat thread. Shown for the default classic group protocol."
       />
       <CodeBlock title="the plain Java consumer loop" language="java" code={JAVA_LOOP} />
       <p>Frameworks hide the loop. In Micronaut the same consumer is an annotated method — this is the real class the practicals ran:</p>
@@ -106,7 +106,7 @@ export default function Consumers() {
           { term: 'log-end offset', definition: 'The offset the next record written to the partition will get. Grows with every produce.' },
           { term: 'position', definition: 'The offset the next poll() will return to this consumer. Lives in memory; moves as poll() hands out records.' },
           { term: 'committed offset', definition: 'The progress saved in Kafka (topic __consumer_offsets) for the group and partition: “everything before this is done”. Survives crashes and rebalances.' },
-          { term: 'lag', definition: 'log-end offset − committed offset: records written but not yet confirmed by the group.' },
+          { term: 'lag', definition: 'end offset − committed offset, where the end offset is the high watermark (the end consumers can see): records the group has not confirmed yet.' },
         ]}
       />
       <OffsetsTape
@@ -119,7 +119,7 @@ export default function Consumers() {
             markers: [
               { at: 5, label: 'committed 5', hue: 1 },
               { at: 7, label: 'position 7', hue: 1 },
-              { at: 9, label: 'log-end 9', hue: 3, above: true },
+              { at: 9, label: 'end 9 (all replicated)', hue: 3, above: true },
             ],
           },
         ]}
@@ -144,14 +144,14 @@ export default function Consumers() {
           { id: 'given', label: 'partition assigned', sub: 'after joining the group', col: 0, row: 1, hue: 1, shape: 'actor' },
           { id: 'ask', label: 'committed offset?', sub: 'asked from the coordinator', col: 1, row: 1, hue: 5 },
           { id: 'resume', label: 'resume there', sub: 'the normal case', col: 2, row: 0, span: 2, hue: 6 },
-          { id: 'reset', label: 'auto.offset.reset', sub: 'only now', col: 2, row: 2, hue: 4 },
+          { id: 'reset', label: 'auto.offset.reset', sub: 'only now', col: 2, row: 2, hue: 1 },
           { id: 'earliest', label: 'earliest / latest', sub: 'oldest kept · the end', col: 3, row: 1, hue: 3 },
           { id: 'none', label: 'none', sub: 'poll() throws', col: 3, row: 2, hue: 8 },
         ]}
         edges={[
           { from: 'given', to: 'ask', flow: true, hue: 1 },
           { from: 'ask', to: 'resume', label: 'yes', flow: true, hue: 6 },
-          { from: 'ask', to: 'reset', label: 'no', hue: 4 },
+          { from: 'ask', to: 'reset', label: 'no', hue: 1 },
           { from: 'reset', to: 'earliest', hue: 3 },
           { from: 'reset', to: 'none', hue: 8 },
         ]}
@@ -215,7 +215,7 @@ export default function Consumers() {
       </p>
       <Callout tone="tip" title="The safe default">
         Commit <strong>after</strong> the work, and make the work safe to repeat (a unique key, “insert … if absent”, a status check). Then a crash costs a
-        few duplicates, never lost records. Lesson 9 goes deeper.
+        few duplicates, never lost records. <a href="#/kafka/delivery">Commits and delivery guarantees</a> goes deeper.
       </Callout>
 
       <h2>Staying alive: heartbeats and the poll deadline</h2>
@@ -234,25 +234,25 @@ export default function Consumers() {
         <code>group.consumer.heartbeat.interval.ms</code> (5 s).
       </p>
       <Timeline
-        title="Way 1: the process dies — heartbeats stop (defaults, classic protocol)"
+        title="Way 1: the process dies — heartbeats stop, and 45 s after the last one the coordinator removes the member and rebalances (defaults, classic protocol)"
         lanes={[
           { id: 'hb', label: 'heartbeats' },
           { id: 'coord', label: 'coordinator' },
         ]}
         segments={[
           { lane: 'hb', from: 0, to: 9, label: 'every 3 s', hue: 5 },
-          { lane: 'coord', from: 9, to: 54, label: 'waits session.timeout.ms (45 s)', hue: 4 },
+          { lane: 'coord', from: 9, to: 54, label: 'waits session.timeout.ms (45 s)', hue: 5 },
         ]}
         events={[
           { lane: 'hb', at: 10, label: 'process dies', hue: 8 },
-          { lane: 'coord', at: 54, label: 'member removed → rebalance', hue: 8 },
+          { lane: 'coord', at: 54, label: 'removed', hue: 8 },
         ]}
         end={60}
         unit="s"
         playable
       />
       <Timeline
-        title="Way 2: the process is alive but stuck — no poll() for too long"
+        title="Way 2: the process is alive but stuck — no poll() within max.poll.interval.ms (300 s), so it leaves the group"
         lanes={[
           { id: 'hb', label: 'heartbeats' },
           { id: 'app', label: 'your thread' },
@@ -264,7 +264,7 @@ export default function Consumers() {
         ]}
         events={[
           { lane: 'app', at: 0, label: 'poll()', hue: 1 },
-          { lane: 'app', at: 300, label: 'max.poll.interval.ms → leaves group', hue: 8 },
+          { lane: 'app', at: 300, label: '300 s: leaves', hue: 8 },
         ]}
         end={360}
         unit="s"

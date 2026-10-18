@@ -5,7 +5,13 @@ import { keyHue } from './stage/useKafkaStage'
 import styles from './PracticalFigures.module.css'
 
 /** Where everything runs in the practicals: one container with the broker, tools and the app around it. */
-export function PracticalTopology({ topic, partitions, groups }: { topic: string; partitions: number; groups: readonly string[] }) {
+export interface TopologyGroup {
+  name: string
+  /** Who runs it, e.g. "console consumers" or "Micronaut app". */
+  who: string
+}
+
+export function PracticalTopology({ topics, partitions, groups }: { topics: string; partitions: number; groups: readonly TopologyGroup[] }) {
   const consumerRows = Math.max(2, groups.length)
   return (
     <Flow
@@ -18,8 +24,8 @@ export function PracticalTopology({ topic, partitions, groups }: { topic: string
         { id: 'cli', label: 'CLI tools', sub: '/opt/kafka/bin', col: 1, row: 0, hue: 7 },
         { id: 'app', label: 'Micronaut app', sub: 'on your machine', col: 0, row: 1, hue: 7 },
         { id: 'port', label: 'port 9092', sub: '-p 9092:9092', col: 1, row: 1, hue: 4 },
-        { id: 'broker', label: 'broker + controller', sub: `topic ${topic} · ${partitions} partition${partitions > 1 ? 's' : ''}`, col: 2, row: 0, rowSpan: consumerRows, hue: 3, shape: 'log' },
-        ...groups.map((g, i) => ({ id: `g${i}`, label: `group ${g}`, sub: 'consumers', col: 3, row: i, hue: ((i % 2) + 1) as Hue })),
+        { id: 'broker', label: 'broker + controller', sub: `${partitions} partition${partitions > 1 ? 's' : ''} per topic`, col: 2, row: 0, rowSpan: consumerRows, hue: 3, shape: 'log' },
+        ...groups.map((g, i) => ({ id: `g${i}`, label: g.name, sub: `group · ${g.who}`, col: 3, row: i, hue: ((i % 2) + 1) as Hue })),
       ]}
       edges={[
         { from: 'you', to: 'cli', label: 'exec', hue: 4 },
@@ -28,7 +34,7 @@ export function PracticalTopology({ topic, partitions, groups }: { topic: string
         { from: 'port', to: 'broker', flow: true, hue: 4 },
         ...groups.map((_, i) => ({ from: 'broker', to: `g${i}`, flow: true, hue: ((i % 2) + 1) as Hue })),
       ]}
-      caption="The broker runs in a container; the command-line tools run inside it, the Micronaut app runs on your machine and reaches the broker through the published port."
+      caption={`Topics: ${topics}. The broker runs in a container; the command-line tools run inside it, the Micronaut app runs on your machine and reaches the broker through the published port.`}
     />
   )
 }

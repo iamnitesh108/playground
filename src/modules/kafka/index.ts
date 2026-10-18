@@ -4,7 +4,7 @@ export const kafkaModule: LearningModule = {
   id: 'kafka',
   title: 'Apache Kafka',
   description:
-    'Event streaming from zero: topics, partitions, offsets, how consumers and consumer groups really work — with animations and three hands-on practicals recorded on Kafka 4.3 with the CLI and a Micronaut app — then replication, Kafka Connect, Debezium change data capture and the outbox pattern.',
+    'Just want to use Kafka? Start with “Using Kafka day to day”. Otherwise: event streaming from zero — topics, partitions, offsets, how consumers and consumer groups really work — with animations and three hands-on practicals recorded on Kafka 4.3 with the CLI and a Micronaut app — then replication, Kafka Connect, Debezium change data capture and the outbox pattern.',
   tags: ['messaging', 'event streaming', 'consumer groups', 'micronaut', 'kafka connect', 'debezium', 'cdc'],
   groups: [
     {
@@ -132,6 +132,28 @@ export const kafkaModule: LearningModule = {
           summary: 'A production design: reliable events from a database transaction, end to end.',
           load: () => import('./lessons/Outbox'),
         },
+      ],
+    },
+    {
+      title: 'Using Kafka in applications',
+      lessons: [
+        { slug: 'using-kafka', title: 'Using Kafka day to day', summary: 'The everyday operations — create a topic, send, read, inspect and reset groups — from the CLI and from Java code, without the internals.', load: () => import('./lessons/UsingKafka') },
+        { slug: 'schema-registry', title: 'Schemas and Schema Registry', summary: 'Avro and Protobuf, schema ids in every record, compatibility rules, and evolving a schema without breaking consumers.', load: () => import('./lessons/SchemaRegistry') },
+        { slug: 'kafka-streams', title: 'Kafka Streams', summary: 'Processing streams inside your app: KStream and KTable, state stores, windows, and how it scales with partitions.', load: () => import('./lessons/KafkaStreams') },
+      ],
+    },
+    {
+      title: 'Operating Kafka',
+      lessons: [
+        { slug: 'security', title: 'Security', summary: 'Encryption with TLS, authentication with SASL, authorization with ACLs — configured and tested.', load: () => import('./lessons/Security') },
+        { slug: 'monitoring', title: 'Monitoring', summary: 'The metrics that matter, consumer lag, under-replicated partitions and the alerts to set.', load: () => import('./lessons/Monitoring') },
+      ],
+    },
+    {
+      title: 'More hands-on',
+      lessons: [
+        { slug: 'practical-4', title: 'Practical 4: transactions and exactly-once', summary: 'A transactional producer, read_committed consumers and aborted records — recorded on Kafka 4.3.', load: () => import('./lessons/Practical4') },
+        { slug: 'practical-5', title: 'Practical 5: share groups (queues)', summary: 'Several consumers on one partition, per-record acknowledgement and redelivery — recorded on Kafka 4.3.', load: () => import('./lessons/Practical5') },
       ],
     },
     {

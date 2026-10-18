@@ -48,6 +48,7 @@ export default function Architecture() {
       />
 
       <h2>One thread runs every command</h2>
+      <p>A Redis server is one process: one thread executes all commands, and a few helper threads do slow chores in the background.</p>
       <p>
         The recorded server reported <code>multiplexing_api:{A.server.multiplexing_api}</code>: its event loop is built on epoll. These are the
         threads of an idle server, read from the operating system:
@@ -92,6 +93,7 @@ export default function Architecture() {
       </Callout>
 
       <h2>The path of one command</h2>
+      <p>A command passes through the kernel, the event loop and the keyspace, and its reply goes back the same way — all on the main thread.</p>
       <Flow
         title="One SET, from the client's socket to the reply"
         cols={5}
@@ -158,9 +160,8 @@ export default function Architecture() {
         ]}
         segments={[
           { lane: 'main', from: 0, to: A.blockedDefault.slowMs, label: 'runs the Lua script — nothing else', hue: 2 },
-          { lane: 'main', from: A.blockedDefault.slowMs, to: A.blockedDefault.slowMs + 8, label: '', hue: 1 },
           { lane: 'a', from: 0, to: A.blockedDefault.slowMs, label: 'waits for its script', hue: 1 },
-          { lane: 'b', from: 30, to: 30 + A.blockedDefault.pingMs, label: `PING waits ${A.blockedDefault.pingMs} ms`, hue: 8, striped: true },
+          { lane: 'b', from: 30, to: 30 + A.blockedDefault.pingMs, label: `PING waits ${A.blockedDefault.pingMs} ms`, hue: 8 },
         ]}
         events={[
           { lane: 'b', at: 30, label: 'PING sent', hue: 1 },
@@ -170,6 +171,7 @@ export default function Architecture() {
       />
 
       <h2>What one slow command does to everybody</h2>
+      <p>While one command runs, every other client waits — so the slowest command sets the latency for everybody.</p>
       <StatTiles
         title="Recorded on the server, one thread doing everything"
         stats={[
@@ -218,7 +220,7 @@ export default function Architecture() {
       <p>
         A script cannot be interrupted halfway — that is what makes it atomic. After <code>busy-reply-threshold</code> milliseconds (default{' '}
         {A.busyThresholdDefault}) Redis starts answering other clients with an error instead of making them wait. With the threshold lowered to 200 ms,
-        the same PING during the same script got this reply after {A.blockedBusyError.pingMs} ms:
+        a PING sent 300 ms into the same script got this reply at once ({A.blockedBusyError.pingMs} ms):
       </p>
       <CliSession title="recorded: PING while a long script runs, threshold 200 ms" steps={[{ who: 'B', cmd: 'PING', out: A.blockedBusyError.ping }]} />
       <p>

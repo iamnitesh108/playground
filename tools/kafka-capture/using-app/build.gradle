@@ -1,0 +1,22 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.apache.kafka:kafka-clients:4.3.1'
+    runtimeOnly 'org.slf4j:slf4j-nop:2.0.13'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+}
+
+application {
+    // every class in demo.using has its own main(); run one with:
+    //   java -cp "build/install/using-app/lib/*" demo.using.SendPayments
+    mainClass = 'demo.using.SendPayments'
+}

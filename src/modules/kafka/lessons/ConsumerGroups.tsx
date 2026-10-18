@@ -56,7 +56,7 @@ const SCENARIO: ScenarioStep[] = [
 const REBALANCE_STEPS = [
   { title: 'A consumer starts', body: <p>Consumer c3 starts with <code>group.id=billing</code> and contacts the group’s <strong>coordinator</strong> — the broker leading the <code>__consumer_offsets</code> partition that <code>billing</code> hashes to.</p> },
   { title: 'Everyone re-joins', body: <p>The coordinator starts a rebalance. All members send a <code>JoinGroup</code> request. In the classic “eager” protocol they first stop processing and give up all their partitions.</p> },
-  { title: 'The leader assigns', body: <p>The first member to join becomes the <strong>group leader</strong>. It runs the assignor (here range: 4 partitions over 3 members gives c1 two, the others one each) and sends the plan back in <code>SyncGroup</code>.</p> },
+  { title: 'The leader assigns', body: <p>The first member to join becomes the <strong>group leader</strong>. It runs the assignor (here range: 3 partitions over 3 members, one each) and sends the plan back in <code>SyncGroup</code>.</p> },
   { title: 'Work resumes', body: <p>Each member receives its partitions and resumes from the group’s committed offsets. The <strong>generation</strong> number increases, so a member still holding an old generation is fenced off: its commits are rejected.</p> },
   { title: 'Heartbeats keep it alive', body: <p>Members heartbeat to the coordinator. Miss them for <code>session.timeout.ms</code>, or go longer than <code>max.poll.interval.ms</code> between polls, and the member is removed — another rebalance.</p> },
 ]
@@ -78,7 +78,7 @@ function RebalanceFlow() {
             ))}
           </Column>
           <div style={{ width: 150, display: 'flex' }}>
-            <Connector active direction={step === 2 || step === 3 ? 'left' : 'right'} label={['JoinGroup', 'JoinGroup ×3', 'SyncGroup', 'assignment', 'heartbeat'][step]} />
+            <Connector active direction={step === 2 || step === 3 ? 'left' : 'right'} label={['c3: JoinGroup', 'JoinGroup ×3', 'SyncGroup', 'assignment', 'heartbeats'][step]} />
           </div>
           <Box title="Group coordinator" caption="a broker" active={step !== 3} />
         </Row>
@@ -88,7 +88,16 @@ function RebalanceFlow() {
 }
 
 /** One recorded describe, as the reader would type it. */
-const describe = (i: number) => ({ label: P2.stages[i].label, cmd: P2.stages[i].describe.cmd, out: P2.stages[i].describe.out.trim() })
+/**
+ * Re-pads a recorded table so its columns line up again: the recording shortens the random consumer ids, which
+ * leaves the original padding too short. Only whitespace changes; every value is the recorded one.
+ */
+const aligned = (out: string) => {
+  const rows = out.trim().split('\n').map((l) => l.trim().split(/\s+/))
+  const widths = rows.reduce<number[]>((w, r) => r.map((cell, i) => Math.max(w[i] ?? 0, cell.length)), [])
+  return rows.map((r) => r.map((cell, i) => (i < r.length - 1 ? cell.padEnd(widths[i] + 2) : cell)).join('')).join('\n')
+}
+const describe = (i: number) => ({ label: P2.stages[i].label, cmd: P2.stages[i].describe.cmd, out: aligned(P2.stages[i].describe.out) })
 
 export default function ConsumerGroups() {
   return (
@@ -100,7 +109,7 @@ export default function ConsumerGroups() {
           'use groups both as a work queue and as publish/subscribe',
           'read the output of kafka-consumer-groups.sh',
         ]}
-        before="Lesson 7 — how a consumer works"
+        before="How a consumer works"
       />
 
       <h2>Why groups exist</h2>
@@ -153,7 +162,7 @@ export default function ConsumerGroups() {
         partition 1 and the idle c4 got partition 2 (compare with the snapshot above). The group’s committed offsets show every partition caught up
         (<code>LAG 0</code>):
       </p>
-      <Terminal steps={[{ label: P2.afterStop.label, cmd: P2.afterStop.describe.cmd, out: P2.afterStop.describe.out.trim() }, { label: 'offsets and lag of the group', cmd: P2.offsets.cmd, out: P2.offsets.out.trim() }]} />
+      <Terminal steps={[{ label: P2.afterStop.label, cmd: P2.afterStop.describe.cmd, out: aligned(P2.afterStop.describe.out) }, { label: 'offsets and lag of the group', cmd: P2.offsets.cmd, out: aligned(P2.offsets.out) }]} />
       <Callout tone="warn" title="More consumers than partitions">
         With 3 partitions, a 4th consumer in the same group sits <strong>idle</strong>. The partition count is the ceiling on a group’s parallelism —
         choose it with your peak consumer count in mind. Partitions can be added later, but that moves keys to different partitions (per-key order breaks
@@ -257,7 +266,7 @@ export default function ConsumerGroups() {
           { lane: 'c3', from: 40, to: 85, label: 'joining', hue: 5, striped: true },
           { lane: 'c3', from: 85, to: 120, label: 'P1', hue: 1 },
         ]}
-        events={[{ lane: 'c1', at: 55, label: 'revokes only P1', hue: 4 }, { lane: 'c3', at: 85, label: 'second round', hue: 5 }]}
+        events={[{ lane: 'c1', at: 55, label: 'revokes only P1', hue: 1 }, { lane: 'c3', at: 85, label: 'second round', hue: 5 }]}
         end={120}
         unit="ms"
         playable

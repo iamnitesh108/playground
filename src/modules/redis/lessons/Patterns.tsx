@@ -65,15 +65,15 @@ export default function Patterns() {
       <p>One hash per session, one TTL on the whole key; every request refreshes the TTL (sliding expiration), logout deletes it.</p>
       <Flow
         title="A session's life: created, refreshed on every request, gone on logout or idle timeout"
-        cols={4}
-        rows={2}
+        cols={5}
+        rows={3}
         rowHeight={80}
         nodes={[
           { id: 'browser', label: 'browser', sub: 'cookie: 9f3e2a', col: 0, row: 0, rowSpan: 2, hue: 1, shape: 'actor' },
-          { id: 'app', label: 'application', sub: 'any instance', col: 1, row: 0, rowSpan: 2, hue: 1 },
-          { id: 'hash', label: 'session:9f3e2a', sub: 'hash: user_id, role, csrf', col: 2, row: 0, span: 2, hue: 3, shape: 'store' },
-          { id: 'ttl', label: 'TTL 1800 s', sub: 'idle timeout', col: 2, row: 1, hue: 4 },
-          { id: 'gone', label: 'deleted', sub: 'DEL or expired', col: 3, row: 1, hue: 8 },
+          { id: 'app', label: 'application', sub: 'any instance', col: 2, row: 0, rowSpan: 2, hue: 1 },
+          { id: 'hash', label: 'session:9f3e2a', sub: 'hash: user, role', col: 4, row: 0, hue: 3 },
+          { id: 'ttl', label: 'TTL 1800 s', sub: 'idle timeout', col: 4, row: 1, hue: 4 },
+          { id: 'gone', label: 'deleted', sub: 'DEL or expired', col: 4, row: 2, hue: 8 },
         ]}
         edges={[
           { from: 'browser', to: 'app', label: 'request', flow: true, hue: 1 },
@@ -100,15 +100,15 @@ export default function Patterns() {
       </p>
       <Flow
         title="Why INCR needs no lock: one thread applies every increment in turn"
-        cols={4}
+        cols={5}
         rows={3}
-        rowHeight={60}
+        rowHeight={66}
         nodes={[
           { id: 'c1', label: 'client 1', sub: 'INCR views', col: 0, row: 0, hue: 1, shape: 'actor' },
           { id: 'c2', label: 'client 2', sub: 'INCR views', col: 0, row: 1, hue: 1, shape: 'actor' },
           { id: 'c3', label: 'client 3', sub: 'INCR views', col: 0, row: 2, hue: 1, shape: 'actor' },
-          { id: 'thread', label: 'main thread', sub: 'one command at a time', col: 1, row: 0, rowSpan: 3, span: 2, hue: 2 },
-          { id: 'counter', label: 'views', sub: '+1, +1, +1', col: 3, row: 1, hue: 3, shape: 'store' },
+          { id: 'thread', label: 'main thread', sub: 'one at a time', col: 2, row: 0, rowSpan: 3, hue: 2 },
+          { id: 'counter', label: 'views', sub: '+1, +1, +1', col: 4, row: 1, hue: 3, shape: 'store' },
         ]}
         edges={[
           { from: 'c1', to: 'thread', flow: true, hue: 1 },
@@ -150,7 +150,7 @@ export default function Patterns() {
         title={`Memory to count ${P.setOfMillion.members.toLocaleString()} distinct visitors (recorded)`}
         bars={[
           { label: 'set', value: P.setOfMillion.bytes, display: mb(P.setOfMillion.bytes), hue: 8 },
-          { label: 'HyperLogLog', value: hllMillion.bytes, display: kb(hllMillion.bytes), hue: 6, note: 'the bar is there — it is just 0.03% as long' },
+          { label: 'HyperLogLog', value: hllMillion.bytes, display: kb(hllMillion.bytes), hue: 6, note: `the bar is there — it is just ${((hllMillion.bytes / P.setOfMillion.bytes) * 100).toFixed(2)}% as long` },
         ]}
       />
       <p>
@@ -192,6 +192,7 @@ export default function Patterns() {
       </p>
 
       <h2>Geo: nearest places</h2>
+      <p>A geo set stores places by longitude and latitude and answers “what is within 5 km of here?” in one command.</p>
       <PatternsGeoMap
         title={`The recorded stores at their real coordinates; GEOSEARCH within ${searchArgs[6]} ${searchArgs[7]}`}
         center={{ lon: Number(searchArgs[3]), lat: Number(searchArgs[4]) }}
@@ -206,6 +207,7 @@ export default function Patterns() {
       </p>
 
       <h2>Leaderboards, queues, locks and rate limits</h2>
+      <p>A sorted set keeps members ordered by score, so a ranking is always ready to read.</p>
       <CliSession title="recorded: a leaderboard" steps={P.leaderboard} />
       <BarChart
         title="The top three after ZINCRBY, as ZREVRANGE … WITHSCORES returned them"
@@ -217,6 +219,7 @@ export default function Patterns() {
       </p>
 
       <h2>Naming keys</h2>
+      <p>Key names are the only index Redis has, so choose them as carefully as a table schema.</p>
       <ul>
         <li>Use <code>:</code> to separate parts, most general first: <code>user:7:cart</code>, <code>rate:user:7:2026-10-18T10:41</code>.</li>
         <li>Put a version in keys whose value format may change: <code>product:42:v3</code>.</li>
@@ -249,6 +252,7 @@ export default function Patterns() {
       </p>
 
       <h2>Pick a structure</h2>
+      <p>The whole lesson in one table: the need on the left, the structure and commands on the right.</p>
       <Table
         head={['You need…', 'Use', 'Key commands']}
         rows={[

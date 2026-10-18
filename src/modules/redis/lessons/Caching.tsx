@@ -52,15 +52,14 @@ export default function Caching() {
           { id: 'reply', label: 'response', sub: 'to the user', col: 3, row: 0, rowSpan: 2, hue: 6 },
         ]}
         edges={[
-          { from: 'app', to: 'redis', label: 'GET', flow: true, hue: 1 },
+          { from: 'app', to: 'redis', label: 'GET / SET … EX', flow: true, hue: 1 },
           { from: 'app', to: 'db', label: 'SELECT', flow: true, hue: 4 },
-          { from: 'db', to: 'redis', label: 'SET … EX', hue: 3, dashed: true },
           { from: 'redis', to: 'reply', flow: true, hue: 6 },
         ]}
         steps={[
           { title: 'Hit: one round trip', body: <p>The key is there: <code>GET</code> returns the copy and the database is never asked. This is the path most reads should take.</p>, active: ['app', 'redis', 'reply', 'app>redis', 'redis>reply'] },
           { title: 'Miss: ask the source of truth', body: <p><code>GET</code> returned nil, so the application reads the row from the database — the slow path.</p>, active: ['app', 'redis', 'db', 'app>redis', 'app>db'] },
-          { title: 'Fill the cache with a TTL', body: <p>It stores the result with <code>SET … EX</code> (plus jitter) and answers. The next reader hits; the TTL bounds how stale the copy can get.</p>, active: ['db', 'redis', 'reply', 'db>redis', 'redis>reply'] },
+          { title: 'Fill the cache with a TTL', body: <p>The application stores the row with <code>SET … EX</code> (plus jitter) and answers. The next reader hits; the TTL bounds how stale the copy can get. The database never talks to Redis: the application does both.</p>, active: ['app', 'redis', 'app>redis'] },
         ]}
       />
 
@@ -84,13 +83,13 @@ export default function Caching() {
           { id: 'app', label: 'application', sub: 'a write request', col: 0, row: 0, rowSpan: 2, hue: 1, shape: 'actor' },
           { id: 'redis', label: 'Redis', sub: 'the copy', col: 2, row: 0, hue: 3, shape: 'store' },
           { id: 'db', label: 'database', sub: 'source of truth', col: 2, row: 1, hue: 4, shape: 'store' },
-          { id: 'job', label: 'background job', sub: 'flusher / refresher', col: 3, row: 0, rowSpan: 2, hue: 5 },
+          { id: 'job', label: 'background job', sub: 'flusher / refresher', col: 3, row: 0, rowSpan: 2, hue: 1 },
         ]}
         edges={[
           { from: 'app', to: 'db', label: 'UPDATE', flow: true, hue: 4 },
           { from: 'app', to: 'redis', label: 'DEL / SET', flow: true, hue: 3 },
-          { from: 'redis', to: 'job', label: 'later', hue: 5, dashed: true },
-          { from: 'job', to: 'db', label: 'batch', hue: 5, dashed: true },
+          { from: 'redis', to: 'job', label: 'later', hue: 1, dashed: true },
+          { from: 'job', to: 'db', label: 'batch', hue: 1, dashed: true },
         ]}
         steps={[
           { title: 'Cache-aside: database first, then DEL', body: <p>The write goes to the database; the copy is deleted, and the next read reloads it. Redis down = slower, still correct.</p>, active: ['app', 'db', 'redis', 'app>db', 'app>redis'] },
@@ -111,7 +110,8 @@ export default function Caching() {
   const cached = await redis.get(key)
   if (cached !== null) return JSON.parse(cached)  // hit
   const row = await db.products.find(id)          // miss: ask the source of truth
-  await redis.set(key, JSON.stringify(row), { EX: 3600 + randomInt(0, 300) })   // TTL with jitter
+  // TTL with jitter, so keys loaded together do not expire together
+  await redis.set(key, JSON.stringify(row), { EX: 3600 + randomInt(0, 300) })
   return row
 }
 
@@ -123,7 +123,10 @@ async function renameProduct(id: string, name: string) {
 
       <h2>Invalidation: delete, do not update</h2>
       <p>
-        On a write, deleting the key is safer than writing the new value into it. Updating races: request A updates the DB to 1, request B
+        On a write, deleting the key is safer than writing the new value into it.
+      </p>
+      <p>
+        Updating races: request A updates the DB to 1, request B
         updates it to 2, B sets the cache to 2, A (delayed) sets the cache to 1 — the cache now says 1 until the TTL, the DB says 2. With
         delete, the next reader loads whatever the DB holds.
       </p>
@@ -136,13 +139,13 @@ async function renameProduct(id: string, name: string) {
           { id: 'cache', label: 'Redis copy' },
         ]}
         segments={[
-          { lane: 'a', from: 0, to: 10, label: 'UPDATE → 1', hue: 1 },
-          { lane: 'a', from: 10, to: 60, label: 'delayed (GC, network)', hue: 8, striped: true },
-          { lane: 'b', from: 15, to: 25, label: 'UPDATE → 2', hue: 1 },
-          { lane: 'b', from: 25, to: 35, label: 'SET 2', hue: 3 },
-          { lane: 'db', from: 0, to: 15, label: '1', hue: 4 },
-          { lane: 'db', from: 15, to: 100, label: '2', hue: 4 },
-          { lane: 'cache', from: 35, to: 60, label: '2', hue: 6 },
+          { lane: 'a', from: 0, to: 15, label: 'UPDATE 1', hue: 1 },
+          { lane: 'a', from: 15, to: 60, label: 'delayed (GC, network)', hue: 8, striped: true },
+          { lane: 'b', from: 18, to: 33, label: 'UPDATE 2', hue: 1 },
+          { lane: 'b', from: 33, to: 45, label: 'SET 2', hue: 3 },
+          { lane: 'db', from: 15, to: 33, label: '1', hue: 4 },
+          { lane: 'db', from: 33, to: 100, label: '2', hue: 4 },
+          { lane: 'cache', from: 45, to: 60, label: '2', hue: 6 },
           { lane: 'cache', from: 60, to: 100, label: '1 — stale until the TTL', hue: 8 },
         ]}
         events={[{ lane: 'a', at: 60, label: 'SET 1 arrives last', hue: 8 }]}
@@ -213,7 +216,10 @@ async function renameProduct(id: string, name: string) {
       <p>
         Requests for ids that are not in the database always miss, so every one of them reaches the database — an easy way to overload it,
         by accident or on purpose. Cache the negative answer too (<code>SET product:999999 "" EX 60</code>, a short TTL), and reject impossible
-        ids early. A Bloom filter of existing ids answers “definitely not” cheaply. Since Redis 8 the official builds (packages and container
+        ids early.
+      </p>
+      <p>
+        A Bloom filter of existing ids answers “definitely not” cheaply. Since Redis 8 the official builds (packages and container
         images) include the probabilistic types (<code>BF.ADD</code>, <code>BF.EXISTS</code> …); the build used for these recordings was compiled
         without them, so check <code>MODULE LIST</code> on yours — otherwise a bitmap-based filter you write, or one on the client side, does the job.
       </p>
@@ -226,7 +232,10 @@ async function renameProduct(id: string, name: string) {
       <p>
         One key read tens of thousands of times a second lands on one Redis thread (and in a cluster, one shard). Options: a short-lived copy in
         the application’s memory (seconds), reading from replicas, or splitting the key into N copies (<code>config:flags:0…7</code>) and picking
-        one at random. To find hot keys: since Redis 8.6 the server tracks them itself with <code>HOTKEYS START</code> / <code>HOTKEYS GET</code> /{' '}
+        one at random.
+      </p>
+      <p>
+        To find hot keys: since Redis 8.6 the server tracks them itself with <code>HOTKEYS START</code> / <code>HOTKEYS GET</code> /{' '}
         <code>HOTKEYS STOP</code> (by CPU time and network bytes, no special policy needed — the recorded <code>INFO</code> even has a Hotkeys
         section); on older versions <code>redis-cli --hotkeys</code> works when an LFU eviction policy is set.
       </p>

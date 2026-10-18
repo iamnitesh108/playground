@@ -6,8 +6,20 @@ import own from './lesson.module.css'
 
 const L = CAPTURE.locks
 
-/** Puts the long Lua source of an EVAL on separate lines so it reads as code. */
-const script = (src: string) => src.replace(/(?<!return|=|if|local) (?=(local |if |else |end\b|return |redis\.call|tokens = |ok = ))/g, '\n')
+/** Puts the long Lua source of an EVAL on separate, indented lines so it reads as code. */
+const script = (src: string) => {
+  let depth = 0
+  return src
+    .replace(/(?<!return|=|if|local) (?=(local |if |else |end\b|return |redis\.call|tokens = |ok = ))/g, '\n')
+    .split('\n')
+    .map((line) => {
+      if (/^(else|end)\b/.test(line)) depth = Math.max(0, depth - 1)
+      const out = '  '.repeat(depth) + line
+      if (/\bthen$|^else$/.test(line)) depth++
+      return out
+    })
+    .join('\n')
+}
 
 /** TTL and pause of the recorded race, read from the recording itself. */
 type Step = { cmd?: string; note?: string }
@@ -137,7 +149,7 @@ export default function Locks() {
           { id: 'a', label: 'client A', sub: 'token 1, then paused', col: 1, row: 0, hue: 1, shape: 'actor' },
           { id: 'b', label: 'client B', sub: 'token 2', col: 1, row: 1, hue: 1, shape: 'actor' },
           { id: 'redis', label: 'Redis', sub: 'INCR fence:report', col: 0, row: 0, rowSpan: 2, hue: 2 },
-          { id: 'store', label: 'the resource', sub: 'last token: 2', col: 3, row: 0, rowSpan: 2, hue: 3, shape: 'store' },
+          { id: 'store', label: 'the resource', sub: 'last token: 2', col: 3, row: 0, rowSpan: 2, hue: 4, shape: 'store' },
         ]}
         edges={[
           { from: 'redis', to: 'a', label: '1', hue: 2 },

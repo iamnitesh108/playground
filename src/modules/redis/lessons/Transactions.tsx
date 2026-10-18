@@ -27,7 +27,7 @@ const shortStep = (cmd: string, out: string) => {
 const watchLane = (who: string, cmd: string) => (who === 'B' ? 'B' : /^(WATCH|GET)/.test(cmd) ? 'Aread' : 'Atx')
 const watchHue = (st: (typeof watchSteps)[number]) => {
   if (st.cmd === 'EXEC') return st.out === '(nil)' ? 8 : 6
-  return st.who === 'A' ? 1 : 2
+  return 1
 }
 const watchEvents: TimelineEvent[] = watchSteps.map((st, i) => ({ lane: watchLane(st.who, st.cmd), at: i, label: shortStep(st.cmd, st.out), hue: watchHue(st) }))
 const watchValue = (() => {
@@ -64,6 +64,7 @@ export default function Transactions() {
       />
 
       <h2>MULTI and EXEC: queue, then run in one go</h2>
+      <p>A transaction is a list of commands that Redis runs back to back, with no other client’s command in between.</p>
       <p>
         After <code>MULTI</code>, the server does not run your commands; it answers <code>QUEUED</code> and keeps them. <code>EXEC</code> runs the whole
         queue at once. Because one thread runs everything (lesson 1), no other client’s command can land in the middle: the transaction is{' '}
@@ -137,7 +138,7 @@ export default function Transactions() {
         title="The same session over time: B’s write makes A’s first EXEC fail; the retry wins"
         start={0}
         end={watchSteps.length + 1}
-        unit="step"
+        unit="steps"
         lanes={[
           { id: 'Aread', label: 'A: watch, read' },
           { id: 'Atx', label: 'A: MULTI / EXEC' },
@@ -190,6 +191,7 @@ export default function Transactions() {
       </Callout>
 
       <h2>Which tool when</h2>
+      <p>The four tools differ in three things: round trips, isolation and whether the server can decide based on what it reads.</p>
       <TransactionsMatrix
         title="Which tool gives what"
         columns={['Fewer round trips', 'Nothing in between', 'Read, decide, write', 'Rollback on error']}

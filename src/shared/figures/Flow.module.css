@@ -1,5 +1,6 @@
 .figure {
   margin: var(--space-5) 0;
+  overflow-x: auto;
   padding: var(--space-3) var(--space-3) var(--space-2);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -16,6 +17,8 @@
   display: block;
   width: 100%;
   height: auto;
+  /* below this width the text would be too small to read: scroll instead */
+  min-width: 620px;
   font-family: var(--font-sans);
   --hue: var(--text-muted);
   --hue-soft: var(--surface-muted);

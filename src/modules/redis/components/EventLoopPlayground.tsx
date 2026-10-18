@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import { Demo, Segmented } from '@/shared/ui'
 import { CAPTURE } from '../data/captures'
 import { schedule, workload } from '../simulation/eventLoop'
@@ -46,19 +46,20 @@ export function EventLoopPlayground() {
         />
       }
     >
-      <div className={styles.label}>The server thread, {until} ms</div>
+      <div className={styles.label}>The server thread, {until} ms — thin marks: GETs{busy ? ' · striped red: the slow command, everyone blocked' : ''}</div>
       <div className={styles.track} aria-label="server thread timeline">
         {runs.filter((r) => r.client !== 'batch-job').map((r) => (
           <span key={r.id} className={styles.segment} style={{ left: `${(r.start / until) * 100}%`, width: `max(1px, ${(r.cost / until) * 100}%)` }} />
         ))}
-        {busy && <span className={styles.segmentSlow} style={{ left: `${(busy.start / until) * 100}%`, width: `${(busy.cost / until) * 100}%` }} title={busy.command} />}
+        {busy && <span className={styles.segmentSlow} style={{ left: `${(busy.start / until) * 100}%`, width: `${(busy.cost / until) * 100}%`, '--warn': 'var(--c8)' } as CSSProperties} title={`blocked by ${busy.command}`} />}
       </div>
       <LineChart
         title="How long each GET waited (arrival → reply)"
         series={[{ label: 'GET latency', points: gets.map((g) => [Math.round(g.at), +g.latency.toFixed(2)] as const), emphasis: true }]}
         xLabel="arrived at (ms)"
         yLabel="ms"
-        formatY={(v) => (v < 1 ? v.toFixed(2) : v.toFixed(0))}
+        formatX={(x) => String(Math.round(x))}
+        formatY={(v) => (v === 0 ? '0' : v < 1 ? v.toFixed(2) : v.toFixed(0))}
         height={190}
       />
       <dl className={styles.stats}>

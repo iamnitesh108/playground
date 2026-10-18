@@ -63,17 +63,18 @@ export default function SortedSets() {
         title="Inside a big sorted set: two structures, one set of members"
         cols={4}
         rows={2}
+        rowHeight={96}
         nodes={[
           { id: 'client', label: 'client', sub: 'ZADD / ZSCORE / ZRANK', col: 0, row: 0, rowSpan: 2, hue: 1, shape: 'actor' },
-          { id: 'zset', label: 'sorted set key', sub: 'encoding: skiplist', col: 1, row: 0, rowSpan: 2, hue: 2 },
-          { id: 'dict', label: 'hash table', sub: 'member → score', col: 2, row: 0, hue: 3, shape: 'store' },
-          { id: 'skip', label: 'skiplist', sub: 'ordered by (score, member)', col: 2, row: 1, hue: 3, shape: 'log' },
+          { id: 'zset', label: 'sorted set key', sub: 'encoding: skiplist', col: 1, row: 0, rowSpan: 2, hue: 3 },
+          { id: 'dict', label: 'hash table', sub: 'lookup: member → score', col: 2, row: 0, hue: 3, shape: 'store' },
+          { id: 'skip', label: 'skiplist', sub: 'order: (score, member)', col: 2, row: 1, hue: 3, shape: 'log' },
           { id: 'members', label: 'member strings', sub: 'shared by both', col: 3, row: 0, rowSpan: 2, hue: 3 },
         ]}
         edges={[
           { from: 'client', to: 'zset', flow: true, hue: 1 },
-          { from: 'zset', to: 'dict', label: 'by member', hue: 3 },
-          { from: 'zset', to: 'skip', label: 'by order', hue: 3 },
+          { from: 'zset', to: 'dict', hue: 3 },
+          { from: 'zset', to: 'skip', hue: 3 },
           { from: 'dict', to: 'members', hue: 3, dashed: true },
           { from: 'skip', to: 'members', hue: 3, dashed: true },
         ]}
@@ -85,10 +86,11 @@ export default function SortedSets() {
       />
 
       <h2>A leaderboard, recorded</h2>
+      <p>A leaderboard is the classic sorted set: the score is the points, and the order is the ranking.</p>
       <CliSession title="recorded" steps={CAPTURE.patterns.leaderboard} />
       <BarChart
         title="The board after these commands — highest score first (what ZREVRANGE walks)"
-        bars={board.map(([member, score], i) => ({ label: `#${i + 1} ${member}`, value: score, display: score.toLocaleString(), hue: (i === 0 ? 6 : 1) as 1 | 6 }))}
+        bars={board.map(([member, score], i) => ({ label: `#${i + 1} ${member}`, value: score, display: score.toLocaleString(), hue: (i === 0 ? 6 : 3) as 3 | 6 }))}
       />
       <p>
         <code>bob</code> and <code>dan</code> both started at 2800; <code>ZINCRBY</code> moved <code>bob</code> up in one command, atomically — no
@@ -96,10 +98,14 @@ export default function SortedSets() {
       </p>
 
       <h2>The skiplist</h2>
+      <p>The skiplist is what keeps ranks and ranges fast: a sorted list with extra shortcut links.</p>
       <p>
         Every member is a node on level 1, in order. Each node is also placed on level 2 with probability ¼, on level 3 with ¼ of that, and so on (Redis
-        allows up to 32 levels). A search starts on the highest level, moves right while the next node is still smaller, and drops one level when it
-        would overshoot. It goes through about log₄(n) levels and visits only a few nodes on each — O(log n) in total, a handful of steps even for millions of members — and inserting needs no
+        allows up to 32 levels).
+      </p>
+      <p>
+        A search starts on the highest level, moves right while the next node is still smaller, and drops one level when it would overshoot. It goes
+        through about log₄(n) levels and visits only a few nodes on each — O(log n) in total, a handful of steps even for millions of members — and inserting needs no
         rebalancing: a new node just gets a random height.
       </p>
       <BarChart
@@ -120,6 +126,7 @@ export default function SortedSets() {
       />
 
       <h2>How fast is each command?</h2>
+      <p>Each command’s cost follows from which of the two structures it uses.</p>
       <Table
         head={['Command', 'Cost', 'Why']}
         rows={[
@@ -135,6 +142,7 @@ export default function SortedSets() {
       />
 
       <h2>Small sorted sets are listpacks</h2>
+      <p>Small sorted sets skip both structures and live in one compact block.</p>
       <p>
         Up to <code>zset-max-listpack-entries</code> ({zLimit}) members of at most {zValue} bytes, a sorted set is a listpack: member, score, member,
         score… kept in order in one block. Operations are O(n), but n is at most {zLimit}. Recorded: the encoding changed from{' '}

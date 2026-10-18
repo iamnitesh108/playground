@@ -25,6 +25,7 @@ function DualWrite() {
       <Flow
         title="The dual-write problem"
         cols={3}
+        rowHeight={96}
         rows={2}
         nodes={[
           { id: 'svc', label: 'order service', sub: 'handles a request', col: 0, row: 0, rowSpan: 2, hue: 7 },
@@ -33,8 +34,8 @@ function DualWrite() {
           { id: 'downstream', label: 'downstream', sub: 'never hears of it', col: 2, row: 1, hue: 8 },
         ]}
         edges={[
-          { from: 'svc', to: 'db', label: 'COMMIT', hue: 6, flow: true },
-          { from: 'svc', to: 'kafka', label: 'send', hue: 8, dashed: true },
+          { from: 'svc', to: 'db', hue: 6, flow: true },
+          { from: 'svc', to: 'kafka', hue: 8, dashed: true },
           { from: 'kafka', to: 'downstream', hue: 8, dashed: true },
         ]}
         steps={DUAL_WRITE_STEPS}
@@ -79,6 +80,7 @@ function OutboxPipeline() {
     <Flow
       title="The outbox pipeline end to end"
       cols={4}
+      rowHeight={96}
       rows={2}
       nodes={[
         { id: 'service', label: 'service A', sub: 'handles a request', col: 0, row: 0, hue: 7 },
@@ -91,13 +93,13 @@ function OutboxPipeline() {
         { id: 'retry', label: 'retry', sub: 'new outbox row', col: 0, row: 1, hue: 8 },
       ]}
       edges={[
-        { from: 'service', to: 'db', label: '1 tx', hue: 6, flow: true },
+        { from: 'service', to: 'db', hue: 6, flow: true },
         { from: 'db', to: 'wal', hue: 6, flow: true },
         { from: 'wal', to: 'debezium', hue: 4, flow: true },
         { from: 'debezium', to: 'smt', hue: 4, flow: true },
         { from: 'smt', to: 'topic', hue: 3, flow: true },
         { from: 'topic', to: 'consumer', hue: 1, flow: true },
-        { from: 'consumer', to: 'retry', label: 'on failure', hue: 8, dashed: true },
+        { from: 'consumer', to: 'retry', hue: 8, dashed: true },
         { from: 'retry', to: 'db', hue: 8, dashed: true },
       ]}
       steps={PIPELINE_STEPS}
@@ -106,15 +108,17 @@ function OutboxPipeline() {
 }
 
 /* The outbox row from the example INSERT below, column by column. */
-const OUTBOX_ROW: ByteField[] = [
-  { label: 'event_id (uuid)', bytes: 16, hue: 5, content: 'c51e…' },
-  { label: 'id → Kafka key', bytes: '981'.length, hue: 3, content: '981' },
-  { label: 'source', bytes: 'payments'.length, hue: 7, content: 'payments' },
-  { label: 'type', bytes: 'TRANSACTION'.length, hue: 4, content: 'TRANSACTION' },
+const OUTBOX_KAFKA: ByteField[] = [
+  { label: 'id → key', bytes: '981'.length, hue: 3, content: '981' },
   { label: 'event_type → topic', bytes: 'INVOICE-ISSUED'.length, hue: 3, content: 'INVOICE-ISSUED' },
-  { label: 'tenant_id', bytes: 'acme'.length, hue: 2, content: 'acme' },
+  { label: 'event_id (uuid)', bytes: 16, hue: 6, content: 'c51e…' },
+]
+const OUTBOX_REST: ByteField[] = [
+  { label: 'source', bytes: 'payments'.length, hue: 6, content: 'payments' },
+  { label: 'type', bytes: 'TRANSACTION'.length, hue: 6, content: 'TRANSACTION' },
+  { label: 'tenant_id', bytes: 'acme'.length, hue: 6, content: 'acme' },
   { label: 'payload (json)', bytes: '{"transactionId":981}'.length, hue: 6, content: '{"transactionId":981}' },
-  { label: 'created_at', bytes: 8, hue: 5, content: 'now()' },
+  { label: 'created_at', bytes: 8, hue: 6, content: 'now()' },
 ]
 
 /** The transform chain from the connector config below, built from the simulation's SMTs. */
@@ -224,8 +228,11 @@ COMMIT;
 
       <ByteLayout
         title="The outbox row of that transaction, column by column (value sizes)"
-        rows={[{ fields: OUTBOX_ROW }]}
-        caption="Text columns are shown by length, uuid 16 B, timestamptz 8 B. Two columns steer Kafka: id becomes the record key, event_type picks the topic."
+        rows={[
+          { label: 'the two columns that steer Kafka, and the row id', fields: OUTBOX_KAFKA },
+          { label: 'the other columns', fields: OUTBOX_REST },
+        ]}
+        caption="Both rows use one scale: text columns are shown by length, uuid 16 B, timestamptz 8 B. id becomes the record key and event_type picks the topic; after unwrapping, the whole row (every column) is the event value."
       />
 
       <h2>The connector</h2>
@@ -329,6 +336,7 @@ COMMIT;
       <Flow
         title="One event, three possible outcomes — and the consumer always acks"
         cols={4}
+        rowHeight={96}
         rows={2}
         nodes={[
           { id: 'topic', label: 'topic', sub: 'event key = id', col: 0, row: 0, hue: 3, shape: 'log' },
@@ -339,7 +347,7 @@ COMMIT;
         ]}
         edges={[
           { from: 'topic', to: 'consumer', hue: 3, flow: true },
-          { from: 'consumer', to: 'db', label: 'apply', hue: 6, flow: true },
+          { from: 'consumer', to: 'db', hue: 6, flow: true },
           { from: 'db', to: 'ack', label: 'ok', hue: 5, flow: true },
           { from: 'consumer', to: 'outbox', label: 'real failure', hue: 8, dashed: true },
           { from: 'outbox', to: 'ack', label: 'then ack', hue: 5, dashed: true },

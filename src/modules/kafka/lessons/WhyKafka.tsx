@@ -182,6 +182,7 @@ export default function WhyKafka() {
       <IndependentReaders />
 
       <h2>What people use it for</h2>
+      <p>Kafka sits in the middle: many sources write events once, and many systems read them.</p>
       <Flow
         title="One log in the middle: sources publish once, any number of systems read"
         cols={3}
@@ -208,7 +209,7 @@ export default function WhyKafka() {
           { from: 'kafka', to: 'stream', flow: true, hue: 1 },
           { from: 'kafka', to: 'warehouse', flow: true, hue: 6 },
         ]}
-        caption="Schematic. Adding a new reader on the right changes nothing on the left: the sources never learn it exists."
+        caption="Schematic. Purple: producers · green log: Kafka · blue: consumer apps · orange: an external system fed by a connector · dark green: databases. Adding a reader on the right changes nothing on the left: the sources never learn it exists."
       />
 
       <ul>
@@ -217,7 +218,8 @@ export default function WhyKafka() {
           other.
         </li>
         <li>
-          <strong>Change data capture</strong> — streaming every database change to other systems (lessons 15–16).
+          <strong>Change data capture</strong> — streaming every database change to other systems (see{' '}
+          <a href="#/kafka/kafka-connect">Kafka Connect</a> and <a href="#/kafka/debezium">Debezium</a>).
         </li>
         <li>
           <strong>Activity and metrics pipelines</strong> — clicks, logs and telemetry at millions of events per

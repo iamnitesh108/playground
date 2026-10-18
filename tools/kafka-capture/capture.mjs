@@ -1,6 +1,7 @@
 // Records the three practicals against a real Kafka, with the CLI and with the Micronaut app.
 //   node capture.mjs ../../src/modules/kafka/data/practicals.ts
 import { writeFileSync } from 'node:fs'
+import { alignAll } from './lib/table.mjs'
 import { userInfo, homedir } from 'node:os'
 import { BS, IMAGE, appConsumer, appLines, appProduce, cli, consoleConsumer, consoleProduce, shown, sleep, startBroker, stopBroker, waitForBroker, waitForGroup } from './lib/lab.mjs'
 
@@ -189,6 +190,7 @@ let json = JSON.stringify(data, null, 1)
 for (const secret of [userInfo().username, homedir()]) if (json.includes(secret)) throw new Error(`recording contains "${secret}"`)
 // generated member and console group ids are long and random: shorten them everywhere
 json = shown(json).replace(/console-consumer-[0-9a-f-]{36}/g, (m) => m.slice(0, 25) + "…").replace(/([0-9a-f]{8})-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, "$1…")
+json = JSON.stringify(alignAll(JSON.parse(json)), null, 1)
 writeFileSync(outFile, `// Recorded with Kafka ${data.version} (${IMAGE}) and the Micronaut orders-app by tools/kafka-capture — do not edit by hand.\n\nexport const PRACTICALS = ${json} as const\n`)
 console.log(`wrote ${outFile}`)
 process.exit(0)

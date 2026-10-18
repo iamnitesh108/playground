@@ -22,7 +22,9 @@ function CdcChain() {
   return (
     <Flow
       title="From SQL statement to Kafka event"
+      caption="Press Next to follow one INSERT: logged in the WAL first, decoded through the slot, turned into a change event by Debezium, and written to the table’s topic."
       cols={4}
+      rowHeight={96}
       rows={2}
       nodes={[
         { id: 'app', label: 'your service', sub: 'plain SQL', col: 0, row: 0, shape: 'actor' },
@@ -33,11 +35,11 @@ function CdcChain() {
         { id: 'topic', label: 'app.public.orders', sub: 'key = primary key', col: 1, row: 1, span: 2, hue: 3, shape: 'log' },
       ]}
       edges={[
-        { from: 'app', to: 'table', label: 'INSERT', flow: true },
-        { from: 'table', to: 'wal', label: 'logged first', hue: 6, flow: true },
-        { from: 'wal', to: 'slot', label: 'decode', hue: 6, flow: true },
+        { from: 'app', to: 'table', flow: true },
+        { from: 'table', to: 'wal', hue: 6, flow: true },
+        { from: 'wal', to: 'slot', hue: 6, flow: true },
         { from: 'slot', to: 'dbz', label: 'changes ⇄ confirmed LSN', hue: 4, flow: true, both: true },
-        { from: 'dbz', to: 'topic', label: 'change event', hue: 3, flow: true },
+        { from: 'dbz', to: 'topic', hue: 3, flow: true },
       ]}
       steps={CHAIN_STEPS}
     />
@@ -50,11 +52,11 @@ const SOURCE = { connector: 'postgresql', db: 'appdb', schema: 'public', table: 
 const TS = 1792300000000
 const fieldBytes = (name: string, value: unknown) => `"${name}":${JSON.stringify(value)}`.length
 const envelopeRow = (op: 'c' | 'u' | 'd', before: unknown, after: unknown): ByteField[] => [
-  { label: 'before', bytes: fieldBytes('before', before), hue: 2, content: before === null ? 'null' : JSON.stringify(before) },
+  { label: 'before', bytes: fieldBytes('before', before), hue: 6, content: before === null ? 'null' : JSON.stringify(before) },
   { label: 'after', bytes: fieldBytes('after', after), hue: 6, content: after === null ? 'null' : JSON.stringify(after) },
   { label: 'source', bytes: fieldBytes('source', SOURCE), hue: 5, content: '{"table":"orders","lsn":…}' },
-  { label: 'op', bytes: fieldBytes('op', op), hue: 7, content: op },
-  { label: 'ts_ms', bytes: fieldBytes('ts_ms', TS), hue: 3, content: String(TS) },
+  { label: 'op', bytes: fieldBytes('op', op), hue: 4, content: op },
+  { label: 'ts_ms', bytes: fieldBytes('ts_ms', TS), hue: 4, content: String(TS) },
 ]
 
 function CdcPlayground() {
@@ -192,15 +194,23 @@ export default function Debezium() {
 
       <h2>Why not just poll the table?</h2>
       <p>
-        You could run <code>SELECT … WHERE updated_at &gt; :last</code> every few seconds. But polling misses deletes,
-        misses intermediate states between polls, needs an <code>updated_at</code> column everywhere, and adds query
-        load. Log-based CDC reads the database’s own transaction log instead: every committed change, in order, with
-        almost no extra load.
+        You could run <code>SELECT … WHERE updated_at &gt; :last</code> every few seconds. But polling:
+      </p>
+      <ul>
+        <li>misses deletes — the row is gone before the next poll;</li>
+        <li>misses intermediate states between two polls;</li>
+        <li>needs an <code>updated_at</code> column on every table;</li>
+        <li>adds query load to the database.</li>
+      </ul>
+      <p>
+        Log-based CDC reads the database’s own transaction log instead: every committed change, in order, with almost no
+        extra load.
       </p>
 
       <CdcChain />
 
       <h2>The Postgres pieces</h2>
+      <p>Five Postgres features work together to make log-based CDC possible:</p>
       <Table
         head={['Piece', 'What it is', 'Config']}
         rows={[
@@ -237,7 +247,7 @@ export default function Debezium() {
         ]}
         events={[
           { lane: 'conn', at: 30, label: 'stops', hue: 8 },
-          { lane: 'conn', at: 70, label: 'restarted', hue: 6 },
+          { lane: 'conn', at: 70, label: 'restarted', hue: 4 },
         ]}
         end={100}
         unit="min"
@@ -270,9 +280,8 @@ export default function Debezium() {
           { label: 'INSERT  op=c', fields: envelopeRow('c', null, ROW) },
           { label: 'UPDATE  op=u — default identity: no before image', fields: envelopeRow('u', null, { ...ROW, status: 'SHIPPED' }) },
           { label: 'DELETE  op=d — default identity: only the primary key', fields: envelopeRow('d', { id: ROW.id }, null) },
-          { label: 'tombstone after unwrap: same key, no value', fields: [{ label: 'key', bytes: JSON.stringify({ id: ROW.id }).length, hue: 3, content: JSON.stringify({ id: ROW.id }) }, { label: 'value', bytes: 0, hue: 8, content: 'null' }] },
         ]}
-        caption="Rows are drawn to one scale, so events can be compared. The source block is the same size in every event and often outweighs the row itself. Sizes are the JSON lengths of these sample events."
+        caption={`Rows are drawn to one scale, so events can be compared. The source block is the same size in every event and often outweighs the row itself. Sizes are the JSON lengths of these sample events. After unwrapping, the delete becomes a tombstone: the same key {"id":7} and a null value (0 bytes).`}
       />
       <p>
         Many consumers only want the new row, not the envelope. The <code>ExtractNewRecordState</code> SMT (“unwrap”)
@@ -323,6 +332,7 @@ export default function Debezium() {
       <Flow
         title="Quiet captured table, busy database: heartbeats let the slot move on"
         cols={4}
+        rowHeight={96}
         rows={2}
         nodes={[
           { id: 'busy', label: 'other tables', sub: 'busy writes', col: 0, row: 0, hue: 6, shape: 'store' },
@@ -332,12 +342,12 @@ export default function Debezium() {
           { id: 'hb', label: '__debezium-heartbeat.app', sub: 'every heartbeat.interval.ms', col: 2, row: 1, span: 2, hue: 3, shape: 'log' },
         ]}
         edges={[
-          { from: 'busy', to: 'wal', label: 'writes', hue: 6, flow: true },
+          { from: 'busy', to: 'wal', hue: 6, flow: true },
           { from: 'wal', to: 'slot', hue: 6, flow: true },
-          { from: 'dbz', to: 'hb', label: 'heartbeat', hue: 3, flow: true },
+          { from: 'dbz', to: 'hb', hue: 3, flow: true },
           { from: 'dbz', to: 'slot', hue: 4, dashed: true },
         ]}
-        caption="Each heartbeat lets Debezium confirm the current position, so Postgres can recycle WAL even though no captured row changed."
+        caption="Debezium writes a heartbeat record every heartbeat.interval.ms and then confirms the current position to the slot (dashed arrow), so Postgres can recycle WAL even though no captured row changed."
       />
 
       <CodeBlock

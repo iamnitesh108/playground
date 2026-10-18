@@ -14,17 +14,18 @@ export default function Cli() {
 
       <Flow
         title="Which tool acts on what"
+        caption="Each box is a script in bin/: topics is kafka-topics.sh, console-producer is kafka-console-producer.sh, and so on. Connect REST and psql are not Kafka scripts but are used alongside them."
         cols={4}
         rows={3}
         rowHeight={78}
         nodes={[
           { id: 'producer', label: 'console-producer', sub: 'writes records', col: 0, row: 0, hue: 7 },
-          { id: 'topics', label: 'kafka-topics', sub: 'create · describe · alter', col: 1, row: 0, hue: 3 },
-          { id: 'configs', label: 'kafka-configs', sub: 'topic & broker settings', col: 2, row: 0, hue: 5 },
-          { id: 'offsets', label: 'kafka-get-offsets', sub: 'partition ends', col: 3, row: 0, hue: 3 },
+          { id: 'topics', label: 'topics', sub: 'create · describe · alter', col: 1, row: 0, hue: 3 },
+          { id: 'configs', label: 'configs', sub: 'topic & broker settings', col: 2, row: 0, hue: 5 },
+          { id: 'offsets', label: 'get-offsets', sub: 'partition ends', col: 3, row: 0, hue: 3 },
           { id: 'cluster', label: 'Kafka cluster', sub: '--bootstrap-server localhost:9092', col: 1, row: 1, span: 2, hue: 3, shape: 'store' },
           { id: 'consumer', label: 'console-consumer', sub: 'reads records', col: 0, row: 2, hue: 1 },
-          { id: 'groups', label: 'kafka-consumer-groups', sub: 'members · lag · reset', col: 1, row: 2, hue: 5 },
+          { id: 'groups', label: 'consumer-groups', sub: 'members · lag · reset', col: 1, row: 2, hue: 5 },
           { id: 'connect', label: 'Connect REST', sub: 'curl :8083', col: 2, row: 2, hue: 4 },
           { id: 'psql', label: 'psql', sub: 'WAL · slots · CDC source', col: 3, row: 2, hue: 6 },
         ]}

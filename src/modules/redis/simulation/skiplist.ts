@@ -19,6 +19,7 @@ export interface SearchStep {
 }
 
 const less = (a: SkipNode, score: number, member: string) => a.score < score || (a.score === score && a.member < member)
+const lessOrEqual = (a: SkipNode, score: number, member: string) => less(a, score, member) || (a.score === score && a.member === member)
 
 export class Skiplist {
   /** Nodes in order. The header is not stored; level i links are derived from heights. */
@@ -47,18 +48,23 @@ export class Skiplist {
     return -1
   }
 
-  /** The search path for (score, member): where it moves right and where it drops a level. */
+  /**
+   * The search path for (score, member), as in Redis's rank lookup: move right while the next node is
+   * not past the target, drop a level otherwise, and stop as soon as the target node is reached.
+   * Includes the node passed through on each lower level when dropping (for drawing).
+   */
   path(score: number, member: string): SearchStep[] {
     const steps: SearchStep[] = []
     let at = -1
     for (let level = this.levels - 1; level >= 0; level--) {
+      if (at >= 0) steps.push({ level, node: at })
       for (;;) {
         const n = this.next(at, level)
-        if (n < 0 || !less(this.nodes[n], score, member)) break
+        if (n < 0 || !lessOrEqual(this.nodes[n], score, member)) break
         at = n
         steps.push({ level, node: at })
+        if (this.nodes[at].score === score && this.nodes[at].member === member) return steps
       }
-      steps.push({ level, node: at })
     }
     return steps
   }
@@ -76,8 +82,8 @@ export class Skiplist {
     return this.nodes.findIndex((n) => n.member === member)
   }
 
-  /** Nodes visited by a search: about log4(n) levels with a few nodes each, instead of n. */
+  /** Distinct nodes visited by a search: about log4(n) levels with a few nodes each, instead of n. */
   comparisons(score: number, member: string): number {
-    return this.path(score, member).length
+    return new Set(this.path(score, member).map((s) => s.node)).size
   }
 }

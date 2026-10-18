@@ -24,6 +24,7 @@ export function KafkaStage({ cluster, flights, now, producer = 'producer' }: Kaf
   const { topic, groups } = cluster
 
   return (
+    <div className={styles.scroll}>
     <svg viewBox={`0 0 ${STAGE_WIDTH} ${L.height}`} className={styles.stage} role="img" aria-label={`Topic ${topic.name} with ${topic.partitionCount} partitions and ${groups.length} consumer groups`}>
       <defs>
         <marker id="kstage-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
@@ -33,14 +34,14 @@ export function KafkaStage({ cluster, flights, now, producer = 'producer' }: Kaf
 
       {/* producer */}
       <g>
-        <rect x={L.producer.x} y={L.producer.y} width={L.producer.w} height={L.producer.h} rx={8} className={styles.producer} />
+        <rect x={L.producer.x} y={L.producer.y} width={L.producer.w} height={L.producer.h} rx={8} className={styles.producer} style={hue(7)} />
         <text x={L.producer.x + L.producer.w / 2} y={L.producer.y + 19} className={styles.boxTitle}>{producer}</text>
         <text x={L.producer.x + L.producer.w / 2} y={L.producer.y + 34} className={styles.boxCaption}>sends records</text>
         <line x1={L.producer.x + L.producer.w} y1={L.producer.y + L.producer.h / 2} x2={L.topic.x - 4} y2={L.producer.y + L.producer.h / 2} className={styles.feed} markerEnd="url(#kstage-arrow)" />
       </g>
 
       {/* topic and partitions */}
-      <rect x={L.topic.x} y={L.topic.y} width={L.topic.w} height={L.topic.h} rx={10} className={styles.topic} />
+      <rect x={L.topic.x} y={L.topic.y} width={L.topic.w} height={L.topic.h} rx={10} className={styles.topic} style={hue(3)} />
       <text x={L.topic.x + 12} y={L.topic.y + 19} className={styles.topicName}>topic: {topic.name}</text>
       <text x={L.topic.x + L.topic.w - 10} y={L.topic.y + 19} className={styles.topicMeta}>{topic.partitionCount} partition{topic.partitionCount > 1 ? 's' : ''}</text>
       {topic.partitionIds.map((p) => {
@@ -129,5 +130,6 @@ export function KafkaStage({ cluster, flights, now, producer = 'producer' }: Kaf
         )
       })}
     </svg>
+    </div>
   )
 }

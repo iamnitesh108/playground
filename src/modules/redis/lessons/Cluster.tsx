@@ -95,7 +95,7 @@ export default function Cluster() {
         The slots were split into three equal ranges and each primary got one replica. All six nodes run on one host here, hence the warning
         that replicas share a host with their primary; in production put each replica on a different machine from its primary.
       </p>
-      <Flow title="The recorded cluster: three primaries, one replica each" cols={3} rows={3} nodes={TOPOLOGY_NODES} edges={TOPOLOGY_EDGES} />
+      <Flow title="The recorded cluster: three primaries, one replica each" cols={3} rows={3} rowHeight={100} nodes={TOPOLOGY_NODES} edges={TOPOLOGY_EDGES} />
       <Proportion
         title="16384 hash slots, split between the primaries (recorded)"
         parts={PRIMARIES.map((p, i) => {
@@ -117,13 +117,13 @@ export default function Cluster() {
           nodes={[
             { id: 'key', label: TAGGED.key, sub: 'the key', col: 0, row: 0, hue: 1 },
             { id: 'tag', label: TAGGED.key.match(/\{([^}]+)\}/)?.[1] ?? TAGGED.key, sub: 'hash tag: only this', col: 1, row: 0, hue: 3 },
-            { id: 'crc', label: 'CRC16', sub: 'XMODEM', col: 2, row: 0, hue: 7 },
+            { id: 'crc', label: 'CRC16', sub: 'in the client', col: 2, row: 0, hue: 1 },
             { id: 'slot', label: `slot ${TAGGED.slot}`, sub: 'mod 16384', col: 3, row: 0, hue: 3 },
             { id: 'node', label: `node ${port(ownerOf(TAGGED.slot)?.addr ?? '')}`, sub: `owns ${ownerOf(TAGGED.slot)?.slots ?? ''}`, col: 4, row: 0, hue: 2 },
           ]}
           edges={[
             { from: 'key', to: 'tag', hue: 3, flow: true },
-            { from: 'tag', to: 'crc', hue: 7, flow: true },
+            { from: 'tag', to: 'crc', hue: 1, flow: true },
             { from: 'crc', to: 'slot', hue: 3, flow: true },
             { from: 'slot', to: 'node', hue: 2, flow: true },
           ]}
@@ -220,7 +220,7 @@ export default function Cluster() {
           { from: 'client', to: 'src', label: 'GET', hue: 1, flow: true },
           { from: 'src', to: 'old', hue: 2 },
           { from: 'src', to: 'dst', label: 'MIGRATE key by key', hue: 2, dashed: true },
-          { from: 'client', to: 'dst', label: 'ASKING + GET', hue: 2, flow: true },
+          { from: 'client', to: 'dst', label: 'ASKING + GET', hue: 1, flow: true },
           { from: 'dst', to: 'new', hue: 2 },
         ]}
         steps={[
@@ -305,6 +305,7 @@ export default function Cluster() {
       </Callout>
 
       <h2>What a cluster changes for your code</h2>
+      <p>A cluster looks like one Redis to your data, but not to your code: a few commands and habits work differently.</p>
       <Table
         head={['Topic', 'Rule']}
         rows={[

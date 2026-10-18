@@ -1,0 +1,11 @@
+/* One command per line in the cheat sheet, so a long command never wraps inside its chip. */
+.stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.stack code {
+  white-space: nowrap;
+}

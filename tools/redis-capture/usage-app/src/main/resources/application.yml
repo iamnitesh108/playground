@@ -1,0 +1,8 @@
+micronaut:
+  application:
+    name: usage-app
+redis:
+  # with redis.uri, set the command timeout in the URI (?timeout=2s);
+  # redis.timeout is only used when the server is given as redis.host / redis.port
+  uri: ${REDIS_URI:`redis://localhost:6379?timeout=2s`}
+  timeout: 2s
