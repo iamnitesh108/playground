@@ -1,6 +1,6 @@
 import { BarChart, Flow, StatTiles, Timeline } from '@/shared/figures'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, Tabs, TermList } from '@/shared/ui'
-import { CliSession, type CliStep } from '../components'
+import { CliSession, type CliStep } from '../components/CliSession'
 import { UsingRedisAppOutput } from '../components/UsingRedisAppOutput'
 import { USAGE } from '../data/usage'
 import styles from '../components/UsingRedis.module.css'

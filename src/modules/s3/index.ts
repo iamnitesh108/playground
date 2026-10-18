@@ -2,6 +2,7 @@ import type { LearningModule } from '@/core/module'
 
 export const s3Module: LearningModule = {
   id: 's3',
+  order: 90,
   title: 'Object storage with S3 (RustFS)',
   description:
     'Never stored a file outside your own disk? Start here. What object storage is and why “S3” is the language every storage server speaks, running RustFS (an open-source S3-compatible server, like MinIO) on your machine, using it from the web console, the command line, Micronaut, TypeScript and Rust — then how it works: requests and signatures, large uploads, access and sharing, versioning and lifecycle, surviving disk failures, and running it in production. Recorded on a real RustFS server.',
@@ -39,3 +40,5 @@ export const s3Module: LearningModule = {
     },
   ],
 }
+
+export default s3Module

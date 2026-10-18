@@ -1,6 +1,7 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { Flow, StatTiles } from '@/shared/figures'
-import { CliSession, LogLines } from '../components'
+import { CliSession } from '../components/CliSession'
+import { LogLines } from '../components/LogLines'
 import { SECURITY as S } from '../data/security'
 import { MANIFESTS } from '../data/kubernetesManifests'
 

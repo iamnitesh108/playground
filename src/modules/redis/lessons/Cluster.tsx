@@ -1,6 +1,8 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { Flow, Proportion, StatTiles, Timeline, type FlowEdge, type FlowNode, type Hue } from '@/shared/figures'
-import { CliSession, LogLines, SlotCalculator } from '../components'
+import { CliSession } from '../components/CliSession'
+import { LogLines } from '../components/LogLines'
+import { SlotCalculator } from '../components/SlotCalculator'
 import { CAPTURE } from '../data/captures'
 
 const C = CAPTURE.cluster

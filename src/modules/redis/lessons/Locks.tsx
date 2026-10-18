@@ -1,6 +1,9 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { Flow, Timeline } from '@/shared/figures'
-import { CliSession, LineChart, LockPlayground, RateLimitPlayground } from '../components'
+import { CliSession } from '../components/CliSession'
+import { LineChart } from '../components/LineChart'
+import { LockPlayground } from '../components/LockPlayground'
+import { RateLimitPlayground } from '../components/RateLimitPlayground'
 import { CAPTURE } from '../data/captures'
 import own from './lesson.module.css'
 

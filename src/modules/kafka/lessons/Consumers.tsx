@@ -1,6 +1,7 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { Flow, Timeline } from '@/shared/figures'
-import { ConsumerInternals, Terminal } from '../components'
+import { ConsumerInternals } from '../components/ConsumerInternals'
+import { Terminal } from '../components/Terminal'
 import { OffsetsTape } from '../components/OffsetsTape'
 import { ORDERS_APP } from '../data/ordersApp'
 import { PRACTICALS } from '../data/practicals'

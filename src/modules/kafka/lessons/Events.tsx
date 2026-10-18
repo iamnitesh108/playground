@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Callout, CodeBlock, Demo, Table, TermList, TextField } from '@/shared/ui'
 import { ByteLayout, Flow } from '@/shared/figures'
-import { partitionForKey } from '../simulation'
+import { partitionForKey } from '../simulation/murmur2'
 import styles from './lesson.module.css'
 import own from './Events.module.css'
 

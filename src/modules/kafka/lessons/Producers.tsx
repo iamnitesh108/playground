@@ -2,8 +2,10 @@ import { useMemo, useState } from 'react'
 import { useObservable } from '@/shared/hooks/useObservable'
 import { Box, Button, Callout, CodeBlock, Column, Connector, Demo, Row, Segmented, Table, TermList, TextField, Walkthrough } from '@/shared/ui'
 import { Flow, Timeline } from '@/shared/figures'
-import { PartitionLog } from '../components'
-import { DefaultPartitioner, KafkaCluster, murmur2, RoundRobinPartitioner, toPositive } from '../simulation'
+import { PartitionLog } from '../components/PartitionLog'
+import { DefaultPartitioner, RoundRobinPartitioner } from '../simulation/partitioner'
+import { KafkaCluster } from '../simulation/KafkaCluster'
+import { murmur2, toPositive } from '../simulation/murmur2'
 import styles from './lesson.module.css'
 
 const SEND_STEPS = [

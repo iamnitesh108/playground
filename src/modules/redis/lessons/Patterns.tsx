@@ -1,6 +1,6 @@
 import { Callout, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { BarChart, Flow, StatTiles } from '@/shared/figures'
-import { CliSession } from '../components'
+import { CliSession } from '../components/CliSession'
 import { PatternsBitmap } from '../components/PatternsBitmap'
 import { PatternsGeoMap } from '../components/PatternsGeoMap'
 import { CAPTURE } from '../data/captures'

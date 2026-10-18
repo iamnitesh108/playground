@@ -1,6 +1,6 @@
 import { BarChart, Flow, Proportion, StatTiles, Timeline, type FlowNode } from '@/shared/figures'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
-import { SessionPlayer } from '../components'
+import { SessionPlayer } from '../components/SessionPlayer'
 import { HeapPageViewMap } from '../components/HeapPageViewMap'
 import { VacuumAutovacuumCalc } from '../components/VacuumAutovacuumCalc'
 import { VacuumXidCircle } from '../components/VacuumXidCircle'

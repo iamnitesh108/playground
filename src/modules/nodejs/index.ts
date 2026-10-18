@@ -2,6 +2,7 @@ import type { LearningModule } from '@/core/module'
 
 export const nodejsModule: LearningModule = {
   id: 'nodejs',
+  order: 40,
   title: 'Node.js internals',
   description:
     'How Node.js really runs JavaScript, checked against a real Node.js 24: V8 and libuv, the event loop and microtasks, blocking and the thread pool, async patterns, streams and backpressure, HTTP on the wire, and graceful shutdown.',
@@ -33,3 +34,5 @@ export const nodejsModule: LearningModule = {
     },
   ],
 }
+
+export default nodejsModule

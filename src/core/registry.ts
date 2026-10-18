@@ -17,7 +17,7 @@ export class ModuleRegistry {
 
   constructor(modules: readonly LearningModule[]) {
     this.byId = new Map()
-    for (const module of modules) {
+    for (const module of [...modules].sort((a, b) => a.order - b.order)) {
       if (this.byId.has(module.id)) throw new Error(`Duplicate module id "${module.id}"`)
       this.byId.set(module.id, module)
     }

@@ -1,5 +1,5 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table } from '@/shared/ui'
-import { EventLoopPlayer } from '../components'
+import { EventLoopPlayer } from '../components/EventLoopPlayer'
 import { CAPTURE } from '../data/captures'
 import own from './lesson.module.css'
 

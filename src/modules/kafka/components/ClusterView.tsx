@@ -1,5 +1,6 @@
 import { Button } from '@/shared/ui'
-import type { ConsumerGroup, KafkaCluster } from '../simulation'
+import type { ConsumerGroup } from '../simulation/ConsumerGroup'
+import type { KafkaCluster } from '../simulation/KafkaCluster'
 import { PartitionLog, type OffsetMarker } from './PartitionLog'
 import { toneStyle } from './tones'
 import styles from './ClusterView.module.css'

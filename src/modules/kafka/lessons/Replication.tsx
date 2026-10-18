@@ -3,8 +3,8 @@ import { Button, Callout, CodeBlock, Demo, Segmented, Table, TermList } from '@/
 import { cx } from '@/shared/utils/cx'
 import { BarChart, Flow, StatTiles, Timeline } from '@/shared/figures'
 import { ReplicationLogRows, type LogCell } from '../components/ReplicationLogRows'
-import { PartitionLog } from '../components'
-import { ReplicatedPartition, type Acks } from '../simulation'
+import { PartitionLog } from '../components/PartitionLog'
+import { ReplicatedPartition, type Acks } from '../simulation/ReplicatedPartition'
 import styles from './lesson.module.css'
 import own from './Replication.module.css'
 

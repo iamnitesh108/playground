@@ -1,5 +1,5 @@
 import { Callout, LessonGoals, Predict, Recap, Table } from '@/shared/ui'
-import { AreasPlayer, type AreaFrame } from '../components'
+import { AreasPlayer, type AreaFrame } from '../components/AreasPlayer'
 import { CAPTURE } from '../data/captures'
 import own from './lesson.module.css'
 

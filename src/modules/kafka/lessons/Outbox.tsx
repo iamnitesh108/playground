@@ -1,16 +1,8 @@
 import { useMemo, useState } from 'react'
 import { ByteLayout, Flow, Timeline, type ByteField, type FlowStep } from '@/shared/figures'
 import { Callout, CodeBlock, Demo, Segmented, TermList } from '@/shared/ui'
-import { TransformTrace } from '../components'
-import {
-  ConditionalTransform,
-  ExtractKeyField,
-  ExtractNewRecordState,
-  ExtractTopicFromField,
-  TopicNameMatches,
-  TransformChain,
-  type ConnectRecord,
-} from '../simulation'
+import { TransformTrace } from '../components/TransformTrace'
+import { ConditionalTransform, ExtractKeyField, ExtractNewRecordState, ExtractTopicFromField, TopicNameMatches, TransformChain, type ConnectRecord } from '../simulation/connect'
 
 const DUAL_WRITE_STEPS: FlowStep[] = [
   { title: 'Save the order', body: <p>The service commits the order to its database.</p>, active: ['svc', 'db', 'svc>db'] },

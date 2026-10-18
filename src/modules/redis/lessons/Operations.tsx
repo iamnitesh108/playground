@@ -1,6 +1,7 @@
 import { Callout, CodeBlock, ConfigExplorer, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { BarChart, Flow, Proportion, StatTiles } from '@/shared/figures'
-import { CliSession, LogLines } from '../components'
+import { CliSession } from '../components/CliSession'
+import { LogLines } from '../components/LogLines'
 import { OperationsChecklist } from '../components/OperationsChecklist'
 import { REDIS_CONF } from '../configs/redisConf'
 import { CAPTURE, REDIS_VERSION } from '../data/captures'

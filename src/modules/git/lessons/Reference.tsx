@@ -1,5 +1,5 @@
 import { LessonGoals } from '@/shared/ui'
-import { CommandReference, type CommandEntry } from '../components'
+import { CommandReference, type CommandEntry } from '../components/CommandReference'
 
 const COMMANDS: CommandEntry[] = [
   { group: 'Setup', command: 'git config --global user.name "Ann Lee"', does: 'set your name for all repositories', lesson: 'setup' },

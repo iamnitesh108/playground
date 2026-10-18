@@ -1,5 +1,5 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap } from '@/shared/ui'
-import { HookSlots, type HookSlot } from '../components'
+import { HookSlots, type HookSlot } from '../components/HookSlots'
 import { CAPTURE } from '../data/captures'
 
 const PROFILE = `function Profile() {

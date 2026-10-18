@@ -2,6 +2,7 @@ import type { LearningModule } from '@/core/module'
 
 export const postgresModule: LearningModule = {
   id: 'postgres',
+  order: 30,
   title: 'PostgreSQL',
   description:
     'Just want to use PostgreSQL? Start with “Using PostgreSQL day to day”. Then see how it really works, recorded on a real server: pages and row versions (MVCC), vacuum, isolation and locks, query plans and every index type, WAL, replication, backups and partitioning — and running it: pooling, monitoring and tuning.',
@@ -64,3 +65,5 @@ export const postgresModule: LearningModule = {
     },
   ],
 }
+
+export default postgresModule

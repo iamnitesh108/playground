@@ -1,5 +1,6 @@
 import { Callout, LessonGoals, Predict, Recap, Table } from '@/shared/ui'
-import { FetchPullPlayground, Transcript } from '../components'
+import { FetchPullPlayground } from '../components/FetchPullPlayground'
+import { Transcript } from '../components/Transcript'
 import { CAPTURE } from '../data/captures'
 import own from './lesson.module.css'
 

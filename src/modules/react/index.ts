@@ -2,6 +2,7 @@ import type { LearningModule } from '@/core/module'
 
 export const reactModule: LearningModule = {
   id: 'react',
+  order: 50,
   title: 'React internals',
   description:
     'How React really works, recorded from React 19: elements and JSX, render and commit, state snapshots and batching, reconciliation and keys, effects, hooks, memoization and the React Compiler, transitions and Suspense, server rendering and hydration.',
@@ -33,3 +34,5 @@ export const reactModule: LearningModule = {
     },
   ],
 }
+
+export default reactModule

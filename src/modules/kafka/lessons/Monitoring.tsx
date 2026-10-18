@@ -1,6 +1,6 @@
 import { Flow, StatTiles, type Hue, type Stat } from '@/shared/figures'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
-import { Terminal } from '../components'
+import { Terminal } from '../components/Terminal'
 import { MonitoringSeriesChart } from '../components/MonitoringSeriesChart'
 import { OPS } from '../data/ops'
 

@@ -1,5 +1,5 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table } from '@/shared/ui'
-import { ThreadPoolChart, TickTimeline } from '../components'
+import { ThreadPoolChart, TickTimeline } from '../components/Timelines'
 import { CAPTURE } from '../data/captures'
 
 const BLOCKING = `const ticks = []

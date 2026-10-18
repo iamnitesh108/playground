@@ -1,6 +1,7 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, Tabs, TermList } from '@/shared/ui'
 import { Flow, Proportion, StatTiles, Timeline } from '@/shared/figures'
-import { CliSession, LogLines } from '../components'
+import { CliSession } from '../components/CliSession'
+import { LogLines } from '../components/LogLines'
 import { K8S } from '../data/kubernetes'
 import { MANIFESTS } from '../data/kubernetesManifests'
 import { Highlighted } from '@/shared/code'

@@ -1,5 +1,5 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table } from '@/shared/ui'
-import { BackpressurePlayground } from '../components'
+import { BackpressurePlayground } from '../components/BackpressurePlayground'
 import { CAPTURE } from '../data/captures'
 import own from './lesson.module.css'
 

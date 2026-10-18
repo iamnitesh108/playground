@@ -1,4 +1,4 @@
-import type { TransformStage } from '../simulation'
+import type { TransformStage } from '../simulation/connect'
 import styles from './TransformTrace.module.css'
 import { Highlighted } from '@/shared/code'
 

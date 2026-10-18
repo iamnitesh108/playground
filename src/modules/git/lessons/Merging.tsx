@@ -1,5 +1,6 @@
 import { Callout, LessonGoals, Predict, Recap, Table } from '@/shared/ui'
-import { GraphPlayground, Transcript } from '../components'
+import { GraphPlayground } from '../components/GraphPlayground'
+import { Transcript } from '../components/Transcript'
 import { CAPTURE } from '../data/captures'
 
 const m = CAPTURE.merging

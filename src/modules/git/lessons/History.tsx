@@ -1,5 +1,5 @@
 import { LessonGoals, Predict, Recap, Table } from '@/shared/ui'
-import { Transcript } from '../components'
+import { Transcript } from '../components/Transcript'
 import { CAPTURE } from '../data/captures'
 
 const h = CAPTURE.history

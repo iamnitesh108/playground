@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Segmented, Table } from '@/shared/ui'
-import { RenderTree, type TreeNode } from '../components'
+import { RenderTree, type TreeNode } from '../components/RenderTree'
 import { CAPTURE } from '../data/captures'
 
 const SHOP: TreeNode = {

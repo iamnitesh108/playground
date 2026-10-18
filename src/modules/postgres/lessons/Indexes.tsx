@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { BarChart, Flow, StatTiles, Timeline } from '@/shared/figures'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, Tabs, TermList } from '@/shared/ui'
-import { BTreePlayground } from '../components'
+import { BTreePlayground } from '../components/BTreePlayground'
 import { IndexesCompositeView } from '../components/IndexesCompositeView'
 import { CAPTURE } from '../data/captures'
 import { QUERIES } from '../data/queries'

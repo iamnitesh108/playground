@@ -1,6 +1,7 @@
 import { BarChart, ByteLayout, Flow, StatTiles, Timeline } from '@/shared/figures'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
-import { PartitionLog, Terminal, type LogCell } from '../components'
+import { PartitionLog, type LogCell } from '../components/PartitionLog'
+import { Terminal } from '../components/Terminal'
 import { KeysExplorer } from '../components/KeysExplorer'
 import { KeysFigure } from '../components/KeysFigure'
 import { KeysMoveList } from '../components/KeysMoveList'

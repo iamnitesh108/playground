@@ -1,6 +1,6 @@
 import { Flow, StatTiles, type FlowEdge, type FlowNode } from '@/shared/figures'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
-import { SessionPlayer } from '../components'
+import { SessionPlayer } from '../components/SessionPlayer'
 import { MvccSnapshotLine } from '../components/MvccSnapshotLine'
 import { MvccVisibilityChecker } from '../components/MvccVisibilityChecker'
 import { INTERNALS } from '../data/internals'

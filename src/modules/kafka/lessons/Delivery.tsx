@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Callout, CodeBlock, Demo, Segmented, Table, TermList, Walkthrough, type WalkthroughStep } from '@/shared/ui'
 import { cx } from '@/shared/utils/cx'
 import { Flow, Timeline } from '@/shared/figures'
-import { PartitionLog } from '../components'
+import { PartitionLog } from '../components/PartitionLog'
 import styles from './lesson.module.css'
 
 type Strategy = 'commit-first' | 'process-first'

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ByteLayout, Flow, StatTiles, Timeline } from '@/shared/figures'
 import { Callout, LessonGoals, Predict, Recap, Segmented, Table, TermList } from '@/shared/ui'
-import { Terminal } from '../components'
+import { Terminal } from '../components/Terminal'
 import { SegmentsDir } from '../components/SegmentsDir'
 import { SegmentsLogDemo } from '../components/SegmentsLogDemo'
 import { SegmentsLookup } from '../components/SegmentsLookup'

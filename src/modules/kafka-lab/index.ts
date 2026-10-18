@@ -2,6 +2,7 @@ import type { LearningModule } from '@/core/module'
 
 export const kafkaSetupModule: LearningModule = {
   id: 'kafka-lab',
+  order: 20,
   title: 'Kafka from scratch: setup to code',
   description:
     'Set up Kafka, Kafka Connect and Debezium the way operations teams do — on Ubuntu with systemd and with Docker — with every configuration file explained line by line, then produce and consume from Java for pub-sub and CDC.',
@@ -46,3 +47,5 @@ export const kafkaSetupModule: LearningModule = {
     },
   ],
 }
+
+export default kafkaSetupModule

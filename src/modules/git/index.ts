@@ -2,6 +2,7 @@ import type { LearningModule } from '@/core/module'
 
 export const gitModule: LearningModule = {
   id: 'git',
+  order: 60,
   title: 'Git, from zero to confident',
   description:
     'Version control with Git, recorded from a real Git: setup, the three areas, history, how Git stores data, branches, merging and rebasing, remotes, work and personal accounts on one machine, undoing anything, and the everyday toolbox.',
@@ -43,3 +44,5 @@ export const gitModule: LearningModule = {
     },
   ],
 }
+
+export default gitModule

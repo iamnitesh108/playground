@@ -1,6 +1,6 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, Tabs, TermList } from '@/shared/ui'
 import { BarChart, Flow, StatTiles, type FlowNode } from '@/shared/figures'
-import { Terminal, type TerminalStep } from '../components'
+import { Terminal, type TerminalStep } from '../components/Terminal'
 import { parseOffsets } from '../components/PracticalParse'
 import { MORE } from '../data/more'
 import { USING_APP } from '../data/usingApp'

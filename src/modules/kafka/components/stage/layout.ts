@@ -1,4 +1,4 @@
-import type { KafkaCluster } from '../../simulation'
+import type { KafkaCluster } from '../../simulation/KafkaCluster'
 
 /*
  * Geometry of the animated stage, computed from the model alone, so the renderer

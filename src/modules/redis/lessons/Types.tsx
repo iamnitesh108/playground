@@ -1,5 +1,7 @@
 import { Callout, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
-import { BarList, CliSession, EncodingExplorer } from '../components'
+import { BarList } from '../components/BarList'
+import { CliSession } from '../components/CliSession'
+import { EncodingExplorer } from '../components/EncodingExplorer'
 import { CAPTURE } from '../data/captures'
 import { BarChart, ByteLayout, Flow, StatTiles, type ByteField } from '@/shared/figures'
 

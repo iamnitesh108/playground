@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useObservable } from '@/shared/hooks/useObservable'
-import { KafkaCluster, RangeAssignor, type OffsetReset } from '../../simulation'
+import { KafkaCluster } from '../../simulation/KafkaCluster'
+import { RangeAssignor } from '../../simulation/assignor'
+import { type OffsetReset } from '../../simulation/types'
 import { layoutOf, type Point } from './layout'
 
 /*

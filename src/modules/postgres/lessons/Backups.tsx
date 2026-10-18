@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { BarChart, ByteLayout, Flow, StatTiles, Timeline, type ByteField } from '@/shared/figures'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList, Walkthrough } from '@/shared/ui'
-import { BackupTimeline } from '../components'
+import { BackupTimeline } from '../components/BackupTimeline'
 import { OPS } from '../data/ops'
 
 const b = OPS.backup

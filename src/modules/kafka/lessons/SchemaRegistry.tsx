@@ -1,6 +1,6 @@
 import { ByteLayout, Flow, StatTiles, type ByteField } from '@/shared/figures'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, Tabs, TermList } from '@/shared/ui'
-import { Terminal } from '../components'
+import { Terminal } from '../components/Terminal'
 import { SchemaRegistryMatrix } from '../components/SchemaRegistryMatrix'
 import { ECOSYSTEM, ECOSYSTEM_APPS } from '../data/ecosystem'
 

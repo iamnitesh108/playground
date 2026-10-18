@@ -1,6 +1,7 @@
 import { Callout, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { BarChart, Flow, Proportion, StatTiles, Timeline } from '@/shared/figures'
-import { CliSession, EvictionPlayground } from '../components'
+import { CliSession } from '../components/CliSession'
+import { EvictionPlayground } from '../components/EvictionPlayground'
 import { CAPTURE } from '../data/captures'
 import styles from './lesson.module.css'
 

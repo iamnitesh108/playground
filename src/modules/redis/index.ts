@@ -2,6 +2,7 @@ import type { LearningModule } from '@/core/module'
 
 export const redisModule: LearningModule = {
   id: 'redis',
+  order: 70,
   title: 'Redis internals and design',
   description:
     'Just want to use Redis? Start with “Using Redis day to day”. Otherwise: how Redis really works, shown with recordings of a real server: the single-threaded event loop, the wire protocol, every data type and its encodings, expiry and eviction, transactions and scripts, locks and rate limits, persistence and crashes, replication, Sentinel and Cluster, Pub/Sub and Streams — then caching and design patterns for real systems, and running it in production.',
@@ -76,3 +77,5 @@ export const redisModule: LearningModule = {
     },
   ],
 }
+
+export default redisModule

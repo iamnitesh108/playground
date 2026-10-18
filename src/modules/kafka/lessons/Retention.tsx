@@ -3,8 +3,8 @@ import { Callout, CodeBlock, Demo, Segmented, Table, TermList } from '@/shared/u
 import { cx } from '@/shared/utils/cx'
 import { Flow, type Hue } from '@/shared/figures'
 import { ReplicationLogRows, type LogCell } from '../components/ReplicationLogRows'
-import { PartitionLog } from '../components'
-import { applyRetention, compact, toSegments, type LogEntry } from '../simulation'
+import { PartitionLog } from '../components/PartitionLog'
+import { applyRetention, compact, toSegments, type LogEntry } from '../simulation/logCleanup'
 import own from './Retention.module.css'
 
 const TIME_LOG: LogEntry[] = Array.from({ length: 12 }, (_, i) => ({

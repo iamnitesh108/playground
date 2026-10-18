@@ -1,6 +1,7 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { Flow, StatTiles, Timeline, type TimelineEvent, type TimelineSegment } from '@/shared/figures'
-import { AppLog, Terminal } from '../components'
+import { AppLog } from '../components/AppLog'
+import { Terminal } from '../components/Terminal'
 import { Practical4LogCells, type LogCellSpec } from '../components/Practical4LogCells'
 import { MORE } from '../data/more'
 import { USING_APP } from '../data/usingApp'

@@ -1,6 +1,6 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { BarChart, Flow, Proportion, Timeline } from '@/shared/figures'
-import { CachePlayground } from '../components'
+import { CachePlayground } from '../components/CachePlayground'
 import { CAPTURE } from '../data/captures'
 import { simulateCache, type Strategy } from '../simulation/cache'
 

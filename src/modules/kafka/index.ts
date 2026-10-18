@@ -2,6 +2,7 @@ import type { LearningModule } from '@/core/module'
 
 export const kafkaModule: LearningModule = {
   id: 'kafka',
+  order: 10,
   title: 'Apache Kafka',
   description:
     'Just want to use Kafka? Start with “Using Kafka day to day”. Otherwise: event streaming from zero — topics, partitions, offsets, how consumers and consumer groups really work — with animations and three hands-on practicals recorded on Kafka 4.3 with the CLI and a Micronaut app — then replication, Kafka Connect, Debezium change data capture and the outbox pattern.',
@@ -193,3 +194,5 @@ export const kafkaModule: LearningModule = {
     },
   ],
 }
+
+export default kafkaModule

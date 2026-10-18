@@ -1,6 +1,7 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { BarChart, ByteLayout, Flow, StatTiles, Timeline, type Hue } from '@/shared/figures'
-import { DurabilityPlayground, LogLines } from '../components'
+import { DurabilityPlayground } from '../components/DurabilityPlayground'
+import { LogLines } from '../components/LogLines'
 import { CAPTURE, REDIS_VERSION } from '../data/captures'
 
 const P = CAPTURE.persistence

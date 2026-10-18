@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Segmented, Table } from '@/shared/ui'
-import { EffectsTimeline } from '../components'
+import { EffectsTimeline } from '../components/EffectsTimeline'
 import { CAPTURE } from '../data/captures'
 
 const CODE = `function Parent() {

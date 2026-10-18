@@ -1,6 +1,6 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, TermList } from '@/shared/ui'
 import { Flow, Timeline, type TimelineEvent, type TimelineSegment } from '@/shared/figures'
-import { CliSession } from '../components'
+import { CliSession } from '../components/CliSession'
 import { TransactionsMatrix, TransactionsNoRollback } from '../components/TransactionsFigures'
 import { CAPTURE } from '../data/captures'
 

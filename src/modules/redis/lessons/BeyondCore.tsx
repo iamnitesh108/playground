@@ -1,6 +1,6 @@
 import { Callout, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { BarChart, Flow, StatTiles } from '@/shared/figures'
-import { CliSession } from '../components'
+import { CliSession } from '../components/CliSession'
 import { BEYOND as B } from '../data/beyond'
 
 const KB = (b: number) => (b >= 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(2)} MB` : `${(b / 1024).toFixed(1)} KB`)

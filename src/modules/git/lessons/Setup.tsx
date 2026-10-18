@@ -1,5 +1,5 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, Tabs, TermList } from '@/shared/ui'
-import { Transcript } from '../components'
+import { Transcript } from '../components/Transcript'
 import { CAPTURE } from '../data/captures'
 
 const { setup } = CAPTURE

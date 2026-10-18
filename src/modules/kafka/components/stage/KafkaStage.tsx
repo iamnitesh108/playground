@@ -1,5 +1,5 @@
 import { cx } from '@/shared/utils/cx'
-import type { KafkaCluster } from '../../simulation'
+import type { KafkaCluster } from '../../simulation/KafkaCluster'
 import { hue, type Hue } from '@/shared/figures'
 import { groupHue, keyHue, type Flight } from './useKafkaStage'
 import { layoutOf, STAGE_WIDTH, VISIBLE_CELLS } from './layout'

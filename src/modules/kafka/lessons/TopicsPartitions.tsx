@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { useObservable } from '@/shared/hooks/useObservable'
 import { Button, Callout, CodeBlock, Demo, Segmented, TermList } from '@/shared/ui'
 import { Flow } from '@/shared/figures'
-import { PartitionLog } from '../components'
+import { PartitionLog } from '../components/PartitionLog'
 import { TopicsPartitionsSegments } from '../components/TopicsPartitionsSegments'
-import { KafkaCluster } from '../simulation'
+import { KafkaCluster } from '../simulation/KafkaCluster'
 import styles from './lesson.module.css'
 
 const CUSTOMERS = ['alice', 'bob', 'carol', 'dave', 'erin']

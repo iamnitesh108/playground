@@ -1,13 +1,10 @@
+import type { LearningModule } from '@/core/module'
 import { ModuleRegistry } from '@/core/registry'
-import { kafkaModule } from './kafka'
-import { kafkaSetupModule } from './kafka-lab'
-import { postgresModule } from './postgres'
-import { nodejsModule } from './nodejs'
-import { reactModule } from './react'
-import { gitModule } from './git'
-import { redisModule } from './redis'
-import { localCacheModule } from './local-cache'
-import { s3Module } from './s3'
 
-/** Register new modules here — nothing else in the app needs to change. */
-export const registry = new ModuleRegistry([kafkaModule, kafkaSetupModule, postgresModule, nodejsModule, reactModule, gitModule, redisModule, localCacheModule, s3Module])
+/**
+ * Every folder here with an index.ts that default-exports a LearningModule is a module.
+ * Adding a topic is adding a folder — this file and the app never change.
+ */
+const found = import.meta.glob<LearningModule>('./*/index.ts', { eager: true, import: 'default' })
+
+export const registry = new ModuleRegistry(Object.values(found))

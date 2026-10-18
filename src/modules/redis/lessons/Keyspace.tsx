@@ -1,6 +1,7 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { Flow, StatTiles, Timeline } from '@/shared/figures'
-import { CliSession, DictPlayground } from '../components'
+import { CliSession } from '../components/CliSession'
+import { DictPlayground } from '../components/DictPlayground'
 import { KeyspaceCursorFigure, KeyspaceRehashFigure, type HtTable } from '../components/KeyspaceFigures'
 import { CAPTURE } from '../data/captures'
 import { cursorOrder } from '../simulation/dict'

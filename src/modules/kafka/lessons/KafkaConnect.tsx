@@ -1,8 +1,8 @@
 import { useMemo, useState } from 'react'
 import { BarChart, ByteLayout, Flow, type FlowStep } from '@/shared/figures'
 import { Box, Button, Callout, CodeBlock, Demo, Row, Segmented, Table, Tabs, TermList } from '@/shared/ui'
-import { TransformTrace } from '../components'
-import { ExtractKeyField, RegexRouter, TransformChain, type Transform } from '../simulation'
+import { TransformTrace } from '../components/TransformTrace'
+import { ExtractKeyField, RegexRouter, TransformChain, type Transform } from '../simulation/connect'
 import styles from './lesson.module.css'
 import { Highlighted } from '@/shared/code'
 

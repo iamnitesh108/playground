@@ -1,6 +1,8 @@
 import { Callout, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { BarChart, Flow, StatTiles, Timeline } from '@/shared/figures'
-import { BarList, CliSession, EventLoopPlayground } from '../components'
+import { BarList } from '../components/BarList'
+import { CliSession } from '../components/CliSession'
+import { EventLoopPlayground } from '../components/EventLoopPlayground'
 import { CAPTURE, REDIS_VERSION } from '../data/captures'
 
 const A = CAPTURE.architecture

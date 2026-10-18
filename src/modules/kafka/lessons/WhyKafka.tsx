@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Button, Callout, Demo, Segmented, TermList } from '@/shared/ui'
 import { Flow } from '@/shared/figures'
-import { PartitionLog } from '../components'
+import { PartitionLog } from '../components/PartitionLog'
 import { WhyKafkaLogFigure } from '../components/WhyKafkaLogFigure'
 import { useObservable } from '@/shared/hooks/useObservable'
-import { KafkaCluster } from '../simulation'
+import { KafkaCluster } from '../simulation/KafkaCluster'
 import styles from './lesson.module.css'
 
 const SERVICES = ['Checkout', 'Inventory', 'Accounts']

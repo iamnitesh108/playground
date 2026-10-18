@@ -1,5 +1,6 @@
 import { Callout, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
-import { CliSession, SkiplistPlayground } from '../components'
+import { CliSession } from '../components/CliSession'
+import { SkiplistPlayground } from '../components/SkiplistPlayground'
 import { CAPTURE } from '../data/captures'
 import { BarChart, Flow, StatTiles } from '@/shared/figures'
 

@@ -1,4 +1,4 @@
-import type { Activity } from '../simulation'
+import type { Activity } from '../simulation/KafkaCluster'
 import styles from './ActivityFeed.module.css'
 
 export function ActivityFeed({ items, empty = 'Nothing has happened yet.' }: { items: readonly Activity[]; empty?: string }) {

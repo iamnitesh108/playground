@@ -2,6 +2,7 @@ import type { LearningModule } from '@/core/module'
 
 export const localCacheModule: LearningModule = {
   id: 'local-cache',
+  order: 80,
   title: 'In-process caching',
   description:
     'Caches that live inside your application: Caffeine (Java), lru-cache (Node.js) and moka (Rust). How to use them, how they decide what to keep (LRU, LFU, W-TinyLFU), expiry and refresh, loading under concurrency, memory and garbage collection, and running them in production — recorded from real runs in all three languages. The L1 of a multi-level cache.',
@@ -36,3 +37,5 @@ export const localCacheModule: LearningModule = {
     },
   ],
 }
+
+export default localCacheModule

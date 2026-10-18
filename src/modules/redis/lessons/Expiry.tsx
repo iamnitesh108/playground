@@ -1,6 +1,8 @@
 import { Callout, LessonGoals, Predict, Recap, TermList } from '@/shared/ui'
 import { Flow, Proportion, StatTiles } from '@/shared/figures'
-import { CliSession, ExpiryPlayground, LineChart } from '../components'
+import { CliSession } from '../components/CliSession'
+import { ExpiryPlayground } from '../components/ExpiryPlayground'
+import { LineChart } from '../components/LineChart'
 import { ExpiryTtlFigure } from '../components/ExpiryFigures'
 import { CAPTURE } from '../data/captures'
 

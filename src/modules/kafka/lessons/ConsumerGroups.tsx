@@ -1,5 +1,6 @@
 import { Box, Callout, Column, Connector, LessonGoals, Predict, Recap, Row, Table, TermList, Walkthrough } from '@/shared/ui'
-import { ScenarioPlayer, StagePlayground, Terminal, type ScenarioStep } from '../components'
+import { ScenarioPlayer, StagePlayground, type ScenarioStep } from '../components/stage'
+import { Terminal } from '../components/Terminal'
 import { PRACTICALS } from '../data/practicals'
 import { Flow, Timeline } from '@/shared/figures'
 import { GroupsAssignment, type AssignmentRow } from '../components/GroupsAssignment'

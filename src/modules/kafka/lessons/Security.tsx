@@ -1,6 +1,6 @@
 import { Flow } from '@/shared/figures'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
-import { Terminal } from '../components'
+import { Terminal } from '../components/Terminal'
 import { SecurityAclGrid } from '../components/SecurityAclGrid'
 import { SecurityProtocolMatrix } from '../components/SecurityProtocolMatrix'
 import { OPS } from '../data/ops'

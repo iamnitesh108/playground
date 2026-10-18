@@ -1,6 +1,7 @@
 import { Flow, StatTiles, Timeline, type TimelineEvent, type TimelineSegment } from '@/shared/figures'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
-import { AppLog, Terminal } from '../components'
+import { AppLog } from '../components/AppLog'
+import { Terminal } from '../components/Terminal'
 import { ECOSYSTEM, ECOSYSTEM_APPS } from '../data/ecosystem'
 
 const K = ECOSYSTEM.streams

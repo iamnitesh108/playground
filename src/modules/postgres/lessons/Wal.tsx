@@ -1,7 +1,7 @@
 import { BarChart, ByteLayout, Flow, Proportion, StatTiles, Timeline, type ByteField, type TimelineSegment } from '@/shared/figures'
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, Tabs, TermList } from '@/shared/ui'
 import commitLossSource from '../../../../tools/postgres-capture/durability-app/commitLoss.ts?raw'
-import { WalPlayground } from '../components'
+import { WalPlayground } from '../components/WalPlayground'
 import { CAPTURE } from '../data/captures'
 import { DURABILITY } from '../data/durability'
 

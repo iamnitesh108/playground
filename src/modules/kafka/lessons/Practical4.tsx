@@ -1,6 +1,6 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { Flow, StatTiles } from '@/shared/figures'
-import { Terminal } from '../components'
+import { Terminal } from '../components/Terminal'
 import { Practical4LogCells, type LogCellSpec } from '../components/Practical4LogCells'
 import { parseOffsets } from '../components/PracticalParse'
 import { MORE } from '../data/more'
