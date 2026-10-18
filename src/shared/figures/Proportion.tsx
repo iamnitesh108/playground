@@ -9,7 +9,7 @@ export interface Part {
 }
 
 /** One 100% bar split into parts (memory use, slot ranges, a time budget), labelled below. */
-export function Proportion({ title, parts, unit = '' }: { title: string; parts: readonly Part[]; unit?: string }) {
+export function Proportion({ title, parts, unit = '', caption }: { title: string; parts: readonly Part[]; unit?: string; caption?: string }) {
   const total = parts.reduce((n, p) => n + p.value, 0) || 1
   return (
     <figure className={styles.figure}>
@@ -24,10 +24,13 @@ export function Proportion({ title, parts, unit = '' }: { title: string; parts: 
           <li key={p.label} style={hue(p.hue ?? ((i % 8) + 1) as Hue)}>
             <span className={styles.swatch} />
             <span className={styles.legendLabel}>{p.label}</span>
-            <span className={styles.legendValue}>{p.display ?? `${p.value.toLocaleString()}${unit}`} · {Math.round((p.value / total) * 100)}%</span>
+            <span className={styles.legendValue}>{p.display ?? `${p.value.toLocaleString()}${unit}`}
+              {/* a display that is already a percentage needs no second one */}
+              {!p.display?.includes('%') && ` · ${p.value > 0 && (p.value / total) * 100 < 1 ? '<1' : Math.round((p.value / total) * 100)}%`}</span>
           </li>
         ))}
       </ul>
+      {caption && <div className={styles.caption}>{caption}</div>}
     </figure>
   )
 }

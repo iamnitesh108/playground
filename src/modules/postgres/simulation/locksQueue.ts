@@ -126,7 +126,6 @@ export function tick(state: QueueState): QueueState {
   return grant({ ...state, time, sessions })
 }
 
-export const setLockTimeout = (state: QueueState, lockTimeout: number | null): QueueState => ({ ...state, lockTimeout })
 
 /** Seconds a session has waited so far (or in total, once it got its lock). */
 export const waited = (state: QueueState, s: QueueSession): number => (s.started ?? s.ended ?? state.time) - s.arrived

@@ -182,7 +182,7 @@ export default function Replication() {
         answer={2}
         explanation="PostgreSQL never silently downgrades a synchronous commit. The commit is already in the primary’s WAL, but the client gets no answer. Recorded:"
       />
-      <CodeBlock language="text" title="recorded: the INSERT waits; seen from another session after 3 s" code={R.syncWaitActivity} />
+      <CodeBlock language="text" title="recorded: the INSERT waits; seen from another session (waiting_for: how long so far)" code={R.syncWaitActivity} />
       <CodeBlock language="text" title="recorded: the waiting session after pg_cancel_backend()" code={`${R.syncWaitCancelled}\n${R.syncWaitAfter}`} />
       <Callout tone="warn" title="One synchronous standby halves your availability">
         With a single synchronous standby, losing either server stops all writes. Run at least two standbys and wait for any one of them:{' '}

@@ -68,7 +68,7 @@ export function ReplicationLagPlayground() {
       <StatTiles
         stats={[
           { label: 'one COMMIT takes', value: fmtMs(r.commitMs), sub: 'at the end of the minute', hue: 1 },
-          { label: 'lost if we fail over now', value: `${r.unflushedMB.toFixed(1)} MB`, sub: 'committed, not on the standby', hue: r.unflushedMB > 0.05 ? 8 : 6 },
+          { label: 'lost by a failover at the worst moment', value: `${r.unflushedMB.toFixed(1)} MB`, sub: r.unflushedMB > 0.05 ? `committed, not on the standby (at ${r.unflushedAt.toFixed(0)} s)` : 'every commit reached the standby in time', hue: r.unflushedMB > 0.05 ? 8 : 6 },
           { label: 'standby reads are behind', value: `${r.replayLagS.toFixed(1)} s`, sub: 'replay lag', hue: 5 },
           { label: 'commits stalled', value: `${r.blockedS} s`, sub: 'waiting for the standby', hue: r.blockedS > 0 ? 8 : 6 },
         ]}

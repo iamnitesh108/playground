@@ -56,7 +56,6 @@ export function WalPlayground() {
   const sim = useObservable(() => new WalSimulator())
   const crashed = sim.phase === 'crashed'
 
-
   return (
     <Demo
       title="Write-ahead logging and crash recovery"
@@ -71,10 +70,10 @@ export function WalPlayground() {
           <Button size="sm" variant="primary" disabled={!sim.open || crashed} onClick={() => sim.commit()}>
             COMMIT{sim.open ? ` xid ${sim.open.xid}` : ''}
           </Button>
-          <Button size="sm" disabled={crashed} onClick={() => sim.writePage('page 0')}>
+          <Button size="sm" disabled={crashed || !sim.buffers['page 0']?.dirty} onClick={() => sim.writePage('page 0')}>
             write page 0
           </Button>
-          <Button size="sm" disabled={crashed} onClick={() => sim.writePage('page 1')}>
+          <Button size="sm" disabled={crashed || !sim.buffers['page 1']?.dirty} onClick={() => sim.writePage('page 1')}>
             write page 1
           </Button>
           <Button size="sm" disabled={crashed} onClick={() => sim.checkpoint()}>
@@ -127,7 +126,7 @@ export function WalPlayground() {
         value<sub>xid</sub>: <span className={styles.version} data-status="committed">committed</span>
         <span className={styles.version} data-status="open">open</span>
         <span className={styles.version} data-status="aborted">never committed</span>
-        <span> · “= n” is what a query sees</span>
+        <span> · “= n” is what other sessions see: the newest committed version</span>
       </div>
       <ol className={styles.log}>
         {sim.log.map((l) => (

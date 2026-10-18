@@ -80,7 +80,7 @@ export function BTreeView({ levels, path, focus, highlightKey }: BTreeViewProps)
                   </span>
                 ))}
               </div>
-              {node.leaf && i < level.length - 1 && <span className={styles.sibling}>→</span>}
+              {node.leaf && i < level.length - 1 && <span className={styles.sibling} title="sibling link: leaves point to both neighbours">↔</span>}
             </div>
           ))}
         </div>

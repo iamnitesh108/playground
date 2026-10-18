@@ -57,3 +57,9 @@
   color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
+
+.caption {
+  margin-top: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

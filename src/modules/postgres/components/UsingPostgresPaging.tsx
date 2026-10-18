@@ -10,9 +10,11 @@ const PAGE = 20
 /** Drag to a page deep in a million rows: how much of the index each method walks, and the recorded time. */
 export function UsingPostgresPaging({ points }: { points: readonly PagePoint[] }) {
   const [skip, setSkip] = useState(500_000)
+  // the slider stops at the deepest recorded offset: times are interpolated, never extrapolated
+  const deepest = Math.max(...points.map((p) => p.offset))
   const methods = [
-    { id: 'offset' as const, name: 'OFFSET', sql: `LIMIT ${PAGE} OFFSET ${skip.toLocaleString('en')}`, h: 8 as const, ms: interpolate(points, skip, 'offsetMs') },
-    { id: 'keyset' as const, name: 'keyset', sql: `WHERE id > ${skip.toLocaleString('en')} LIMIT ${PAGE}`, h: 6 as const, ms: interpolate(points, skip, 'keysetMs') },
+    { id: 'offset' as const, name: 'OFFSET', sql: `ORDER BY id LIMIT ${PAGE} OFFSET ${skip.toLocaleString('en')}`, h: 8 as const, ms: interpolate(points, skip, 'offsetMs') },
+    { id: 'keyset' as const, name: 'keyset', sql: `WHERE id > ${skip.toLocaleString('en')} ORDER BY id LIMIT ${PAGE}`, h: 6 as const, ms: interpolate(points, skip, 'keysetMs') },
   ]
   const recorded = points.some((p) => p.offset === skip)
   return (
@@ -22,7 +24,7 @@ export function UsingPostgresPaging({ points }: { points: readonly PagePoint[] }
       controls={
         <label className={styles.slider}>
           <span>skip</span>
-          <input type="range" min={0} max={TOTAL - PAGE} step={10_000} value={skip} onChange={(e) => setSkip(Number(e.target.value))} aria-label="rows to skip" />
+          <input type="range" min={0} max={deepest} step={10_000} value={skip} onChange={(e) => setSkip(Number(e.target.value))} aria-label="rows to skip" />
           <strong>{skip.toLocaleString('en')} rows</strong>
         </label>
       }

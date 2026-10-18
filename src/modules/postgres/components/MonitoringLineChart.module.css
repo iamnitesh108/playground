@@ -175,7 +175,7 @@
 
 .xAxis {
   position: relative;
-  height: 1.4rem;
+  height: 2.3rem;
   margin-left: 3.4rem;
   font-size: 0.7rem;
   color: var(--text-muted);
@@ -190,6 +190,11 @@
 
 .xAxis span:first-child {
   transform: none;
+}
+
+/* the last tick (the unit label comes after it) ends at the right edge */
+.xAxis span:nth-last-child(2) {
+  transform: translateX(-100%);
 }
 
 .xAxis .xUnit {

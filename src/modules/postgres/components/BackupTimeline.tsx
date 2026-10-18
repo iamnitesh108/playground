@@ -83,7 +83,8 @@ export function BackupTimeline() {
       </div>
       <div className={styles.legend}>
         <span className={styles.key} data-kind="replayed">replayed</span>
-        <span className={styles.key} data-kind="lost">missing from archive</span>
+        <span className={styles.key} data-kind="lost">lost from archive</span>
+        <span className={styles.key} data-kind="missing">needed but lost</span>
         <span>WAL segments, one per 2 minutes</span>
       </div>
 

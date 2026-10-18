@@ -35,7 +35,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { term: 'Surrogate key', definition: 'An identifier the database makes up (identity number or uuid) with no meaning of its own.', lesson: 'schema-design' },
   { term: 'Normal form', definition: 'Rules against storing the same fact twice. 3NF: every column depends on the key, the whole key and nothing but the key.', lesson: 'schema-design' },
   { term: 'jsonb', definition: 'Binary JSON: parsed once, indexable with GIN. Good for truly variable attributes, not for core relational data.', lesson: 'schema-design' },
-  { term: 'Enum', definition: 'A type with a fixed list of labels; adding values is easy, removing or renaming them is not.', lesson: 'schema-design' },
+  { term: 'Enum', definition: 'A type with a fixed list of labels, 4 bytes, sorted in declared order; values can be added or renamed, never removed.', lesson: 'schema-design' },
   { term: 'Migration', definition: 'A versioned script that changes the schema while the application keeps running.', lesson: 'schema-design' },
 
   // How it works
@@ -93,7 +93,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { term: 'Advisory lock', definition: 'A lock on a number of your choosing for coordinating application work; session- or transaction-scoped.', lesson: 'locks' },
   { term: 'Constraint', definition: 'A rule the database enforces on every write: NOT NULL, CHECK, UNIQUE, PRIMARY KEY, FOREIGN KEY, EXCLUDE.', lesson: 'constraints' },
   { term: 'Foreign key', definition: 'A column that must match a key in another table; can cascade deletes and updates.', lesson: 'constraints' },
-  { term: 'Deferrable constraint', definition: 'Checked at COMMIT (when deferred) instead of after each statement.', lesson: 'constraints' },
+  { term: 'Deferrable constraint', definition: 'A UNIQUE, PRIMARY KEY, EXCLUDE or FOREIGN KEY constraint declared DEFERRABLE: checked at the end of the statement, or at COMMIT when deferred, instead of row by row.', lesson: 'constraints' },
   { term: 'Exclusion constraint', definition: 'No two rows may match pairwise under given operators, e.g. same room and overlapping time range.', lesson: 'constraints' },
   { term: 'SQLSTATE', definition: 'Five-character error code, e.g. 23505 unique violation, 23503 foreign key violation, 40001 serialization failure.', lesson: 'constraints' },
   { term: 'Idempotency key', definition: 'A unique id sent with a request so a retry is recognised and not executed twice.', lesson: 'constraints' },
@@ -105,7 +105,7 @@ export const GLOSSARY: GlossaryEntry[] = [
   { term: 'Statistics', definition: 'Per-column summaries ANALYZE stores in pg_statistic: most common values, distinct count, histogram, correlation.', lesson: 'query-planning' },
   { term: 'Selectivity', definition: 'Fraction of rows a condition keeps; estimated rows = selectivity × table rows.', lesson: 'query-planning' },
   { term: 'Cost', definition: 'The planner’s price for a plan, in units where reading one page sequentially costs 1.0 (seq_page_cost).', lesson: 'query-planning' },
-  { term: 'EXPLAIN ANALYZE', definition: 'Runs the query and shows the plan with real row counts and times beside the estimates; add BUFFERS for page reads.', lesson: 'query-planning' },
+  { term: 'EXPLAIN ANALYZE', definition: 'Runs the query and shows the plan with real row counts and times beside the estimates; since PostgreSQL 18 it also shows buffers (page reads) by default.', lesson: 'query-planning' },
   { term: 'Sequential scan', definition: 'Reads every page of a table; the right choice when many rows match.', lesson: 'query-planning' },
   { term: 'Bitmap heap scan', definition: 'Collects matching row addresses from an index first, then reads the table pages in physical order.', lesson: 'query-planning' },
   { term: 'Nested loop', definition: 'For each outer row, look up matches in the inner side — fast when the outer side is small and the inner is indexed.', lesson: 'query-planning' },
@@ -188,5 +188,5 @@ export const GLOSSARY: GlossaryEntry[] = [
   { term: 'log_lock_waits', definition: 'Logs a line when a session has waited longer than deadlock_timeout for a lock.', lesson: 'monitoring' },
   { term: 'effective_cache_size', definition: 'Planner hint for how much data the OS and shared buffers can cache; allocates nothing.', lesson: 'monitoring' },
   { term: 'maintenance_work_mem', definition: 'Memory for VACUUM, CREATE INDEX and adding foreign keys.', lesson: 'monitoring' },
-  { term: 'autovacuum_vacuum_scale_factor', definition: 'Fraction of a table that must be dead before autovacuum runs (default 0.2); lower it per table for big tables.', lesson: 'monitoring' },
+  { term: 'autovacuum_vacuum_scale_factor', definition: 'Autovacuum runs once dead tuples exceed autovacuum_vacuum_threshold (50) + this fraction of the rows (default 0.2); lower it per table for big tables.', lesson: 'monitoring' },
 ]

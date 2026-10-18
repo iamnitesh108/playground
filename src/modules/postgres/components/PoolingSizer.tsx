@@ -20,8 +20,9 @@ export function PoolingSizer() {
   const [clients, setClients] = useState(200)
   const [size, setSize] = useState(16)
   const model: SizingModel = { cores, cpuMs: 1, waitMs, contention: 0.006 }
-  const curve = SIZES.map((n) => sizingPoint(model, n))
-  const here = sizingPoint(model, size)
+  // A pool larger than the number of clients never has more connections busy than clients.
+  const curve = SIZES.map((n) => ({ ...sizingPoint(model, Math.min(n, clients)), connections: n }))
+  const here = sizingPoint(model, Math.min(size, clients))
   const latency = clientLatencyMs(model, size, clients)
   const knee = saturationPoint(model)
 

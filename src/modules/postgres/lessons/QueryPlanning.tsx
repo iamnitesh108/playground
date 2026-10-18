@@ -18,6 +18,8 @@ const statsOf = (name: string): ColumnStats => {
   return { nullFrac: c.null_frac, nDistinct: c.n_distinct, mcv: parseArray(c.mcv), mcf: c.mcf ?? [], histogram: parseArray(c.hist).map(Number) }
 }
 const planText = (p: { plan: readonly string[] }) => p.plan.join('\n')
+/** The first match of a pattern in a recorded plan, to quote it exactly. */
+const quote = (p: { plan: readonly string[] }, re: RegExp) => p.plan.map((l) => re.exec(l)?.[0]).find(Boolean) ?? ''
 const mb = (bytes: number) => `${(bytes / 1024 / 1024).toFixed(0)} MB`
 
 const orders = table('orders')
@@ -234,8 +236,8 @@ export default function QueryPlanning() {
         ]}
       />
       <Callout tone="warn" title="Why a bad estimate hurts">
-        Here both plans stayed a Seq Scan, so nothing broke. In a join, an estimate of 900 rows where there are 50,000 makes the planner pick a nested
-        loop with 50,000 index lookups instead of one hash join — the classic “fast yesterday, slow today” query. Run <code>ANALYZE</code> after bulk
+        Here both plans stayed a Seq Scan, so nothing broke. In a join, an estimate of {rows.staleBefore.est.toLocaleString()} rows where there are{' '}
+        {rows.staleBefore.actual.toLocaleString()} makes the planner pick a nested loop with {rows.staleBefore.actual.toLocaleString()} index lookups instead of one hash join — the classic “fast yesterday, slow today” query. Run <code>ANALYZE</code> after bulk
         loads; for columns that depend on each other use <code>CREATE STATISTICS</code> (<code>dependencies</code>, <code>ndistinct</code> or{' '}
         <code>mcv</code>); for skewed columns raise the target: <code>ALTER TABLE … ALTER COLUMN … SET STATISTICS 1000</code>.
       </Callout>
@@ -344,7 +346,7 @@ export default function QueryPlanning() {
       />
       <BarChart
         title="Measured execution time, ms (recorded; all data in memory)"
-        bars={forced.map((r) => ({ label: r.algorithm, value: r.ms, display: `${r.ms.toFixed(1)} ms`, hue: r.node === Q.forced.chosen ? 6 : 1 }))}
+        bars={forced.map((r) => ({ label: r.algorithm, value: r.ms, display: `${r.ms.toFixed(1)} ms`, hue: r.node === Q.forced.chosen ? 6 : 7, note: r.node === Q.forced.chosen ? 'chosen by the planner' : 'forced' }))}
       />
       <Callout tone="note" title="Cost is not time">
         The planner chose the {Q.forced.chosen.toLowerCase()} because its cost was lowest, yet the fastest recorded run was the {fastest.algorithm} ({fastest.ms.toFixed(0)} ms). Costs assume pages
@@ -358,12 +360,12 @@ export default function QueryPlanning() {
       <Table
         head={['Part', 'Example', 'Meaning']}
         rows={[
-          [<code key="k360-13">cost=a..b</code>, <code key="k360-37">cost=0.71..87.65</code>, 'estimated startup..total cost'],
-          [<code key="k361-13">rows= width=</code>, <code key="k361-40">rows=10 width=27</code>, 'estimated rows out of this node, average row bytes'],
-          [<code key="k362-13">actual time=a..b</code>, <code key="k362-44">actual time=0.032..0.066</code>, 'ms to the first row..last row, per loop, including children'],
-          [<code key="k363-13">rows= loops=</code>, <code key="k363-40">rows=1.00 loops=10</code>, 'actual rows per loop (averaged, so decimals in PG 18), and how often the node ran'],
-          [<code key="k364-13">Buffers: shared hit= read=</code>, <code key="k364-54">shared hit=37</code>, 'pages found in shared buffers / read from the OS; dirtied, written; temp = spill files'],
-          [<code key="k365-13">Rows Removed by Filter</code>, <code key="k365-50">99359</code>, 'rows read but thrown away — a hint an index could help'],
+          [<code key="k360-13">cost=a..b</code>, <code key="k360-37">{quote(Q.joins.nested, /cost=[\d.]+\.\.[\d.]+/)}</code>, 'estimated startup..total cost'],
+          [<code key="k361-13">rows= width=</code>, <code key="k361-40">{quote(Q.joins.nested, /rows=\d+ width=\d+/)}</code>, 'estimated rows out of this node, average row bytes'],
+          [<code key="k362-13">actual time=a..b</code>, <code key="k362-44">{quote(Q.joins.nested, /actual time=[\d.]+\.\.[\d.]+/)}</code>, 'ms to the first row..last row, per loop, including children'],
+          [<code key="k363-13">rows= loops=</code>, <code key="k363-40">{quote(Q.joins.nested, /rows=[\d.]+ loops=(?!1\))\d+/)}</code>, 'actual rows per loop (averaged, so decimals in PG 18), and how often the node ran'],
+          [<code key="k364-13">Buffers: shared hit= read=</code>, <code key="k364-54">{quote(Q.joins.nested, /shared hit=\d+/)}</code>, 'pages found in shared buffers / read from the OS; dirtied, written; temp = spill files'],
+          [<code key="k365-13">Rows Removed by Filter</code>, <code key="k365-50">{quote(Q.stale.before, /Rows Removed by Filter: \d+/).split(': ')[1]}</code>, 'rows read but thrown away — a hint an index could help'],
         ]}
       />
       <p>
@@ -394,27 +396,27 @@ export default function QueryPlanning() {
         rows={3}
         nodes={[
           { id: 'heap', label: 'orders', sub: 'blocks handed out', col: 0, row: 1, hue: 3, shape: 'store' },
-          { id: 'w1', label: 'worker 1', sub: 'scan + partial agg', col: 1, row: 0, hue: 2 },
-          { id: 'lead', label: 'leader', sub: 'scan + partial agg', col: 1, row: 1, hue: 1 },
-          { id: 'w2', label: 'worker 2', sub: 'scan + partial agg', col: 1, row: 2, hue: 2 },
-          { id: 'gather', label: 'Gather Merge', sub: 'in the leader', col: 2, row: 1 },
+          { id: 'w1', label: 'worker 1', sub: 'scan → 5 partial groups', col: 1, row: 0, hue: 2 },
+          { id: 'lead', label: 'leader', sub: 'scan → 5 partial groups', col: 1, row: 1, hue: 1 },
+          { id: 'w2', label: 'worker 2', sub: 'scan → 5 partial groups', col: 1, row: 2, hue: 2 },
+          { id: 'gather', label: 'Gather Merge', sub: '15 rows, in the leader', col: 2, row: 1 },
           { id: 'final', label: 'Finalize', sub: '5 groups', col: 3, row: 1, hue: 6 },
         ]}
         edges={[
           { from: 'heap', to: 'w1', hue: 3, flow: true },
           { from: 'heap', to: 'lead', hue: 3, flow: true },
           { from: 'heap', to: 'w2', hue: 3, flow: true },
-          { from: 'w1', to: 'gather', label: '5 rows', hue: 2 },
-          { from: 'lead', to: 'gather', label: '5 rows', hue: 1 },
-          { from: 'w2', to: 'gather', label: '5 rows', hue: 2 },
-          { from: 'gather', to: 'final', label: '15 rows' },
+          { from: 'w1', to: 'gather', hue: 2 },
+          { from: 'lead', to: 'gather', hue: 1 },
+          { from: 'w2', to: 'gather', hue: 2 },
+          { from: 'gather', to: 'final' },
         ]}
         caption="Each process groups its own share; the leader merges 3 × 5 partial groups into 5. The leader scans too, unless parallel_leader_participation is off."
       />
       <CodeBlock language="text" title={`recorded — ${Q.parallel.plan.sql}`} code={planText(Q.parallel.plan)} />
       <BarChart
         title={`Execution time by max_parallel_workers_per_gather (recorded, median of 3, ${Q.parallel.cpus} CPUs)`}
-        bars={Q.parallel.timings.map((t) => ({ label: t.workers === 1 ? '1 worker' : `${t.workers} workers`, value: t.ms, display: `${t.ms.toFixed(1)} ms`, hue: t.workers === 0 ? 3 : 2 }))}
+        bars={Q.parallel.timings.map((t) => ({ label: `setting ${t.workers}`, value: t.ms, display: `${t.ms.toFixed(1)} ms`, hue: t.workers === 0 ? 3 : 2, note: t.workers === 0 ? 'no workers: the leader scans alone' : t.workers > 2 ? 'the plan still uses 2 workers' : undefined }))}
       />
       <p>
         Two workers cut the time from {workers0.toFixed(0)} to {workers2.toFixed(0)} ms. Four were allowed but the plan still used two: the planner

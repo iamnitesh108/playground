@@ -39,8 +39,8 @@ export function StorageMaps({ title, stages, full }: StorageMapsProps) {
             </span>
             <span className={styles.rows}>{p.live} rows</span>
             <span className={styles.fsm} style={hue(4)} data-zero={p.free === 0 || undefined}>FSM {p.free.toLocaleString()} B</span>
-            <span className={styles.flag} style={hue(6)} data-on={p.all_visible || undefined}>{p.all_visible ? 'all-visible' : 'not visible'}</span>
-            <span className={styles.flag} style={hue(5)} data-on={p.all_frozen || undefined}>{p.all_frozen ? 'all-frozen' : 'not frozen'}</span>
+            <span className={styles.flag} style={hue(6)} data-on={p.all_visible || undefined}>{p.all_visible ? 'all-visible' : 'not all-visible'}</span>
+            <span className={styles.flag} style={hue(5)} data-on={p.all_frozen || undefined}>{p.all_frozen ? 'all-frozen' : 'not all-frozen'}</span>
           </li>
         ))}
       </ol>

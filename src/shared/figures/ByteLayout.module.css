@@ -29,7 +29,7 @@
 }
 
 .field {
-  min-width: 44px;
+  min-width: 58px;
   flex-shrink: 1;
   padding: 6px 6px 4px;
   border-radius: 5px;
@@ -44,7 +44,7 @@
   font-size: 0.78rem;
   font-weight: 600;
   color: var(--text);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   min-height: 1.2em;
 }
 
@@ -52,7 +52,7 @@
   display: block;
   font-size: 0.68rem;
   color: var(--text);
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
   line-height: 1.25;
 }
 

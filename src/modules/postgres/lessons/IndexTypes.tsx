@@ -207,7 +207,7 @@ export default function IndexTypes() {
       />
       <Callout tone="warn" title="The price of GIN">
         One row creates many index entries, so GIN indexes are large (the trigram index is {size(productIndex('products_description_trgm_idx'))} for a{' '}
-        {size(Q.products.heap)} table) and slow to build ({g.buildMs.trgm} ms here vs {g.buildMs.tags} ms for the tags). To keep inserts fast, GIN collects
+        {size(Q.products.heap)} table) and slow to build ({g.buildMs.trgm.toLocaleString()} ms here vs {g.buildMs.tags} ms for the tags). To keep inserts fast, GIN collects
         new entries in a <em>pending list</em> (<code>fastupdate</code>, up to <code>gin_pending_list_limit</code>, 4 MB) and merges them later — searches
         must scan that list too, and an insert that triggers the merge is slow.
       </Callout>
@@ -231,7 +231,7 @@ export default function IndexTypes() {
           ...[okRange, existing]
             .filter((r, i, all) => all.findIndex((x) => x[0] === r[0]) === i)
             .map((r) => ({ lane: 'room', from: hours(r[0]), to: hours(r[1]), label: `${label(r[0])} → ${label(r[1])}`, hue: 6 as const })),
-          { lane: 'new', from: hours(attempt[0]), to: hours(attempt[1]), label: 'rejected: overlaps', hue: 8, striped: true },
+          { lane: 'new', from: hours(attempt[0]), to: hours(attempt[1]), label: `${label(attempt[0])} → ${label(attempt[1])}: rejected, overlaps`, hue: 8, striped: true },
         ]}
         end={Math.ceil(Math.max(hours(existing[1]), hours(attempt[1]), hours(okRange[1])) / 12) * 12}
         unit="h"
@@ -262,8 +262,8 @@ export default function IndexTypes() {
       <IndexTypesBrinView table={BRIN_TABLE} />
       <StatTiles
         stats={[
-          { label: 'B-tree on created_at', value: size(b.sizes.btree), sub: `built in ${b.btreeBuildMs} ms · ${pagesOf(b.btree)} pages for one hour`, hue: 7 },
-          { label: 'BRIN on created_at', value: size(b.sizes.brin), sub: `built in ${b.brinBuildMs} ms · ${pagesOf(b.brin)} pages for one hour`, hue: 6 },
+          { label: 'B-tree on created_at', value: size(b.sizes.btree), sub: `built in ${b.btreeBuildMs.toLocaleString()} ms · ${pagesOf(b.btree)} pages for one hour`, hue: 7 },
+          { label: 'BRIN on created_at', value: size(b.sizes.brin), sub: `built in ${b.brinBuildMs.toLocaleString()} ms · ${pagesOf(b.brin)} pages for one hour`, hue: 6 },
           { label: 'size ratio', value: `${Math.round(b.sizes.btree / b.sizes.brin).toLocaleString()}×`, sub: 'smaller, for the same table', hue: 6 },
           { label: 'pages read by BRIN, rows shuffled', value: pagesOf(b.shuffled).toLocaleString(), sub: `correlation ${b.shuffledCorrelation.toFixed(3)}: every range matches`, hue: 8 },
         ]}
@@ -315,14 +315,13 @@ export default function IndexTypes() {
       <BarChart
         title="Index sizes on the 200,000-row products table (recorded)"
         bars={Q.sizes.products.map((s) => ({
-          label: s.name.replace('products_', '').replace('_idx', ''),
+          label: `${s.name.replace('products_', '').replace('_idx', '')} · ${s.method}`,
           value: s.bytes,
           display: size(s.bytes),
-          hue: s.method === 'gin' ? 7 : s.method === 'hash' ? 5 : 3,
-          note: `${s.method}`,
+          hue: 7,
         }))}
       />
-      <p className={styles.note}>Bar colour by access method: GIN, B-tree and hash; hover a bar for its method. The table itself is {size(Q.products.heap)}.</p>
+      <p className={styles.note}>Each label ends with the index’s access method. The table itself is {size(Q.products.heap)}.</p>
 
       <h2>Checklist</h2>
       <ul>

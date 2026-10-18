@@ -42,8 +42,10 @@ export interface LagResult {
   samples: LagSample[]
   /** Time one COMMIT takes, ms (Infinity while blocked). */
   commitMs: number
-  /** MB committed on the primary that the standby has not flushed: lost if we fail over now. */
+  /** The most MB committed on the primary but not yet flushed by the standby, at any moment: lost by a failover then. */
   unflushedMB: number
+  /** When that was, s. */
+  unflushedAt: number
   /** Seconds a read on the standby is behind the primary. */
   replayLagS: number
   /** Seconds in which commits could not finish. */
@@ -96,6 +98,7 @@ export function simulateLag(p: LagParams): LagResult {
     samples.push({ t: Math.round(t * 10) / 10, primary, flushed: sent, replayed, blocked })
   }
   const last = samples[samples.length - 1]
+  const worst = samples.reduce((a, x) => (x.primary - x.flushed > a.primary - a.flushed ? x : a))
   // how long ago the primary was where the standby's replay is now (steady write rate)
   const replayLagS = (last.primary - last.replayed) / Math.max(0.001, p.writeMBps)
   const local = wait === 'nothing' ? 0.05 : p.flushMs
@@ -108,5 +111,5 @@ export function simulateLag(p: LagParams): LagResult {
         : wait === 'standby flush'
           ? local + p.rttMs + p.flushMs
           : local + p.rttMs + p.flushMs + ((last.flushed - last.replayed) / Math.max(0.001, p.replayMBps)) * 1000
-  return { samples, commitMs, unflushedMB: last.primary - last.flushed, replayLagS, blockedS: Math.round(blockedS * 10) / 10, risk: RISK[wait] }
+  return { samples, commitMs, unflushedMB: worst.primary - worst.flushed, unflushedAt: worst.t, replayLagS, blockedS: Math.round(blockedS * 10) / 10, risk: RISK[wait] }
 }

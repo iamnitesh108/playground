@@ -88,12 +88,19 @@ export function misestimate(node: PlanNode): number | null {
   return act / est
 }
 
-/** Ids of nodes below a Limit: they stop as soon as the Limit has its rows, so fewer rows than estimated is expected. */
+/** Nodes that read all their input before returning a first row: whatever is above them, their inputs run to the end. */
+const BLOCKING = /^(Sort|Hash|HashAggregate|Partial HashAggregate|Aggregate|Materialize)$/
+
+/**
+ * Ids of nodes below a Limit that stop as soon as the Limit has its rows, so fewer rows than
+ * estimated is expected. A blocking node (a Sort, a Hash…) stops early itself, but its inputs ran in full.
+ */
 export function stoppedEarly(root: PlanNode): Set<number> {
   const ids = new Set<number>()
   const visit = (n: PlanNode, under: boolean) => {
     if (under) ids.add(n.id)
-    for (const c of n.children) visit(c, under || n.type === 'Limit')
+    const passOn = n.type === 'Limit' || (under && !BLOCKING.test(n.type))
+    for (const c of n.children) visit(c, passOn)
   }
   visit(root, false)
   return ids

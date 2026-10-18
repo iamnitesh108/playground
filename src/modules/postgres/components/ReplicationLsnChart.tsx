@@ -93,7 +93,7 @@ export function ReplicationLsnChart({ title, series, bands = [], xUnit = 's', fo
           <g>
             <line x1={x(at)} x2={x(at)} y1={PAD.top} y2={height - PAD.bottom} className={styles.cursor} />
             <text x={x(at) + (x(at) > W / 2 ? -6 : 6)} y={height - PAD.bottom - 6} className={x(at) > W / 2 ? styles.readoutEnd : styles.readout}>
-              {at}{xUnit}: {series.map((s) => `${s.label.split(' ')[0]} ${formatY(s.points[hover]?.[1] ?? 0)}`).join(' · ')}
+              {at}{xUnit}: {series.map((s) => `${s.label.split(' ').at(-1)} ${formatY(s.points[hover]?.[1] ?? 0)}`).join(' · ')}
             </text>
           </g>
         )}

@@ -61,7 +61,7 @@ export function whereOf(p: Predicate): string {
     case 'range':
       return `created_at >= '${day(p.from)}' AND created_at < '${day(p.to + 1)}'`
     case 'param':
-      return `created_at >= $1 AND created_at < $1 + interval '1 day'   -- $1 = '${day(p.month)}'`
+      return `created_at >= $1 AND created_at < $1 + interval '1 day'`
     case 'expression':
       return `date_trunc('month', created_at) = '${day(p.month)}'`
     case 'other-column':
@@ -83,6 +83,9 @@ export function prune(strategy: Strategy, p: Predicate, hashOf: (userId: number)
   const all = partitionsOf(strategy).map((x) => x.name)
   if (strategy === 'range') {
     if (p.kind === 'range') {
+      if (p.from === 1 && p.to === all.length) {
+        return { scanned: all, stage: 'none', why: 'The range covers every partition’s bounds, so there is nothing to prune.' }
+      }
       return { scanned: all.slice(p.from - 1, p.to), stage: 'planner', why: 'The bounds are constants, so the planner compares them with each partition’s range and keeps only the overlapping months.' }
     }
     if (p.kind === 'param') {
@@ -94,9 +97,12 @@ export function prune(strategy: Strategy, p: Predicate, hashOf: (userId: number)
     return { scanned: all, stage: 'none', why: 'user_id is not the partition key: any month may contain user 42, so every partition is scanned (each through its own index, if it has one).' }
   }
   if (strategy === 'list') {
-    if (p.kind !== 'list') return { scanned: all, stage: 'none', why: 'No filter on region: every partition is scanned.' }
+    if (p.kind !== 'list' || p.values.length === 0) return { scanned: all, stage: 'none', why: 'No filter on region: every partition is scanned.' }
     const hit = new Set<string>()
     for (const v of p.values) hit.add(Object.entries(LIST_VALUES).find(([, vs]) => vs.includes(v))?.[0] ?? 'customers_other')
+    if (hit.size === all.length) {
+      return { scanned: all, stage: 'none', why: 'These values fall into every list (values in no list belong to the DEFAULT partition), so there is nothing to prune.' }
+    }
     return { scanned: all.filter((n) => hit.has(n)), stage: 'planner', why: 'Each value belongs to exactly one list; values in no list go to the DEFAULT partition.' }
   }
   if (p.kind === 'hash-eq') {

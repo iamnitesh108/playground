@@ -240,7 +240,12 @@ export function run(input: QuerySpec): Stage[] {
       sql: spec.having === 'two' ? 'HAVING count(o.id) >= 2' : null,
       columns: [src.key.column, 'orders', 'total'],
       rows: having.map((g) => g.row),
-      note: spec.having === 'two' ? `Filters groups, not rows: ${grouped.length - having.length} group(s) with fewer than 2 orders removed.` : 'No HAVING: every group continues.',
+      note:
+        spec.having !== 'two'
+          ? 'No HAVING: every group continues.'
+          : having.length === grouped.length
+            ? 'Filters groups, not rows. Every group here has at least 2 orders, so none is removed.'
+            : `Filters groups, not rows: ${grouped.length - having.length} of ${grouped.length} groups had fewer than 2 orders and are removed.`,
     })
     shaped = having.map((g) => g.row)
     stages.push({ clause: 'SELECT', sql: projection(spec, src).sql, columns: [src.key.column, 'orders', 'total'], rows: shaped, note: 'The output columns: the group key and the two aggregates.' })
@@ -277,7 +282,7 @@ export function run(input: QuerySpec): Stage[] {
     sql: spec.limit === '3' ? 'LIMIT 3' : null,
     columns,
     rows: limited,
-    note: spec.limit === '3' ? `First 3 of ${sorted.length} rows.` : 'No LIMIT: every row is returned.',
+    note: spec.limit !== '3' ? 'No LIMIT: every row is returned.' : sorted.length > 3 ? `First 3 of ${sorted.length} rows.` : `Only ${sorted.length} row${sorted.length === 1 ? '' : 's'} left, so LIMIT 3 cuts nothing here.`,
   })
   return stages
 }

@@ -136,3 +136,10 @@
   font-size: 0.8rem;
   font-variant-numeric: tabular-nums;
 }
+
+.brinWindowLabel {
+  paint-order: stroke;
+  stroke: var(--surface);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}

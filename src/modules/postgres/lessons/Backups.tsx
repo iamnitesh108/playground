@@ -23,7 +23,7 @@ const PITR: { title: string; body: ReactNode; code: string }[] = [
   {
     title: 'Orders 2 and 3, then an incremental backup',
     body: <p>Two orders are inserted. An incremental backup then copies only the blocks that changed since the full one (PostgreSQL 17+).</p>,
-    code: `${b.du}\n\n${b.verify}`,
+    code: `$ pg_basebackup -D /backup/base/incr1 -c fast --incremental=/backup/base/full/backup_manifest\n${b.du}\n\n${b.verify}`,
   },
   {
     title: `${time(b.goodTime)} — the last good moment`,
@@ -80,6 +80,8 @@ const dropCommit = b.log.match(/recovery stopping before commit of transaction (
 const stopLsn = b.log.match(/redo done at ([0-9A-F]+\/[0-9A-F]+)/)![1]
 const redoLsn = b.log.match(/starting backup recovery with redo LSN ([0-9A-F]+\/[0-9A-F]+)/)![1]
 const at = (ts: string) => Math.round((secs(ts) - t0) * 10) / 10
+// The combined backup's checkpoint ("last known up at") is the incremental backup's start.
+const incrStart = b.log.match(/last known up at \S+ (\S+) UTC/)![1]
 const sizes = [...b.du.matchAll(/^(\d+)M\s+\S+\/(\w+)$/gm)].map((m) => ({ name: m[2], mb: Number(m[1]) }))
 const archived = b.walList.split('\n').filter((l) => /^[0-9A-F]{24}$/.test(l))
 const backupStarts = b.walList.split('\n').filter((l) => l.endsWith('.backup')).map((l) => l.slice(0, 24))
@@ -89,9 +91,14 @@ const stopSeg = segOf(stopLsn)
 const archiveFields: ByteField[] = archived.map((name) => {
   const n = Number.parseInt(name.slice(-2), 16)
   const start = backupStarts.indexOf(name)
-  const what = start === 0 ? 'full backup starts' : start === 1 ? 'incremental starts' : n === stopSeg ? `stop at ${stopLsn}` : n < replayFrom ? 'not needed' : 'replayed'
-  return { label: what, bytes: 16 * 1024 * 1024, hue: n < replayFrom ? 3 : n === stopSeg ? 8 : 4, content: `…${name.slice(-2)}` }
+  const role = n < replayFrom ? 'not needed' : n === stopSeg ? `replayed to ${stopLsn}, stop` : 'replayed'
+  const what = start === 0 ? `full backup starts · ${role}` : start === 1 ? `incremental starts · ${role}` : role
+  return { label: what, bytes: 16 * 1024 * 1024, hue: n < replayFrom ? 4 : n === stopSeg ? 8 : 6, content: `…${name.slice(-2)}` }
 })
+const archiveRows = [archiveFields.slice(0, 3), archiveFields.slice(3)].map((fields, i) => ({
+  label: `timeline 1, segments ${i * 3 + 1}–${i * 3 + fields.length}`,
+  fields,
+}))
 
 export default function Backups() {
   return (
@@ -199,34 +206,36 @@ export default function Backups() {
           { id: 'restore', label: 'restored copy' },
         ]}
         segments={[
-          { lane: 'primary', from: 0, to: at(dropCommit[2]), label: 'orders written, WAL archived', hue: 3 },
-          { lane: 'restore', from: 0, to: at(b.goodTime), label: 'replayed', hue: 6 },
+          { lane: 'primary', from: 0, to: at(dropCommit[2]), label: 'writes', hue: 4 },
+          { lane: 'restore', from: 0, to: at(incrStart), label: 'from backups', hue: 3 },
+          { lane: 'restore', from: at(incrStart), to: at(b.goodTime), label: 'WAL replayed', hue: 6 },
           { lane: 'restore', from: at(b.goodTime), to: at(dropCommit[2]), label: 'skipped', hue: 8, striped: true },
         ]}
         events={[
-          { lane: 'primary', at: 0, label: 'full backup', hue: 6 },
+          { lane: 'primary', at: 0, label: 'full backup', hue: 3 },
+          { lane: 'primary', at: at(incrStart), label: 'incremental', hue: 3 },
           { lane: 'primary', at: at(lastCommit), label: 'order 4', hue: 1 },
           { lane: 'primary', at: at(dropCommit[2]), label: 'DROP TABLE', hue: 8 },
-          { lane: 'restore', at: at(b.goodTime), label: 'target', hue: 7 },
+          { lane: 'restore', at: at(b.goodTime), label: 'target', hue: 6 },
         ]}
         end={Math.ceil(at(dropCommit[2])) + 1}
         unit="s"
       />
       <ByteLayout
         title="Recorded: the WAL archive, one block per 16 MB segment"
-        rows={[{ label: 'timeline 1, segments 1 → 6', fields: archiveFields }]}
+        rows={archiveRows}
         caption={`Recovery started from the incremental backup’s redo point ${redoLsn} and stopped inside segment …${stopSeg.toString(16).padStart(2, '0').toUpperCase()}, before the commit of transaction ${dropCommit[1]} (the DROP). Earlier segments were not needed.`}
       />
       <BarChart
         title="Recorded: the two base backups the restore combined (du -sh)"
         unit=" MB"
-        bars={sizes.map((s) => ({ label: s.name === 'full' ? 'full base backup' : 'incremental (changed blocks only)', value: s.mb, hue: s.name === 'full' ? 6 : 4 }))}
+        bars={sizes.map((s) => ({ label: s.name === 'full' ? 'full base backup' : 'incremental (changed blocks only)', value: s.mb, hue: 3 }))}
       />
       <StatTiles
         stats={[
           { label: 'last transaction kept', value: lastCommit.slice(0, 8), sub: 'order 4, from the server log', hue: 6 },
           { label: 'recovery stopped at', value: stopLsn, sub: `before transaction ${dropCommit[1]} committed`, hue: 8 },
-          { label: 'replay took', value: `${Math.round((secs(b.log.match(/^(\S+) UTC.*ready to accept connections$/m)![1]) - secs(b.log.split('\n')[0])) * 1000)} ms`, sub: 'two segments, a tiny database', hue: 4 },
+          { label: 'recovery took', value:`${Math.round((secs(b.log.match(/^(\S+) UTC.*ready to accept connections$/m)![1]) - secs(b.log.split('\n')[0])) * 1000)} ms`, sub: 'start to ready; two segments replayed', hue: 4 },
         ]}
       />
       <Flow
@@ -234,8 +243,8 @@ export default function Backups() {
         cols={4}
         rows={2}
         nodes={[
-          { id: 's5', label: '…0005', sub: 'timeline 1', col: 0, row: 0, hue: 4, shape: 'log' },
-          { id: 's6', label: '…0006', sub: `fork at ${stopLsn}`, col: 1, row: 0, hue: 4, shape: 'log' },
+          { id: 's5', label: '…05', sub: 'timeline 1', col: 0, row: 0, hue: 4, shape: 'log' },
+          { id: 's6', label: '…06', sub: `fork at ${stopLsn}`, col: 1, row: 0, hue: 4, shape: 'log' },
           { id: 'old', label: 'DROP TABLE', sub: 'old history, ignored', col: 2, row: 0, span: 2, hue: 8 },
           { id: 'new', label: '00000002…', sub: 'timeline 2: new WAL', col: 2, row: 1, span: 2, hue: 6, shape: 'log' },
         ]}

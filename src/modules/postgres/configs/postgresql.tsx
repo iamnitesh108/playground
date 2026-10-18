@@ -29,7 +29,7 @@ export const POSTGRESQL_CONF: ConfigEntry[] = [
     defaultValue: '100',
     explain: (
       <>
-        <p>Upper limit of concurrent connections, each one a backend process. 3 of them are kept for superusers (<code>superuser_reserved_connections</code>). Raising it costs memory per connection; put a pooler in front instead (lesson 10).</p>
+        <p>Upper limit of concurrent connections, each one a backend process. 3 of them are kept for superusers (<code>superuser_reserved_connections</code>). Raising it costs memory per connection; put a pooler in front instead (<a href="#/postgres/pooling">Connection pooling</a>).</p>
         {restart}
       </>
     ),
@@ -81,7 +81,7 @@ export const POSTGRESQL_CONF: ConfigEntry[] = [
     key: 'max_wal_size',
     text: 'max_wal_size = 4GB',
     defaultValue: '1GB',
-    explain: <><p>WAL volume that triggers a checkpoint (lesson 8). Raise it for write-heavy servers to space checkpoints out.</p>{reload}</>,
+    explain: <><p>WAL volume that triggers a checkpoint (<a href="#/postgres/wal">WAL and crash recovery</a>). Raise it for write-heavy servers to space checkpoints out.</p>{reload}</>,
   },
   {
     key: 'io_method',
@@ -100,13 +100,13 @@ export const POSTGRESQL_CONF: ConfigEntry[] = [
     key: 'idle_in_transaction_session_timeout',
     text: "idle_in_transaction_session_timeout = '5min'",
     defaultValue: '0 (off)',
-    explain: <p>Ends a session that sits inside an open transaction doing nothing. Such sessions hold locks and stop VACUUM from cleaning up (lesson 3).</p>,
+    explain: <p>Ends a session that sits inside an open transaction doing nothing. Such sessions hold locks and stop VACUUM from cleaning up (<a href="#/postgres/vacuum">Dead tuples, HOT and VACUUM</a>).</p>,
   },
   {
     key: 'lock_timeout',
     text: "lock_timeout = '0'",
     defaultValue: '0 (off)',
-    explain: <p>Keep it off globally, and set it per session before migrations (<code>SET lock_timeout = '3s'</code>), so a DDL statement gives up instead of queuing behind a long query and blocking everyone behind it (lesson 5).</p>,
+    explain: <p>Keep it off globally, and set it per session before migrations (<code>SET lock_timeout = '3s'</code>), so a DDL statement gives up instead of queuing behind a long query and blocking everyone behind it (<a href="#/postgres/locks">Concurrent writes and locks</a>).</p>,
   },
   {
     key: 'statement_timeout',

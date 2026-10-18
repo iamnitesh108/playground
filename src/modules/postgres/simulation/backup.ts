@@ -74,7 +74,7 @@ export function planRestore(scenario: Scenario, target: number, lost: ReadonlySe
         missing: s,
         rows: null,
         applied: [],
-        reason: `WAL segment ${s} is missing from the archive. Replay cannot skip it, so recovery stops before the target: “recovery ended before configured recovery target was reached”.`,
+        reason: `A WAL segment that replay needs is missing from the archive. Replay cannot skip it, so recovery stops before the target: “recovery ended before configured recovery target was reached”.`,
       }
     }
     replay.push(s)

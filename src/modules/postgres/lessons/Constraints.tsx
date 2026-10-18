@@ -94,7 +94,8 @@ const FK_NOTES = [
   </>,
   <>
     B updates the customer’s <code>name</code>: <code>{fkB(3)?.kind === 'tag' ? (fkB(3) as { tag: string }).tag : ''}</code> at once. A non-key column
-    takes FOR NO KEY UPDATE, which is compatible with KEY SHARE.
+    takes FOR NO KEY UPDATE, which is compatible with KEY SHARE. The update wrote a new version of the row, and A’s KEY SHARE lock moved with it:
+    pgrowlocks now finds it on {FK[3].obs[0]?.row ?? '?'}.
   </>,
   <>
     B updates the <code>email</code> — and <strong>waits</strong>. <code>email</code> is UNIQUE, so it counts as a key column: the update takes FOR
@@ -197,14 +198,14 @@ export default function Constraints() {
           { id: 'heap', label: 'heap tuple', sub: 'written first', col: 1, row: 0, hue: 3, shape: 'store' },
           { id: 'idx', label: 'unique B-tree', sub: 'look for req-9', col: 2, row: 0, hue: 7, shape: 'store' },
           { id: 'ok', label: 'inserted', sub: 'no live equal key', col: 3, row: 0, hue: 6 },
-          { id: 'wait', label: 'wait for its xid', sub: 'inserter still running', col: 2, row: 1, hue: 4 },
+          { id: 'wait', label: 'wait for its xid', sub: 'other inserter still running', col: 2, row: 1, hue: 2 },
           { id: 'dup', label: '23505', sub: 'inserter committed', col: 3, row: 1, hue: 8 },
         ]}
         edges={[
           { from: 'ins', to: 'heap' },
           { from: 'heap', to: 'idx', label: 'index entry' },
           { from: 'idx', to: 'ok', hue: 6 },
-          { from: 'idx', to: 'wait', label: 'equal key', hue: 4 },
+          { from: 'idx', to: 'wait', label: 'equal key', hue: 2 },
           { from: 'wait', to: 'dup', label: 'commit', hue: 8 },
           { from: 'wait', to: 'ok', label: 'rollback', dashed: true },
         ]}
@@ -243,8 +244,8 @@ export default function Constraints() {
       <Timeline
         title="Schematic: when each kind of constraint is checked during one transaction"
         lanes={[
-          { id: 'imm', label: 'UNIQUE (default)' },
-          { id: 'stmt', label: 'DEFERRABLE' },
+          { id: 'imm', label: 'not deferrable (default)' },
+          { id: 'stmt', label: 'DEFERRABLE (immediate)' },
           { id: 'tx', label: 'DEFERRED' },
         ]}
         segments={[
@@ -357,7 +358,7 @@ CREATE TABLE bookings (
           from: hour(b.from),
           to: hour(b.to),
           label: b.result.kind === 'error' ? `#${i + 1} room ${b.room}: 23P01` : `#${i + 1} ${b.from}–${b.to}`,
-          hue: b.result.kind === 'error' ? 8 : b.room === 101 ? 1 : 2,
+          hue: b.result.kind === 'error' ? 8 : 6,
           striped: b.result.kind === 'error',
         }))}
         start={9}
@@ -414,7 +415,7 @@ CREATE TABLE bookings (
           { label: 'with that index', value: execMs(C.fkIndex.with), display: `${execMs(C.fkIndex.with)} ms`, hue: 6 },
         ]}
       />
-      <CodeBlock title="without the index (recorded)" language="text" code={`EXPLAIN (ANALYZE) ${C.fkIndex.sql}\n${C.fkIndex.without.join('\n')}`} />
+      <CodeBlock title="without the index (recorded)" language="text" code={`EXPLAIN (ANALYZE, COSTS OFF, TIMING OFF, SUMMARY ON) ${C.fkIndex.sql}\n${C.fkIndex.without.join('\n')}`} />
       <Callout tone="warn" title="Index the referencing column">
         PostgreSQL indexes the referenced key (it must be unique) but not the referencing column. Without that index every DELETE or key UPDATE of a
         parent scans the child table once per row — the “Trigger for constraint” line above. Create <code>CREATE INDEX ON order_lines (order_id)</code>{' '}

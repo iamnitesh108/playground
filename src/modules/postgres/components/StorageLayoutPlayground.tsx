@@ -70,7 +70,8 @@ export function StorageLayoutPlayground() {
         <>
           <Segmented label="table" value={preset} options={PRESET_OPTIONS} onChange={(v) => { setPreset(v); setColumns(PRESETS[v]) }} />
           <Button size="sm" variant="primary" onClick={() => setColumns(packColumns(columns))}>Pack: widest first</Button>
-          <StorageSlider label="text length" value={textBytes} min={1} max={200} format={(v) => `${v} B`} onChange={setTextBytes} />
+          {/* only text columns take their length from the slider (numeric is fixed at 6 bytes here) */}
+          {columns.some((c) => c.type === 'text') && <StorageSlider label="text length" value={textBytes} min={1} max={200} format={(v) => `${v} B`} onChange={setTextBytes} />}
           <StorageSlider label="fillfactor" value={fillfactor} min={10} max={100} step={5} format={(v) => `${v} %`} onChange={setFillfactor} />
         </>
       }
@@ -98,7 +99,8 @@ export function StorageLayoutPlayground() {
           {
             label: `header: t_hoff = ${layout.hoff}`,
             fields: [
-              { label: 'tuple header', bytes: 23, hue: 7, content: 'xmin xmax ctid…' },
+              // with long rows the 23 bytes get narrow: keep only the label then
+              { label: 'tuple header', bytes: 23, hue: 7, content: layout.len - layout.hoff > 120 ? undefined : 'xmin xmax ctid…' },
               ...(layout.hoff > 23 + layout.bitmap ? [{ label: 'pad', bytes: layout.hoff - 23 - layout.bitmap, hue: 8 as const, content: '·' }] : []),
             ],
           },

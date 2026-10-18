@@ -38,6 +38,8 @@ const RUN_HUES: Hue[] = [8, 4, 6]
 const tuned = avRuns[2]
 const tunedVacuums = Math.max(...tuned.samples.map((s) => s.vacuums))
 const maxDead = (i: number) => Math.max(...avRuns[i].samples.map((s) => s.dead))
+// dead tuples right after each tuned autovacuum run finished
+const afterRuns = tuned.samples.filter((s, k) => k > 0 && s.vacuums > tuned.samples[k - 1].vacuums).map((s) => s.dead)
 
 const sb = statements.buffers
 const accountsSize = statements.sizes.find((s) => s.relname === 'pgbench_accounts')!.bytes
@@ -82,17 +84,14 @@ export default function Monitoring() {
           { id: 'io', label: 'pg_stat_io', sub: 'reads, writes, fsyncs', col: 2, row: 2, hue: 4 },
           { id: 'log', label: 'server log', sub: 'slow queries, waits', col: 3, row: 0, hue: 4, shape: 'log' },
           { id: 'rep', label: 'pg_stat_replication', sub: 'replica lag', col: 3, row: 1, hue: 5 },
-          { id: 'mon', label: 'your monitoring', sub: 'scrapes, graphs, alerts', col: 3, row: 2, hue: 6, shape: 'actor' },
+          { id: 'mon', label: 'your monitoring', sub: 'queries all of these', col: 3, row: 2, hue: 6, shape: 'actor' },
         ]}
         edges={[
           { from: 'be', to: 'act', hue: 1, flow: true },
           { from: 'be', to: 'stm', hue: 7 },
           { from: 'be', to: 'loc', hue: 8 },
-          { from: 'act', to: 'tab', hue: 3, dashed: true },
-          { from: 'io', to: 'mon', hue: 6, flow: true },
-          { from: 'rep', to: 'mon', hue: 6 },
         ]}
-        caption="pg_stat_activity and pg_locks show this instant; the others are cumulative counters since the last reset — graph their change per minute, not their value."
+        caption="Every backend reports what it does into these views (arrows: the three that describe sessions right now); a monitoring system queries all of them with SQL. pg_stat_activity and pg_locks show this instant; the others are cumulative counters since the last reset — graph their change per minute, not their value."
       />
       <TermList
         items={[
@@ -136,7 +135,7 @@ export default function Monitoring() {
       />
       <BarChart
         title="Most frequent wait events in those samples (active sessions)"
-        bars={activity.topWaits.slice(0, 6).map((w) => ({ label: w.wait, value: w.samples, hue: (w.wait.startsWith('Lock') ? 8 : w.wait.startsWith('LWLock') ? 2 : w.wait.startsWith('IO') ? 4 : 1) as Hue }))}
+        bars={activity.topWaits.slice(0, 6).map((w) => ({ label: w.wait, value: w.samples, display: `${w.samples} sample${w.samples === 1 ? '' : 's'}`, hue: (w.wait.startsWith('Lock') ? 8 : w.wait.startsWith('LWLock') ? 2 : w.wait.startsWith('IO') ? 4 : 1) as Hue }))}
         unit=" samples"
       />
       <MonitoringLineChart
@@ -176,7 +175,7 @@ ORDER BY xact_start NULLS LAST;`}
         nodes={[
           { id: 'co', label: 'checkout', sub: `pid ${blocking.tree[0].pid} · idle in tx`, col: 0, row: 0, hue: 1, shape: 'actor' },
           { id: 'row', label: 'row aid = 1', sub: 'pgbench_accounts', col: 1, row: 0, hue: 3, shape: 'store' },
-          { id: 'rf', label: 'refund', sub: `pid ${blocking.tree[1].pid} · waits`, col: 2, row: 0, hue: 8, shape: 'actor' },
+          { id: 'rf', label: 'refund', sub: `pid ${blocking.tree[1].pid} · waits`, col: 2, row: 0, hue: 2, shape: 'actor' },
         ]}
         edges={[
           { from: 'co', to: 'row', label: 'holds', hue: 1 },
@@ -319,12 +318,15 @@ LIMIT 10;`}
       />
       <p>
         A ratio of {statements.db.ratio} % looks alarming, and here it is explained: the report and the lookup scanned a table twice the size of
-        the cache. Large sequential scans use a small ring of buffers on purpose, so one scan cannot flush everyone else’s pages. The pgbench
+        the cache. Large sequential scans use a small ring of buffers on purpose, so one scan cannot flush everyone else’s pages; index scans and updates do use the normal buffers, which is how pgbench_accounts still came to fill most of the cache (below). The pgbench
         updates of branches and tellers found their pages in the cache almost every time (the table above). A typical OLTP database should sit above 99 %; check the trend, and look per table:
       </p>
       <Proportion
         title={`Recorded with pg_buffercache: what the ${fmt(sb.total)} shared buffers held after the run`}
-        parts={sb.top.map((b, i) => ({ label: b.rel, value: b.buffers, hue: ([3, 7, 2, 5, 1, 4, 6] as Hue[])[i % 7], display: `${fmt(b.buffers)} pages` }))}
+        parts={[
+          ...sb.top.map((b) => ({ label: b.rel, value: b.buffers, hue: (b.rel.startsWith('pg_') || b.rel.endsWith('_pkey') ? 7 : 3) as Hue, display: `${fmt(b.buffers)} pages` })),
+          { label: 'everything else, or empty', value: sb.total - sb.top.reduce((n, b) => n + b.buffers, 0), hue: 4 as Hue, display: `${fmt(sb.total - sb.top.reduce((n, b) => n + b.buffers, 0))} pages` },
+        ]}
       />
       <CodeBlock
         title="hit ratio per database and per table"
@@ -439,7 +441,7 @@ SELECT pg_reload_conf();`}
       </p>
       <BarChart
         title="ORDER BY over 500,000 rows: execution time"
-        bars={workMem.map((w, i) => ({ label: `work_mem = ${w.workMem}`, value: w.executionMs, display: `${w.executionMs} ms`, hue: (i === 0 ? 8 : 6) as Hue, note: w.method }))}
+        bars={workMem.map((w, i) => ({ label: `work_mem = ${w.workMem}`, value: w.executionMs, display: `${w.executionMs} ms`, hue: (i === 0 ? 4 : 6) as Hue, note: w.method }))}
         unit=" ms"
       />
       <Tabs items={workMem.map((w) => ({ label: `work_mem = ${w.workMem}`, content: <CodeBlock title="EXPLAIN (ANALYZE, BUFFERS) — recorded" language="text" code={w.plan} /> }))} />
@@ -462,7 +464,7 @@ SELECT pg_reload_conf();`}
         series={avRuns.map((r, i) => ({ label: r.label, hue: RUN_HUES[i], dashed: i === 1, points: r.samples.map((s) => ({ x: s.s, y: s.dead })) }))}
         xUnit="s"
         yLabel="n_dead_tup"
-        caption={`Off and defaults: dead tuples only grow (${fmt(maxDead(0))} and ${fmt(maxDead(1))}); the defaults would act at 400,050. Tuned: ${tunedVacuums} autovacuum runs in the minute, each bringing the count back near zero. Most updates here were HOT, so page pruning also removed many dead tuples without vacuum.`}
+        caption={`Off and defaults: dead tuples only grow (${fmt(maxDead(0))} and ${fmt(maxDead(1))}); the defaults would act at 400,050. Tuned (threshold 1,000 + 1 % of 2 million = 21,000): ${tunedVacuums} autovacuum runs in the minute, each bringing the count back down to ${afterRuns.map(fmt).join(" and ")}. Most updates here were HOT, so page pruning also removed many dead tuples without vacuum.`}
       />
       <CodeBlock
         title="per table (big, busy tables), or globally in postgresql.conf"

@@ -76,7 +76,7 @@ export function PoolPlayground() {
         <div><dt>transactions done</dt><dd>{sim.completed}</dd></div>
         <div><dt>clients waiting</dt><dd>{sim.waiting}</dd></div>
         <div><dt>backends running SQL</dt><dd>{sim.busy} / {size}</dd></div>
-        <div><dt>clients never served</dt><dd>{sim.clients.filter((c) => c.done === 0 && c.phase !== 'running').length}</dd></div>
+        <div><dt>clients not served yet</dt><dd>{sim.clients.filter((c) => c.done === 0 && c.phase !== 'running').length}</dd></div>
       </dl>
     </Demo>
   )

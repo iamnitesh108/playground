@@ -108,8 +108,11 @@ export function decide(rules: readonly HbaRule[], conn: HbaConnection): HbaDecis
 /** What the client sees next, for the methods in a default file. */
 export function outcome(decision: HbaDecision, conn: HbaConnection, osUser: string): { ok: boolean | null; text: string } {
   const r = decision.chosen
-  const target = conn.replication ? 'replication connection' : `database "${conn.database}"`
-  if (!r) return { ok: false, text: `FATAL:  no pg_hba.conf entry for host "${conn.via === 'socket' ? '[local]' : conn.address}", user "${conn.user}", ${target}${conn.via === 'tcp' ? ', no encryption' : ''}` }
+  // PostgreSQL 18 wording; a replication connection names no database. Over a socket there is no TLS either.
+  const host = conn.via === 'socket' ? '[local]' : conn.address
+  const who = `host "${host}", user "${conn.user}"${conn.replication ? '' : `, database "${conn.database}"`}, no encryption`
+  const kind = conn.replication ? 'replication connection ' : ''
+  if (!r) return { ok: false, text: `FATAL:  no pg_hba.conf entry for ${conn.replication ? 'replication connection from ' : ''}${who}` }
   switch (r.method) {
     case 'peer':
       return osUser === conn.user
@@ -121,7 +124,7 @@ export function outcome(decision: HbaDecision, conn: HbaConnection, osUser: stri
     case 'trust':
       return { ok: true, text: 'trust: logged in with no password at all.' }
     case 'reject':
-      return { ok: false, text: `FATAL:  pg_hba.conf rejects connection for host "${conn.address}", user "${conn.user}", ${target}` }
+      return { ok: false, text: `FATAL:  pg_hba.conf rejects ${kind}connection for ${who}` }
     default:
       return { ok: null, text: `${r.method} authentication runs.` }
   }

@@ -56,11 +56,13 @@
 }
 
 .xid[data-zone='running'] .num {
-  background: color-mix(in oklab, var(--c8) 14%, var(--surface));
+  background: var(--surface-muted);
+  border-style: dashed;
 }
 
 .xid[data-zone='future'] .num {
-  background: repeating-linear-gradient(45deg, var(--surface) 0 5px, color-mix(in oklab, var(--c8) 14%, var(--surface)) 5px 10px);
+  background: repeating-linear-gradient(45deg, var(--surface) 0 5px, var(--surface-muted) 5px 10px);
+  border-style: dashed;
 }
 
 .zone {

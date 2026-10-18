@@ -34,7 +34,7 @@ export default function Partitioning() {
           'split a big table by range, list or hash, and know which to pick',
           'read partition pruning in EXPLAIN — at planning time and at execution start',
           'add keys and indexes to a partitioned table, and handle rows that fit no partition',
-          'remove a month of data in milliseconds instead of minutes, and know when partitioning does not help',
+          'remove a month of data with a catalog change instead of a row-by-row DELETE, and know when partitioning does not help',
         ]}
         before={
           <>
@@ -114,7 +114,7 @@ export default function Partitioning() {
       />
       <Proportion
         title="Recorded: 70,000 customers over 3 list partitions"
-        parts={P.listCounts.map((l) => ({ label: l.name, value: l.rows, hue: l.name.endsWith('other') ? 8 : l.name.endsWith('eu') ? 3 : 7 }))}
+        parts={P.listCounts.map((l, i) => ({ label: l.name, value: l.rows, hue: (i % 2 ? 7 : 3) as 3 | 7 }))}
       />
       <p>
         Hash spreads evenly but gives up ranges: a query for users 1–99 must read every hash partition (recorded above). Partitions can be
@@ -146,10 +146,10 @@ export default function Partitioning() {
         ]}
       />
       <BarChart
-        title="Recorded with EXPLAIN ANALYZE: pages read"
+        title="Recorded with EXPLAIN (ANALYZE, BUFFERS): pages touched (shared hit + read)"
         bars={[
-          { label: 'count one month (1 partition)', value: month.pages, display: `${month.pages.toLocaleString()} pages · ${ms(month.exec)}`, hue: 6 },
-          { label: "kind = 'order', whole year (12)", value: year.pages, display: `${year.pages.toLocaleString()} pages · ${ms(year.exec)}`, hue: 8 },
+          { label: 'count one month (1 partition)', value: month.pages, display: `${month.pages.toLocaleString()} pages · ${ms(month.exec)}`, hue: 3 },
+          { label: "kind = 'order', whole year (12)", value: year.pages, display: `${year.pages.toLocaleString()} pages · ${ms(year.exec)}`, hue: 3 },
         ]}
       />
 
@@ -235,19 +235,19 @@ export default function Partitioning() {
         nodes={[
           { id: 'next', label: 'create next month', sub: 'ahead of time', col: 0, row: 0, hue: 7 },
           { id: 'live', label: 'inserts land', sub: 'in the current month', col: 1, row: 0, hue: 3, shape: 'store' },
-          { id: 'detach', label: 'detach oldest', sub: 'CONCURRENTLY', col: 2, row: 0, hue: 5 },
+          { id: 'detach', label: 'detach oldest', sub: 'CONCURRENTLY', col: 2, row: 0, hue: 7 },
           { id: 'drop', label: 'archive, drop', sub: 'pg_dump, DROP TABLE', col: 3, row: 0, hue: 8 },
         ]}
         edges={[
           { from: 'next', to: 'live', hue: 3 },
-          { from: 'live', to: 'detach', hue: 5 },
+          { from: 'live', to: 'detach', hue: 7 },
           { from: 'detach', to: 'drop', hue: 8 },
         ]}
         steps={[
           { title: 'Create partitions ahead', body: <p>A scheduled job (cron, pg_cron, or an extension such as pg_partman) creates next month’s partition days before it is needed, so no row ever falls into the default partition.</p>, active: ['next', 'next>live'] },
           { title: 'Writes go to the newest partition', body: <p>Inserts are routed by created_at; older partitions are read-only in practice and stay well packed.</p>, active: ['live'] },
           { title: 'Detach the oldest', body: <p><code>ALTER TABLE events DETACH PARTITION events_2025_10 CONCURRENTLY</code> — the table is now standalone and invisible to queries on events.</p>, active: ['live>detach', 'detach'] },
-          { title: 'Archive and drop', body: <p>Dump it if the data must be kept elsewhere, then <code>DROP TABLE</code>: its files are unlinked and a few hundred bytes of WAL are written.</p>, active: ['detach>drop', 'drop'] },
+          { title: 'Archive and drop', body: <p>Dump it if the data must be kept elsewhere, then <code>DROP TABLE</code>: its files are unlinked. The recorded DETACH + DROP above wrote {kB(drop.wal)} of WAL, against {MB(del.wal)} for DELETE.</p>, active: ['detach>drop', 'drop'] },
         ]}
       />
 
@@ -260,17 +260,17 @@ export default function Partitioning() {
       <BarChart
         title="Look up one visit by id (not the partition key), ms"
         bars={[
-          { label: `${nh.partitions} partitions: planning`, value: nh.byIdPart.plan, display: ms(nh.byIdPart.plan), hue: 8 },
-          { label: `${nh.partitions} partitions: execution`, value: nh.byIdPart.exec, display: ms(nh.byIdPart.exec), hue: 8 },
-          { label: 'one table: planning', value: nh.byIdFlat.plan, display: ms(nh.byIdFlat.plan), hue: 6 },
-          { label: 'one table: execution', value: nh.byIdFlat.exec, display: ms(nh.byIdFlat.exec), hue: 6 },
+          { label: `${nh.partitions} partitions: planning`, value: nh.byIdPart.plan, display: ms(nh.byIdPart.plan), hue: 7 },
+          { label: `${nh.partitions} partitions: execution`, value: nh.byIdPart.exec, display: ms(nh.byIdPart.exec), hue: 3 },
+          { label: 'one table: planning', value: nh.byIdFlat.plan, display: ms(nh.byIdFlat.plan), hue: 7 },
+          { label: 'one table: execution', value: nh.byIdFlat.exec, display: ms(nh.byIdFlat.exec), hue: 3 },
         ]}
       />
       <BarChart
         title="Count one day (the partition key), ms"
         bars={[
           { label: `${nh.partitions} partitions: plan + run`, value: nh.byDayPart.plan + nh.byDayPart.exec, display: ms(nh.byDayPart.plan + nh.byDayPart.exec), hue: 3 },
-          { label: 'one table with an index on created_at', value: nh.byDayFlat.plan + nh.byDayFlat.exec, display: ms(nh.byDayFlat.plan + nh.byDayFlat.exec), hue: 6 },
+          { label: 'one table with an index on created_at', value: nh.byDayFlat.plan + nh.byDayFlat.exec, display: ms(nh.byDayFlat.plan + nh.byDayFlat.exec), hue: 3 },
         ]}
       />
       <CodeBlock language="text" title="recorded: one index scan per partition" code={nh.plan} />
@@ -290,7 +290,7 @@ export default function Partitioning() {
           ['Filter on the key itself, as a range — never on an expression of it', 'date_trunc(created_at) = … cannot prune'],
           ['Include the key in primary keys and unique constraints', 'Uniqueness is only enforced within one partition'],
           ['Create partitions ahead; keep the default partition empty and monitored', 'A row in the default partition blocks creating the matching partition'],
-          ['Remove old data with DETACH … CONCURRENTLY and DROP, not DELETE', 'Milliseconds and a few kB of WAL instead of a full scan and tens of MB'],
+          ['Remove old data with DETACH … CONCURRENTLY and DROP, not DELETE', `Milliseconds and ${kB(drop.wal)} of WAL instead of a full scan and ${MB(del.wal)} (recorded above)`],
         ]}
       />
 

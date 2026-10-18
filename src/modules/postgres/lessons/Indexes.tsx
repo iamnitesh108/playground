@@ -97,7 +97,7 @@ export default function Indexes() {
       </p>
       <TermList
         items={[
-          { term: 'leaf page', definition: 'The bottom level: one entry per row — key + ctid (page, line pointer). Leaves are linked left to right.' },
+          { term: 'leaf page', definition: 'The bottom level: one entry per row — key + ctid (page, line pointer). Each leaf links to both neighbours, so a range scan can walk the level forwards or backwards.' },
           { term: 'inner page', definition: 'A level above: separator keys and child pointers. The top inner page is the root.' },
           { term: 'page split', definition: 'A full page is split in two and a separator is added to the parent; when the root splits, the tree grows a level.' },
           { term: 'index condition', definition: 'A WHERE clause the tree can search for (Index Cond in EXPLAIN), as opposed to a Filter applied afterwards.' },
@@ -128,7 +128,7 @@ export default function Indexes() {
         question={<p>How many pages does a lookup by primary key in this 100,000-row table read?</p>}
         options={['1', '3', '17 (log₂ of 100,000)', '764']}
         answer={1}
-        explanation="Root → leaf → the heap page with the row. With ~367 keys per page, one more level would cover ~100 times as many rows: depth grows very slowly. The 500,000-row table of the planning lesson has one more level: 4 pages."
+        explanation={`Root → leaf → the heap page with the row. With hundreds of keys per page (${btreeLeafStats.live_items} per leaf here), each extra level multiplies the reach by a few hundred: depth grows very slowly. The 500,000-row table of the planning lesson has one more level: 4 pages.`}
       />
 
       <h2>When the planner uses an index</h2>
@@ -215,10 +215,10 @@ export default function Indexes() {
       <StatTiles
         title="SELECT sum(amount) FROM orders WHERE customer_id BETWEEN 100 AND 199 — 5,000 rows (recorded)"
         stats={[
-          { label: 'plain index (bitmap scan)', value: `${pagesOf(cov.plain)} pages`, sub: `index + ${lineWith(cov.plain.plan, 'Heap Blocks').split('=')[1]} heap pages`, hue: 3 },
-          { label: 'INCLUDE (amount), after VACUUM', value: `${pagesOf(cov.vacuumed)} pages`, sub: `Heap Fetches: ${heapFetches(cov.vacuumed)} · all-visible pages: ${cov.vmBefore.all_visible.toLocaleString()}`, hue: 6 },
-          { label: 'after updating 10 % of rows', value: `${pagesOf(cov.afterUpdate)} pages`, sub: `Heap Fetches: ${heapFetches(cov.afterUpdate).toLocaleString()} · all-visible pages: ${cov.vmAfterUpdate.all_visible}`, hue: 8 },
-          { label: 'after VACUUM again', value: `${pagesOf(cov.again)} pages`, sub: `Heap Fetches: ${heapFetches(cov.again)} · all-visible pages: ${cov.vmAfterVacuum.all_visible.toLocaleString()}`, hue: 6 },
+          { label: 'plain index (bitmap scan)', value: `${pagesOf(cov.plain).toLocaleString()} pages`, sub: `index + ${Number(lineWith(cov.plain.plan, 'Heap Blocks').split('=')[1]).toLocaleString()} heap pages`, hue: 3 },
+          { label: 'INCLUDE (amount), after VACUUM', value: `${pagesOf(cov.vacuumed).toLocaleString()} pages`, sub: `Heap Fetches: ${heapFetches(cov.vacuumed)} · all-visible pages: ${cov.vmBefore.all_visible.toLocaleString()}`, hue: 6 },
+          { label: 'after updating 10 % of rows', value: `${pagesOf(cov.afterUpdate).toLocaleString()} pages`, sub: `Heap Fetches: ${heapFetches(cov.afterUpdate).toLocaleString()} · all-visible pages: ${cov.vmAfterUpdate.all_visible}`, hue: 8 },
+          { label: 'after VACUUM again', value: `${pagesOf(cov.again).toLocaleString()} pages`, sub: `Heap Fetches: ${heapFetches(cov.again)} · all-visible pages: ${cov.vmAfterVacuum.all_visible.toLocaleString()}`, hue: 6 },
         ]}
       />
       <Tabs
@@ -273,7 +273,7 @@ export default function Indexes() {
       />
       <StatTiles
         stats={[
-          { label: 'slower with 6 indexes', value: `${(six.ms / base.ms).toFixed(1)}×`, sub: `${base.ms} ms → ${six.ms} ms`, hue: 8 },
+          { label: 'slower with 6 indexes', value: `${(six.ms / base.ms).toFixed(1)}×`, sub: `${base.ms.toLocaleString()} ms → ${six.ms.toLocaleString()} ms`, hue: 8 },
           { label: 'more WAL', value: `${(six.wal / base.wal).toFixed(1)}×`, sub: `${mb(base.wal)} → ${mb(six.wal)} — also shipped to every replica`, hue: 4 },
           { label: 'index size vs table', value: `${(six.idx / six.heap).toFixed(1)}×`, sub: `${mb(six.idx)} of indexes on a ${mb(six.heap)} table`, hue: 7 },
         ]}

@@ -177,11 +177,17 @@ function notesFor(anomaly: string, level: string): ReactNode[] {
 
 const sireadAside = (anomaly: string, level: string) =>
   anomaly === 'write-skew'
-    ? (frame: Rec) => (
+    ? (frame: Rec, index: number) => (
         <LockTable
           rows={frame.obs ?? []}
           title="Predicate (SIRead) locks in pg_locks"
-          empty={level === 'SERIALIZABLE' ? 'none yet' : 'none — only SERIALIZABLE takes predicate locks'}
+          empty={
+            level !== 'SERIALIZABLE'
+              ? 'none — only SERIALIZABLE takes predicate locks'
+              : run(anomaly, level).frames.slice(0, index).some((f) => (f as Rec).obs?.length)
+                ? 'none any more — SIRead locks outlive a commit, but are released once every overlapping transaction has ended'
+                : 'none yet'
+          }
         />
       )
     : undefined
@@ -244,7 +250,7 @@ export default function Isolation() {
       <Table
         head={['Level', 'Snapshot taken', 'On a write conflict', 'Still possible']}
         rows={[
-          ['READ COMMITTED (default)', 'by every statement', 'waits, then re-reads the newest row and continues', 'non-repeatable read, phantom, lost update, write skew'],
+          ['READ COMMITTED (default)', 'by every statement', 'waits, then re-reads the newest row and continues', 'non-repeatable read, phantom, lost update, write skew, read-only anomaly'],
           ['REPEATABLE READ', 'once, by the first statement', 'waits; if the other commits, fails with 40001', 'write skew, read-only anomaly'],
           ['SERIALIZABLE', 'once, by the first statement', 'like repeatable read; also fails on read/write dependency cycles', 'nothing — at the price of retries'],
         ]}
@@ -468,18 +474,18 @@ export default function Isolation() {
           { id: 'work', label: 'read, decide, write', col: 1, row: 0, hue: 1 },
           { id: 'commit', label: 'COMMIT', col: 2, row: 0, hue: 1 },
           { id: 'ok', label: 'done', col: 3, row: 0, hue: 6, shape: 'actor' },
-          { id: 'fail', label: '40001 or 40P01', sub: 'ROLLBACK', col: 2, row: 1, hue: 8 },
+          { id: 'fail', label: 'an error', sub: 'ROLLBACK', col: 2, row: 1, hue: 8 },
           { id: 'wait', label: 'back off', sub: 'random, growing', col: 0, row: 1, hue: 4 },
-          { id: 'give', label: 'other error', sub: 'give up', col: 3, row: 1, hue: 8, shape: 'actor' },
+          { id: 'give', label: 'give up', sub: 'also after N tries', col: 3, row: 1, hue: 8, shape: 'actor' },
         ]}
         edges={[
           { from: 'begin', to: 'work' },
           { from: 'work', to: 'commit' },
           { from: 'commit', to: 'ok', label: 'ok', hue: 6 },
           { from: 'commit', to: 'fail', label: 'fails', hue: 8, dashed: true },
-          { from: 'fail', to: 'wait' },
+          { from: 'fail', to: 'wait', label: '40001 / 40P01' },
           { from: 'wait', to: 'begin', label: 'retry' },
-          { from: 'fail', to: 'give', dashed: true },
+          { from: 'fail', to: 'give', label: 'other', dashed: true },
         ]}
         steps={[
           { title: 'Run the whole transaction', body: <>Every attempt starts at BEGIN and re-reads everything: the decision must be made on fresh data.</>, active: ['begin', 'work', 'commit', 'begin>work', 'work>commit'] },

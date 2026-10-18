@@ -3,7 +3,7 @@ import { hue, type Hue } from '@/shared/figures'
 import { useInterval } from '@/shared/hooks/useInterval'
 import { Button, Demo, Segmented } from '@/shared/ui'
 import { cx } from '@/shared/utils/cx'
-import { STATEMENTS, arrive, blockers, emptyQueue, pileUp, setLockTimeout, tick, waited, type QueueSession, type QueueState } from '../simulation/locksQueue'
+import { STATEMENTS, arrive, blockers, emptyQueue, pileUp, tick, waited, type QueueSession, type QueueState } from '../simulation/locksQueue'
 import styles from './LocksQueuePlayground.module.css'
 
 const STATE_HUE: Record<QueueSession['state'], Hue | undefined> = { running: 6, waiting: 8, done: undefined, 'timed out': 8 }
@@ -30,7 +30,9 @@ export function LocksQueuePlayground() {
   const [timeout, setTimeoutOpt] = useState<Timeout>('off')
   const [state, setState] = useState<QueueState>(() => pileUp(null))
   const [playing, setPlaying] = useState(false)
-  useInterval(() => setState((s) => tick(s)), playing ? 700 : null)
+  const active = state.sessions.some((s) => s.state === 'waiting' || s.state === 'running')
+  // time only matters while something runs or waits: stop playing once the queue has drained
+  useInterval(() => (active ? setState((s) => tick(s)) : setPlaying(false)), playing ? 700 : null)
 
   const span = Math.max(16, state.time + 2)
   const waiting = state.sessions.filter((s) => s.state === 'waiting')
@@ -39,7 +41,7 @@ export function LocksQueuePlayground() {
   return (
     <Demo
       title="Lock queue on table orders"
-      hint="Starts with the pile-up: a 10 s report holds ACCESS SHARE, an ALTER TABLE waits for ACCESS EXCLUSIVE, and ordinary queries queue behind the ALTER. Play, add statements, or give the migration a lock_timeout."
+      hint="Starts with the pile-up: a 10 s report holds ACCESS SHARE, an ALTER TABLE waits for ACCESS EXCLUSIVE, and ordinary queries queue behind the ALTER. Play, add statements, or give the migration a lock_timeout (that replays the pile-up with it)."
       controls={
         <>
           <Segmented
@@ -51,14 +53,16 @@ export function LocksQueuePlayground() {
               { value: '5', label: '5 s' },
             ]}
             onChange={(t) => {
+              // lock_timeout is set before the ALTER starts waiting, so a new value replays the pile-up with it
               setTimeoutOpt(t)
-              setState((s) => setLockTimeout(s, toSeconds(t)))
+              setPlaying(false)
+              setState(pileUp(toSeconds(t)))
             }}
           />
           <Button size="sm" variant="primary" onClick={() => setPlaying((p) => !p)}>
             {playing ? 'Pause' : 'Play'}
           </Button>
-          <Button size="sm" disabled={playing} onClick={() => setState((s) => tick(s))}>
+          <Button size="sm" disabled={playing || !active} onClick={() => setState((s) => tick(s))}>
             +1 s
           </Button>
           <Button size="sm" variant="ghost" onClick={() => { setPlaying(false); setState(pileUp(toSeconds(timeout))) }}>

@@ -79,12 +79,12 @@ export class WalSimulator extends Observable {
     return xids
   }
 
-  /** What a query sees: the newest version of each key written by a committed transaction. */
+  /** What another session sees: the newest version of each key written by a committed transaction. */
   visible(page: Page): Record<string, number> {
     const committed = this.committed
     return Object.fromEntries(
       Object.entries(page.rows).map(([key, versions]) => {
-        const v = [...versions].reverse().find((x) => committed.has(x.xid) || x.xid === this.open?.xid)
+        const v = [...versions].reverse().find((x) => committed.has(x.xid))
         return [key, v?.value ?? NaN]
       }),
     )

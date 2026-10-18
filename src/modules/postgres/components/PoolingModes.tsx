@@ -61,8 +61,8 @@ const TRANSACTION: FlowStep[] = [
     title: 'Session state stays on the backend',
     body: (
       <p>
-        A’s <code>SET statement_timeout</code> changed backend 1, not “A”. B’s next transaction lands there and inherits it — recorded in the
-        next section.
+        A’s <code>SET statement_timeout</code> changed backend 1, not “A”. B’s next transaction lands there and inherits it — recorded
+        below.
       </p>
     ),
     active: ['a', 'b', 'pgb', 'b1', 'a>pgb', 'b>pgb', 'pgb>b1'],

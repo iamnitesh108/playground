@@ -92,12 +92,16 @@ export function Flow({ title, nodes, edges, cols, rows, steps, width = 760, rowH
   }
 
   const boxes = nodes.map(box)
-  /** Where an edge label fits without covering a box: on the edge, just above or just below it. */
+  /** Where an edge label fits without covering a box: on the edge, beside it, or in the gap between rows. */
   const placeLabel = (mid: { x: number; y: number }, text: string) => {
     const w = text.length * 6 + 10
     const clear = (p: { x: number; y: number }) =>
       boxes.every((b) => p.x + w / 2 < b.x - 2 || p.x - w / 2 > b.x + b.w + 2 || p.y + 8 < b.y - 2 || p.y - 8 > b.y + b.h + 2)
-    return [mid, { x: mid.x, y: mid.y - 14 }, { x: mid.x, y: mid.y + 14 }].find(clear)
+    // after the edge itself: the free band between rows, just above or below it (rows are rowHeight apart, boxes inset 15px)
+    const row = Math.floor((mid.y - PAD) / rowHeight)
+    const above = { x: mid.x, y: PAD + row * rowHeight }
+    const below = { x: mid.x, y: PAD + (row + 1) * rowHeight }
+    return [mid, { x: mid.x, y: mid.y - 14 }, { x: mid.x, y: mid.y + 14 }, above, below].find(clear)
   }
 
   const current = steps?.[step]
@@ -183,8 +187,8 @@ export function Flow({ title, nodes, edges, cols, rows, steps, width = 760, rowH
             <div className={styles.stepBody}>{current.body}</div>
           </div>
           <div className={styles.buttons}>
-            <Button size="sm" onClick={() => setStep(Math.max(0, step - 1))} disabled={step === 0}>Back</Button>
-            <Button size="sm" variant="primary" onClick={() => setStep(Math.min(steps.length - 1, step + 1))} disabled={step === steps.length - 1}>Next</Button>
+            <Button size="sm" onClick={() => setStep((s) => Math.max(0, s - 1))} disabled={step === 0}>Back</Button>
+            <Button size="sm" variant="primary" onClick={() => setStep((s) => Math.min(steps.length - 1, s + 1))} disabled={step === steps.length - 1}>Next</Button>
           </div>
         </div>
       )}

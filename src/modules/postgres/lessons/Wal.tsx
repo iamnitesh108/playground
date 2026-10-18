@@ -31,11 +31,10 @@ const phases: TimelineSegment[] = cp.phases.slice(0, -1).map((p, i) => ({
   from: p.from,
   to: cp.phases[i + 1].from,
   label: p.label,
-  hue: p.label.startsWith('heavy') ? 8 : 1,
+  hue: 1,
   striped: p.label.startsWith('heavy'),
 }))
 const warnings = cp.lines.filter((l) => l.text.includes('too frequently')).length
-const checkpointer = W.checkpointer.match(/\n\s+(\d+) \|\s+(\d+) \|/)!
 
 const fpwOn = W.fpw[0]
 const loss = { off: W.loss.find((l) => l.level === 'off')!, on: W.loss.find((l) => l.level === 'on')! }
@@ -213,16 +212,16 @@ export default function Wal() {
         about {fpwOn.first.fpi} pages ({W.fpwRows.toLocaleString()} rows), right after a checkpoint, then the same update again:
       </p>
       <BarChart
-        title="Recorded WAL volume of the same UPDATE (1,000 rows)"
+        title={`Recorded WAL volume of the same UPDATE (${W.fpwRows.toLocaleString()} rows)`}
         bars={W.fpw.flatMap((f, i) => [
           { label: `${f.label}: first`, value: f.first.bytes, display: `${MB(f.first.bytes)} · ${f.first.fpi} page images`, hue: (i === 2 ? 8 : 4) as 4 | 8 },
-          { label: `${f.label}: again`, value: f.second.bytes, display: kB(f.second.bytes), hue: 3 as const },
+          { label: `${f.label}: again`, value: f.second.bytes, display: kB(f.second.bytes), hue: 4 as const },
         ])}
       />
       <StatTiles
         stats={[
           { label: 'first update after a checkpoint', value: MB(fpwOn.first.bytes), sub: `${Math.round((fpwOn.first.fpi_bytes / fpwOn.first.bytes) * 100)} % of it page images`, hue: 4 },
-          { label: 'the same update again', value: kB(fpwOn.second.bytes), sub: 'no page images: already logged since the checkpoint', hue: 3 },
+          { label: 'the same update again', value: kB(fpwOn.second.bytes), sub: 'no page images: already logged since the checkpoint', hue: 4 },
           { label: 'with wal_compression = lz4', value: MB(W.fpw[1].first.bytes), sub: 'page images compressed', hue: 6 },
         ]}
       />
@@ -264,8 +263,8 @@ export default function Wal() {
       />
       <StatTiles
         stats={[
-          { label: 'timed checkpoints', value: Number(checkpointer[1]), sub: 'every 30 s while writes are light', hue: 4 },
-          { label: 'requested by max_wal_size', value: Number(checkpointer[2]), sub: 'during and after the heavy writes', hue: 8 },
+          { label: 'timed checkpoints', value: segments.filter((s) => s.lane === 'timed').length, sub: 'every 30 s while writes are light', hue: 4 },
+          { label: 'requested by max_wal_size', value: segments.filter((s) => s.lane === 'wal').length, sub: 'during and after the heavy writes', hue: 8 },
           { label: '“too frequently” warnings', value: warnings, sub: 'in the server log', hue: 8 },
         ]}
       />
@@ -277,6 +276,10 @@ export default function Wal() {
         Longer intervals mean less write I/O but longer crash recovery.
       </p>
       <CodeBlock language="text" title="recorded" code={W.checkpointer} />
+      <p>
+        These counters were reset just before a manual <code>CHECKPOINT</code> that preceded the recording window, so they count a few more
+        requested checkpoints than the log lines in the timeline above.
+      </p>
       <Table
         head={['LSN', 'Record', 'Description']}
         rows={checkpointRecord.records.map((r) => [<code key="l">{r.start_lsn}</code>, `${r.resource_manager} / ${r.record_type}`, r.description])}

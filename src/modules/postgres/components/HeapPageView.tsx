@@ -54,7 +54,7 @@ export function HeapPageView({ tuples, previous, xids, columns }: HeapPageViewPr
         <div className={styles.free}>free space</div>
         {byOffset.map((t) => (
           <div key={`t${t.lp}`} className={cx(styles.cell, styles.tuple)} title={`tuple of lp${t.lp} at byte ${t.lp_off}`}>
-            {t.lp_off}
+            lp{t.lp} @{t.lp_off}
           </div>
         ))}
         <div className={styles.end}>8192</div>
@@ -103,7 +103,10 @@ export function HeapPageView({ tuples, previous, xids, columns }: HeapPageViewPr
         <span className={styles.xid} data-status="committed">committed</span>
         <span className={styles.xid} data-status="in progress">in progress</span>
         <span className={styles.xid} data-status="aborted">aborted</span>
-        <span className={styles.legendNote}>highlighted = changed by this step</span>
+        <span className={styles.legendItem}>
+          <span className={cx(styles.legendSwatch, styles.changed)}>value</span> changed by this step
+        </span>
+        <span className={styles.legendNote}>Strip: the page from byte 0 to 8192 — line pointers from the start, tuples (lp @ byte offset) from the end.</span>
       </div>
     </div>
   )

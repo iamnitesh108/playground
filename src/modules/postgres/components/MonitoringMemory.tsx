@@ -37,7 +37,7 @@ export function MonitoringMemory() {
           { label: 'shared_buffers', value: formatMb(plan.sharedBuffersMb), sub: '25 % of RAM', hue: 3 },
           { label: 'effective_cache_size', value: formatMb(plan.effectiveCacheSizeMb), sub: '75 % of RAM — a hint, allocates nothing', hue: 7 },
           { label: 'work_mem', value: formatMb(plan.workMemMb), sub: `per sort or hash; ~${plan.areasPerQuery} per query`, hue: 1 },
-          { label: 'maintenance_work_mem', value: formatMb(plan.maintenanceWorkMemMb), sub: 'VACUUM, CREATE INDEX (max 2 GB)', hue: 4 },
+          { label: 'maintenance_work_mem', value: formatMb(plan.maintenanceWorkMemMb), sub: 'VACUUM, CREATE INDEX; capped at 2 GB here', hue: 4 },
         ]}
       />
       <Proportion

@@ -105,10 +105,11 @@ export default function Pooling() {
         every snapshot a query takes has to look at every connection’s transaction state.
       </p>
       <CodeBlock
-        title="measured with pgbench (-C opens a new connection for every transaction)"
+        title="the three runs above, from another host (-C opens a new connection for every transaction)"
         language="bash"
-        code={`pgbench -h 127.0.0.1 -U postgres -n -S -c 8 -j 4 -T 8 lab       # keep connections
-pgbench -h 127.0.0.1 -U postgres -n -S -C -c 8 -j 4 -T 8 lab    # reconnect every time`}
+        code={`pgbench -h $DB_HOST -p 5432 -U app_rw -n -S -c 8 -j 4 -T 8 shop           # keep connections
+pgbench -h $DB_HOST -p 6432 -U app_rw -n -S -C -c 8 -j 4 -T 8 shop_bench  # reconnect, via PgBouncer
+pgbench -h $DB_HOST -p 5432 -U app_rw -n -S -C -c 8 -j 4 -T 8 shop        # reconnect, direct`}
       />
       <TermList
         items={[
@@ -330,14 +331,14 @@ RELOAD;          -- re-read pgbouncer.ini
 PAUSE shop;  RESUME shop;   -- drain a database, e.g. around a failover`}
       />
       <Table
-        head={['Setting (recorded default)', 'Meaning']}
+        head={['Setting (recorded with SHOW CONFIG)', 'Meaning']}
         rows={[
-          [`pool_mode = ${bouncer.defaults.pool_mode}`, 'session, transaction or statement (per database too)'],
-          [`default_pool_size = ${bouncer.defaults.default_pool_size}`, 'server connections per database + user pair'],
-          [`max_client_conn = ${bouncer.defaults.max_client_conn}`, 'client connections PgBouncer accepts (they are cheap)'],
-          [`max_prepared_statements = ${bouncer.defaults.max_prepared_statements}`, 'protocol-level prepared statements tracked per server connection; 0 turns tracking off'],
-          [`server_reset_query = ${bouncer.defaults.server_reset_query || '(empty)'}`, 'run when a session-mode client disconnects, to clear its state'],
-          [`query_wait_timeout = ${bouncer.defaults.query_wait_timeout}`, 'seconds a client may wait in the queue before it gets an error'],
+          [`pool_mode = ${bouncer.defaults.pool_mode}`, 'session, transaction or statement (per database too); set in the lab’s ini, the default is session'],
+          [`default_pool_size = ${bouncer.defaults.default_pool_size}`, 'server connections per database + user pair; set small in the lab to make queues visible, the default is 20'],
+          [`max_client_conn = ${bouncer.defaults.max_client_conn}`, 'client connections PgBouncer accepts (they are cheap); set in the lab’s ini, the default is 100'],
+          [`max_prepared_statements = ${bouncer.defaults.max_prepared_statements}`, 'protocol-level prepared statements tracked per server connection; 0 turns tracking off (default)'],
+          [`server_reset_query = ${bouncer.defaults.server_reset_query || '(empty)'}`, 'run when a session-mode client disconnects, to clear its state (default)'],
+          [`query_wait_timeout = ${bouncer.defaults.query_wait_timeout}`, 'seconds a client may wait in the queue before it gets an error (default)'],
         ]}
       />
       <p>
@@ -408,7 +409,7 @@ node-postgres (connectionTimeoutMillis 2 s, waited ${clients.node.timeout.waited
       />
       <BarChart
         title="Read-only: average latency per transaction"
-        bars={scaling.select.map((p) => ({ label: `${p.clients} clients`, value: p.latencyMs ?? 0, display: ms(p.latencyMs), hue: (p.clients > scaling.cpus ? 8 : 1) as 1 | 8 }))}
+        bars={scaling.select.map((p) => ({ label: `${p.clients} clients`, value: p.latencyMs ?? 0, display: ms(p.latencyMs), hue: 1 }))}
       />
       <p>The PostgreSQL wiki’s starting point is a formula, from the same idea:</p>
       <CodeBlock title="a starting point, then measure" language="text" code={`pool size ≈ (CPU cores × 2) + effective spindle count
@@ -424,7 +425,7 @@ node-postgres (connectionTimeoutMillis 2 s, waited ${clients.node.timeout.waited
 + replication, backups, monitoring, admin sessions
 ≤ max_connections − superuser_reserved_connections (${tooMany.superuserReserved}) − reserved_connections`}
       />
-      <PoolingBudget backendKb={memory.warm.proc.privateKb} />
+      <PoolingBudget backendKb={memory.warm.proc.privateKb} refusal={tooMany.error?.message ?? 'too many connections'} />
       <Callout tone="tip" title="Smaller pools are often faster">
         Past the saturation point, more concurrent queries only add contention. Measure: if <code>cl_waiting</code> (or Hikari’s pending
         threads) stays high while the database is idle, grow the pool; if the database is saturated, a larger pool will not help — fix the

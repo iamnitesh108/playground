@@ -79,13 +79,15 @@ export function evaluate(q: CompositeQuery): CompositeResult {
       }
     }
     case 'secondOrder': {
+      // the earliest date: one entry per customer, spread over the whole leaf level
+      const m = idx((e) => e.date === DATES[0])
       return {
-        sql: 'ORDER BY created_at LIMIT 2',
-        matches: [],
-        ranges: 0,
+        sql: `ORDER BY created_at LIMIT ${m.length}`,
+        matches: m,
+        ranges: runs(m),
         ordered: false,
         usable: 'no',
-        text: 'Across customers the dates are not in order (01-15 appears five times along the leaf level), so the index cannot deliver this order. The planner sorts — or uses an index that starts with created_at.',
+        text: 'Across customers the dates are not in order: the five earliest entries (all 01-15) are spread over the whole leaf level, one per customer, so the index cannot deliver this order. The planner sorts — or uses an index that starts with created_at.',
       }
     }
   }

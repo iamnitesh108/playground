@@ -8,7 +8,11 @@
 
 .slider input {
   accent-color: var(--accent);
-  width: 180px;
+  width: min(180px, 36vw);
+}
+
+.slider code {
+  white-space: nowrap;
 }
 
 .timeline {
@@ -126,6 +130,12 @@
   border-radius: var(--radius-sm);
   padding: 0 6px;
   color: var(--text-muted);
+}
+
+.key[data-kind='missing'] {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
 }
 
 .key[data-kind='lost'] {

@@ -5,7 +5,7 @@ import { connectionBudget } from '../simulation/pool'
 import styles from './PoolingBudget.module.css'
 
 /** Every pool that can reach the server, added up against max_connections. */
-export function PoolingBudget({ backendKb }: { backendKb: number }) {
+export function PoolingBudget({ backendKb, refusal }: { backendKb: number; refusal: string }) {
   const [instances, setInstances] = useState(6)
   const [perInstance, setPerInstance] = useState(10)
   const [bouncer, setBouncer] = useState(false)
@@ -39,15 +39,15 @@ export function PoolingBudget({ backendKb }: { backendKb: number }) {
           ...(bouncer
             ? [{ label: `PgBouncer pool (${instances} × ${perInstance} clients share it)`, value: b.bouncer, hue: 1 as const }]
             : [{ label: `${instances} instances × ${perInstance}`, value: b.apps, hue: 1 as const }]),
-          { label: 'monitoring, backups, admin', value: b.other, hue: 7 },
+          { label: 'monitoring, backups, admin', value: b.other, hue: 2 },
           { label: 'superuser_reserved_connections', value: b.reserved, hue: 4 },
           ...(b.free > 0 ? [{ label: 'free', value: b.free, hue: 6 as const }] : []),
         ]}
       />
       <p className={b.fits ? styles.ok : styles.bad}>
         {b.fits
-          ? `Fits, with ${b.free} to spare. ${backends} backends × ~${Math.round(backendKb / 1024)} MB private memory each ≈ ${Math.round((backends * backendKb) / 1024)} MB.`
-          : `${-b.free} connections too many: the last instances to start get “sorry, too many clients already”.`}
+          ? `Fits, with ${b.free} to spare. ${backends} backends × ${(backendKb / 1024).toFixed(1)} MB private memory each (recorded) ≈ ${Math.round((backends * backendKb) / 1024)} MB.`
+          : `${-b.free} connections too many: the last instances to start get “${refusal}”.`}
       </p>
     </Demo>
   )

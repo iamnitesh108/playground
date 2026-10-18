@@ -196,7 +196,7 @@ export default function Mvcc() {
         stats={[
           { label: 'after INSERT … COMMIT', value: hex4(M.hintBefore.t_infomask), sub: infomaskFlags(M.hintBefore.t_infomask).join(', '), hue: 3 },
           { label: 'after the first SELECT', value: hex4(M.hintAfter.t_infomask), sub: infomaskFlags(M.hintAfter.t_infomask).join(', '), hue: 6 },
-          { label: 'row locked with FOR UPDATE', value: hex4(M.lock.t_infomask), sub: `xmax = ${M.lock.xmax} (me) · ${infomaskFlags(M.lock.t_infomask).filter((f) => f.includes('XMAX')).join(', ')}`, hue: 2 },
+          { label: 'row locked with FOR UPDATE', value: hex4(M.lock.t_infomask), sub: `xmax = ${M.lock.xmax} (me) · ${infomaskFlags(M.lock.t_infomask).filter((f) => f.includes('XMAX')).join(', ')}`, hue: 1 },
         ]}
       />
       <p>

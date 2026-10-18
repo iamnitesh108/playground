@@ -115,7 +115,7 @@ export function QueryPlanningJoinPlayground() {
         <span className={styles.counterTile}>
           step {Math.min(step, trace.steps.length - 1) + 1}/{trace.steps.length}
         </span>
-        <span className={styles.counterTile}>{alg === 'indexed' ? `${s.comparisons} index pages read` : `${s.comparisons} key comparisons`}</span>
+        <span className={styles.counterTile}>{alg === 'indexed' ? `${s.comparisons} index pages read` : `${s.comparisons} key comparison${s.comparisons === 1 ? '' : 's'}`}</span>
         <span className={styles.joinNote}>{s.note}</span>
       </div>
     </Demo>

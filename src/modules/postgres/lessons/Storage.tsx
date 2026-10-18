@@ -101,7 +101,7 @@ export default function Storage() {
         upper={S.header.upper}
         special={S.header.special}
         tuples={S.items.map((i) => ({ lp: i.lp, off: i.lp_off, len: i.lp_len, hoff: i.t_hoff }))}
-        caption="Line pointers grow down from the header, tuples grow up from the end; the pale gap between lower and upper is free space. A black edge marks where each tuple starts."
+        caption="Line pointers grow down from the header, tuples grow up from the end; the empty gap between lower and upper is free space. A thick edge marks where each tuple starts."
       />
       <TermList
         items={[
@@ -232,26 +232,26 @@ export default function Storage() {
           { id: 'fits', label: 'stored inline', sub: 'compressed, in the page', col: 2, row: 0, hue: 3 },
           { id: 'ext', label: 'move out of line', sub: 'largest values first', col: 1, row: 1, hue: 7 },
           { id: 'toast', label: S.toastTable.replace('pg_toast.', ''), sub: 'chunks of 1,996 B', col: 2, row: 1, hue: 3, shape: 'store' },
-          { id: 'ptr', label: '18-byte pointer', sub: 'stays in the row', col: 3, row: 1, hue: 5 },
+          { id: 'ptr', label: '18-byte pointer', sub: 'kept in the row', col: 3, row: 1, hue: 5 },
         ]}
         edges={[
           { from: 'row', to: 'comp', hue: 1 },
-          { from: 'comp', to: 'fits', label: 'now small', hue: 6 },
+          { from: 'comp', to: 'fits', label: 'fits', hue: 6 },
           { from: 'comp', to: 'ext', label: 'still big', hue: 8 },
           { from: 'ext', to: 'toast', hue: 3, flow: true },
-          { from: 'toast', to: 'ptr', hue: 5 },
+          { from: 'ptr', to: 'toast', hue: 5 },
         ]}
         steps={[
           { title: 'Too big for comfort', body: <p>When a row is larger than <code>TOAST_TUPLE_THRESHOLD</code> (2,032 bytes with 8 kB pages), PostgreSQL works on its variable-length values until the row is under the target (also 2,032 by default).</p>, active: ['row'] },
           { title: 'Compress', body: <p>The largest compressible values are compressed first, with the column’s method: <code>pglz</code> (default) or <code>lz4</code>. 2,100 × “x” became 35 bytes.</p>, active: ['row', 'comp', 'row>comp'] },
           { title: 'Fits now', body: <p>If the row is small enough, it stays in the heap page, compressed. 100,000 repeated bytes stayed inline as 1,158.</p>, active: ['comp', 'fits', 'comp>fits'] },
-          { title: 'Move out of line', body: <p>Otherwise the largest values are moved to the table’s TOAST table, cut into chunks of up to 1,996 bytes, and the row keeps an 18-byte pointer. Random data does not compress, so it goes out uncompressed.</p>, active: ['comp', 'ext', 'toast', 'ptr', 'comp>ext', 'ext>toast', 'toast>ptr'] },
+          { title: 'Move out of line', body: <p>Otherwise the largest values are moved to the table’s TOAST table, cut into chunks of up to 1,996 bytes, and the row keeps an 18-byte pointer. Random data does not compress, so it goes out uncompressed.</p>, active: ['comp', 'ext', 'toast', 'ptr', 'comp>ext', 'ext>toast', 'ptr>toast'] },
         ]}
       />
       <BarChart
         title="Recorded: length of each value vs bytes stored for it"
         bars={toastRows.flatMap((r) => [
-          { label: `#${r.id} ${r.kind}, length`, value: Math.min(r.length, 13000), display: `${r.length.toLocaleString()} B`, hue: 1 as const },
+          { label: `#${r.id} ${r.kind}, length`, value: Math.min(r.length, 13000), display: `${r.length.toLocaleString()} B${r.length > 13000 ? ' (bar clipped)' : ''}`, hue: 1 as const },
           {
             label: `#${r.id} stored`,
             value: r.stored,
@@ -270,8 +270,9 @@ export default function Storage() {
       </p>
       <h3>pglz or lz4</h3>
       <p>
-        lz4 is much faster and usually compresses a little less. {comp.rows.toLocaleString()} JSON-like values of ~3.5 kB each, recorded (times on
-        one laptop, single runs):
+        lz4 compresses faster; pglz often compresses smaller. {comp.rows.toLocaleString()} JSON-like values of ~3.5 kB each, recorded (times on
+        one laptop, single runs): lz4 inserted them in {Math.round((1 - comp.lz4.insertMs / comp.pglz.insertMs) * 100)} % less time, but stored{' '}
+        {Math.round((comp.lz4.stored / comp.pglz.stored - 1) * 100)} % more bytes than pglz.
       </p>
       <BarChart
         title="Recorded: stored bytes (all values)"

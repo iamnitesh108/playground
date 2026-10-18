@@ -135,7 +135,12 @@ function Terminal({ session, frames, index }: { session: string; frames: readonl
   )
 }
 
-/** Replays a recorded scenario of two or more sessions, step by step. */
+const defaultIntro = (sessions: number, page: boolean) =>
+  page
+    ? `Start: the table as it is before ${sessions === 1 ? 'the session runs anything' : sessions === 2 ? 'either session does anything' : 'any session does anything'}. Press Next.`
+    : 'Start: no session has run anything yet. Press Next.'
+
+/** Replays a recorded scenario of one or more sessions, step by step. */
 export function SessionPlayer<F extends PlayerFrame>({ title, frames, columns = [], notes, showPage = true, sessions, aside, intro }: SessionPlayerProps<F>) {
   const stepper = useStepper(frames.length, 2600)
   const i = stepper.index
@@ -160,7 +165,7 @@ export function SessionPlayer<F extends PlayerFrame>({ title, frames, columns = 
         <span className={styles.counter}>
           {i}/{frames.length - 1}
         </span>
-        {i === 0 ? (intro ?? (page ? 'Start: the table as it is before either session does anything. Press Next.' : 'Start: no session has run anything yet. Press Next.')) : notes[i - 1]}
+        {i === 0 ? (intro ?? defaultIntro(shown.length, Boolean(page))) : notes[i - 1]}
       </div>
 
       {aside && <div className={styles.aside}>{aside(frame, i)}</div>}

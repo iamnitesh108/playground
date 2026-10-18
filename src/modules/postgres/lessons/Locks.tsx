@@ -198,6 +198,8 @@ const FOR_UPDATE = [
 
 // --- SKIP LOCKED ---
 const SKIP = L.skipLocked as readonly RowFrame[]
+// the row C locked when it re-checked job 1 after A's commit (job 1's new version)
+const skipRecheck = SKIP.find((f, i) => i > 0 && f.step?.s === 'A' && f.step.sql === 'COMMIT')?.obs.find((o) => o.sessions.includes('C'))?.row ?? '?'
 const SKIP_NOTES = [
   <>Worker A starts a transaction.</>,
   <>
@@ -210,7 +212,10 @@ const SKIP_NOTES = [
   </>,
   <>C tries a plain FOR UPDATE: it waits for job 1’s lock — exactly what a queue must not do.</>,
   <>A marks job 1 done (the lock becomes the UPDATE’s own lock).</>,
-  <>A commits. C wakes up, finds job 1 is no longer queued, moves on — and now waits for job 2, locked by B.</>,
+  <>
+    A commits. C wakes up and locks job 1’s newest version, {skipRecheck} — then re-checks it: no longer queued, so it moves on and now waits for job 2,
+    locked by B. The lock on {skipRecheck} stays with C until it ends, as pgrowlocks shows.
+  </>,
   <>B marks job 2 done.</>,
   <>
     B commits. Only now does C get a job: <strong>job {(() => { const r = resultAt(SKIP, 6, 'C'); return r?.kind === 'rows' ? String(r.rows[0]?.[0]) : '?' })()}</strong>, after

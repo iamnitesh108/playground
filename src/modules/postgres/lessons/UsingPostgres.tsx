@@ -140,7 +140,7 @@ export default function UsingPostgres() {
           { text: '?' },
           { text: 'sslmode=require', label: 'options', hue: 7 },
         ]}
-        caption="Characters such as @ : / in a password must be percent-encoded (@ becomes %40). JDBC uses jdbc:postgresql://host:5432/shop with user and password passed separately."
+        caption="sslmode=require refuses to connect without TLS; the recording above used sslmode=disable because the lab container has no certificate. Characters such as @ : / in a password must be percent-encoded (@ becomes %40). JDBC uses jdbc:postgresql://host:5432/shop with user and password passed separately."
       />
       <Table
         head={['psql flag', 'Environment variable', 'Meaning']}
@@ -285,7 +285,7 @@ export default function UsingPostgres() {
       />
       <Callout tone="warn" title="A WHERE on the right table undoes a LEFT JOIN">
         <code>LEFT JOIN orders o … WHERE o.status = 'paid'</code> removes the NULL rows again, because <code>NULL = 'paid'</code> is not true. Put
-        such a condition into the ON clause to keep customers without paid orders. Try it above: “customers LEFT JOIN” with “status = 'paid'”.
+        such a condition into the ON clause to keep customers without paid orders. Try it above: “customers LEFT JOIN orders” with “status = 'paid'”.
       </Callout>
 
       <h2>GROUP BY and aggregates</h2>
@@ -404,8 +404,8 @@ export default function UsingPostgres() {
       />
       <p>
         At {deep.offset.toLocaleString('en')} rows skipped, OFFSET took {deep.offsetMs} ms and read {deep.offsetBuffers.toLocaleString('en')}{' '}
-        pages; keyset took {deep.keysetMs} ms and read {deep.keysetBuffers}. OFFSET has to walk past every skipped row — the plan shows the index
-        scan producing 500,020 rows to return 20:
+        pages; keyset took {deep.keysetMs} ms and read {deep.keysetBuffers}. OFFSET has to walk past every skipped row — the plan (one run at 500,000; the chart shows
+        the median of five) has the index scan producing 500,020 rows to return 20:
       </p>
       <div className={own.grid2}>
         <CodeBlock title="recorded: OFFSET 500000" language="text" code={U.paging.offsetPlan} />

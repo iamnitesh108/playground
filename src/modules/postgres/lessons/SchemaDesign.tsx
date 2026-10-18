@@ -20,6 +20,8 @@ const FIXED_ROWS = [
   { label: '16 bytes', types: ['interval', 'uuid'] },
 ]
 const FIXED = FIXED_ROWS.flatMap((r) => r.types)
+/** PostgreSQL's own short names, for the fields too narrow for the full one. */
+const SHORT: Record<string, string> = { boolean: 'bool', smallint: 'int2' }
 
 /** Known layouts of variable-length values; used only when they add up to the recorded size. */
 function varlena(type: string, bytes: number, value: string): ByteField[] {
@@ -33,7 +35,7 @@ function varlena(type: string, bytes: number, value: string): ByteField[] {
     'integer[]': [header, { label: 'array header', bytes: 20, hue: 7 }, { label: '1, 2, 3', bytes: 12, hue: 3 }],
     'numeric(12,2)': [header, { label: 'meta', bytes: 2, hue: 7 }, { label: 'digits 1234 5600', bytes: bytes - 3, hue: 3 }],
     numeric: [header, { label: 'meta', bytes: 2, hue: 7 }, { label: '4 decimal digits per 2 bytes', bytes: bytes - 3, hue: 3 }],
-    inet: [header, { label: 'meta', bytes: 2, hue: 7 }, { label: 'address', bytes: 4, hue: 3 }],
+    inet: [header, { label: 'meta', bytes: 2, hue: 7 }, { label: 'IPv4', bytes: 4, hue: 3 }],
   }
   const p = parts[type]
   return p && p.reduce((n, f) => n + f.bytes, 0) === bytes ? p : [{ label: value, bytes, hue: 3 }]
@@ -59,6 +61,24 @@ const timeoutSegments: TimelineSegment[] = [
 ]
 const events = (list: readonly { lane: string; at: number; label: string; ok?: boolean }[]): TimelineEvent[] =>
   list.map((e) => ({ lane: e.lane, at: e.at, label: e.label.replace('ERROR: canceling statement due to lock timeout', 'lock timeout: ALTER gives up'), hue: evHue(e) }))
+/**
+ * The lock_timeout run, with labels that fit: B starts and gives up 200 ms apart, and C starts and finishes
+ * at the same moment, so each pair shares one label.
+ */
+const timeoutEvents = (list: readonly { lane: string; at: number; label: string; ok?: boolean }[]): TimelineEvent[] => {
+  const cDone = list.find((e) => e.lane === 'C' && e.ok)
+  return events(
+    list
+      .filter((e) => e !== cDone)
+      .map((e) =>
+        e.lane === 'B' && e.ok === undefined
+          ? { ...e, label: 'ALTER' }
+          : e.lane === 'C' && cDone && e.at === cDone.at
+            ? { ...e, label: 'SELECT … WHERE id = 1 — done at once', ok: true }
+            : e,
+      ),
+  )
+}
 const lanes = [
   { id: 'A', label: 'A: report' },
   { id: 'B', label: 'B: migration' },
@@ -119,9 +139,9 @@ export default function SchemaDesign() {
         title="Fixed-size types — bytes per value, recorded with pg_column_size"
         rows={FIXED_ROWS.map((r) => ({
           label: r.label,
-          fields: r.types.map((t) => ({ label: t, bytes: size(t).bytes, hue: t.startsWith('time') || t === 'date' || t === 'interval' ? 4 : t === 'uuid' ? 5 : 3 })),
+          fields: r.types.map((t) => ({ label: SHORT[t] ?? t, bytes: size(t).bytes, hue: t.startsWith('time') || t === 'date' || t === 'interval' ? 4 : t === 'uuid' ? 5 : 3 })),
         }))}
-        caption="Drawn to scale: every field is as wide as its bytes. Colours: numbers and booleans, time types, uuid. The size never depends on the value."
+        caption="Drawn to scale: every field is as wide as its bytes (bool = boolean, int2 = smallint). Colours: numbers and booleans, time types, uuid. The size never depends on the value."
       />
       <ByteLayout
         title="Variable-length types — the same values, stored"
@@ -214,7 +234,7 @@ export default function SchemaDesign() {
       </p>
       <CodeBlock title="recorded: uuid v4 and v7" language="text" code={D.text.uuid} />
       <p>The v7 values share their first digits because those encode the time. That decides how they land in a B-tree index:</p>
-      <div className={own.grid2}>
+      <div>
         <BarChart
           title="Primary-key index size after 1,000,000 inserts (recorded)"
           unit=" MB"
@@ -282,14 +302,14 @@ export default function SchemaDesign() {
       <SchemaDesignNormalForms />
       <Flow
         title="The result: the sample schema in 3NF"
-        cols={4}
-        rows={1}
-        rowHeight={96}
+        cols={2}
+        rows={2}
+        rowHeight={90}
         nodes={[
           { id: 'customers', label: 'customers', sub: 'id · name · email · city', col: 0, row: 0, hue: 3, shape: 'store' },
-          { id: 'orders', label: 'orders', sub: 'id · customer_id · status', col: 1, row: 0, hue: 3, shape: 'store' },
-          { id: 'items', label: 'order_items', sub: 'order_id · product_id · qty', col: 2, row: 0, hue: 3, shape: 'store' },
-          { id: 'products', label: 'products', sub: 'id · name · price', col: 3, row: 0, hue: 3, shape: 'store' },
+          { id: 'orders', label: 'orders', sub: 'id · customer_id', col: 1, row: 0, hue: 3, shape: 'store' },
+          { id: 'items', label: 'order_items', sub: 'order_id · product_id · qty · unit_price', col: 1, row: 1, hue: 3, shape: 'store' },
+          { id: 'products', label: 'products', sub: 'id · name · price', col: 0, row: 1, hue: 3, shape: 'store' },
         ]}
         edges={[
           { from: 'orders', to: 'customers', label: 'N : 1', hue: 7 },
@@ -403,7 +423,7 @@ export default function SchemaDesign() {
         . With a busy table this is an outage, caused by a migration that would have taken a millisecond. The fix is <code>lock_timeout</code>: the
         migration gives up and can be retried, and nobody queues behind it:
       </p>
-      <Timeline title="The same, with SET lock_timeout = '200ms' in the migration (recorded)" lanes={lanes} segments={timeoutSegments} events={events(qt.events)} end={qt.end + 200} playable />
+      <Timeline title="The same, with SET lock_timeout = '200ms' in the migration (recorded)" lanes={lanes} segments={timeoutSegments} events={timeoutEvents(qt.events)} end={qt.end + 200} playable />
       <CodeBlock title="migration patterns that keep the table available" language="sql" code={MIGRATION_SQL} />
       <Table
         head={['Change', 'Safe way']}

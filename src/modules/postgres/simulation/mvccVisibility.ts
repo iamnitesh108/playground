@@ -41,6 +41,21 @@ const XMAX_REASON: Record<XidCase, [boolean, string]> = {
   mine: [false, 'I deleted or updated it myself'],
 }
 
+/**
+ * Which xmax values can occur on a tuple with this xmin. Only a transaction that can see a
+ * version can delete it: a row whose insert is still running or rolled back can only have been
+ * deleted by its own inserter, and nobody else can touch a row I inserted and have not committed.
+ */
+const POSSIBLE_XMAX: Record<Exclude<XidCase, 'none'>, readonly XidCase[]> = {
+  committed: ['none', 'committed', 'committed-later', 'running', 'aborted', 'mine'],
+  'committed-later': ['none', 'committed-later', 'running', 'aborted'],
+  running: ['none', 'running', 'aborted'],
+  aborted: ['none', 'aborted'],
+  mine: ['none', 'aborted', 'mine'],
+}
+
+export const possibleXmax = (xmin: Exclude<XidCase, 'none'>): readonly XidCase[] => POSSIBLE_XMAX[xmin]
+
 export function isVisible(xmin: Exclude<XidCase, 'none'>, xmax: XidCase): Verdict {
   const [okMin, whyMin] = XMIN_REASON[xmin]
   const checks: Check[] = [{ label: 'xmin: was the insert done for me?', passed: okMin, reason: whyMin }]

@@ -21,7 +21,7 @@ type RangeFilter = 'range' | 'param' | 'expression' | 'other-column'
 
 const STAGE = {
   planner: { label: 'pruned by the planner', hue: 7 },
-  executor: { label: 'pruned at execution start', hue: 5 },
+  executor: { label: 'pruned at execution start', hue: 7 },
   none: { label: 'nothing pruned', hue: 8 },
 } as const
 
@@ -116,7 +116,7 @@ export function PartitioningPruningPlayground() {
         </div>
       }
     >
-      <CodeBlock language="sql" title="query" code={`SELECT count(*) FROM ${TABLE[strategy]}${where ? `\nWHERE ${where}` : ''};`} />
+      <CodeBlock language="sql" title="query" code={`${predicate.kind === 'param' ? `-- prepared with a generic plan, executed with $1 = '2026-${String(predicate.month).padStart(2, '0')}-01'\n` : ''}SELECT count(*) FROM ${TABLE[strategy]}${where ? `\nWHERE ${where}` : ''};`} />
       <div className={cx(styles.grid, strategy !== 'range' && styles.gridFew)}>
         {parts.map((p) => {
           const on = result.scanned.includes(p.name)
@@ -135,7 +135,7 @@ export function PartitioningPruningPlayground() {
       <StatTiles
         stats={[
           { label: 'partitions scanned', value: `${result.scanned.length} of ${parts.length}`, hue: 3, bar: { value: result.scanned.length, max: parts.length } },
-          { label: 'rows in those partitions', value: scannedRows.toLocaleString(), sub: `of ${totalRows.toLocaleString()} (recorded counts)`, hue: result.scanned.length === parts.length ? 8 : 6, bar: { value: scannedRows, max: totalRows } },
+          { label: 'rows in those partitions', value: scannedRows.toLocaleString(), sub: `of ${totalRows.toLocaleString()} (recorded counts)`, hue: 3, bar: { value: scannedRows, max: totalRows } },
         ]}
       />
     </Demo>

@@ -7,7 +7,6 @@ import styles from './QueryPlanning.module.css'
 
 const SIZES = [1, 10, 100, 1_000, 10_000, 100_000, 1_000_000, 10_000_000]
 const MEM = [64, 1024, 4096, 65536]
-const HUES = { 'nested loop': 1, 'nested loop + index': 7, 'hash join': 2, 'merge join': 5 } as const
 const fmt = (n: number) => (n >= 1e6 ? `${n / 1e6}M` : n >= 1e3 ? `${n / 1e3}k` : String(n))
 const kb = (n: number) => (n >= 1024 ? `${n / 1024} MB` : `${n} kB`)
 
@@ -41,7 +40,7 @@ export function QueryPlanningJoinCost() {
           label: p.algorithm,
           value: p.cost,
           display: `${Math.round(p.cost).toLocaleString()}${p.algorithm === best.algorithm ? ' ✓' : ''}`,
-          hue: HUES[p.algorithm],
+          hue: p.algorithm === best.algorithm ? 6 : 7,
           note: p.formula,
         }))}
       />

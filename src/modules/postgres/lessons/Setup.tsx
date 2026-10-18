@@ -37,7 +37,10 @@ ALTER DEFAULT PRIVILEGES FOR ROLE app_owner IN SCHEMA app
 SET ROLE app_owner;                                     -- migrations run as the owner
 CREATE TABLE app.orders (id bigserial PRIMARY KEY, amount numeric(12,2) NOT NULL);`
 
-const GATES: { title: string; gate: string; body: ReactNode; output?: string }[] = [
+/** The checks a connection passes, in the order the server makes them. */
+const GATES = ['network', 'pg_hba', 'password', 'schema', 'table'] as const
+
+const STEPS: { title: string; gate: (typeof GATES)[number]; body: ReactNode; output?: string }[] = [
   {
     title: 'Is the server listening on that address?',
     gate: 'network',
@@ -51,16 +54,16 @@ const GATES: { title: string; gate: string; body: ReactNode; output?: string }[]
     output: setup.hbaReject,
   },
   {
-    title: 'Is the password right?',
-    gate: 'password',
-    body: <p>The added line <code>host shop app_rw 10.0.1.0/24 scram-sha-256</code> matches, so the password is checked. The client only learns that it failed; the server log also says which line matched.</p>,
-    output: `${wrongPassword}\n\nserver log:\n${setup.log}`,
+    title: 'pg_hba.conf again: only the databases the line names',
+    gate: 'pg_hba',
+    body: <p>The added line <code>host shop app_rw 10.0.1.0/24 scram-sha-256</code> names only <code>shop</code>. The same role asking for the <code>postgres</code> database matches no line, so it is refused before any password is asked.</p>,
+    output: otherDatabase,
   },
   {
-    title: 'Only the databases the rule names',
-    gate: 'database',
-    body: <p>The same role, with the right password, cannot reach the <code>postgres</code> database: the only line for this subnet names <code>shop</code>.</p>,
-    output: otherDatabase,
+    title: 'Is the password right?',
+    gate: 'password',
+    body: <p>For <code>shop</code> the line matches, so its method runs and the password is checked. The client only learns that it failed; the server log also says which line matched.</p>,
+    output: `${wrongPassword}\n\nserver log:\n${setup.log}`,
   },
   {
     title: 'Schema privileges',
@@ -78,17 +81,20 @@ const GATES: { title: string; gate: string; body: ReactNode; output?: string }[]
 
 function Gates() {
   return (
-    <Walkthrough title="Six checks between a client and a row" steps={GATES} intervalMs={4200}>
-      {(i) => (
-        <div>
-          <div className={own.gates}>
-            {GATES.map((g, k) => (
-              <Box key={g.gate} title={g.gate} caption={k < i ? 'passed' : k === i ? 'checking' : ''} active={k === i} dimmed={k > i} />
-            ))}
+    <Walkthrough title="Five checks between a client and a row" steps={STEPS} intervalMs={4200}>
+      {(i) => {
+        const at = GATES.indexOf(STEPS[i].gate)
+        return (
+          <div>
+            <div className={own.gates}>
+              {GATES.map((g, k) => (
+                <Box key={g} title={g} caption={k < at ? 'passed' : k === at ? 'checking' : ''} active={k === at} dimmed={k > at} />
+              ))}
+            </div>
+            {STEPS[i].output && <CodeBlock title="recorded" language="text" code={STEPS[i].output.trim()} />}
           </div>
-          {GATES[i].output && <CodeBlock title="recorded" language="text" code={GATES[i].output.trim()} />}
-        </div>
-      )}
+        )
+      }}
     </Walkthrough>
   )
 }
@@ -144,15 +150,15 @@ export default function Setup() {
                     { id: 'srv', label: 'postgres server', sub: 'port 5432', col: 1, row: 0, hue: 3 },
                     { id: 'conf', label: '/etc/postgresql/18/main', sub: 'postgresql.conf, pg_hba.conf', col: 2, row: 0, span: 2, hue: 7 },
                     { id: 'psql', label: 'psql', sub: 'via /var/run/postgresql', col: 0, row: 1, hue: 1, shape: 'actor' },
-                    { id: 'data', label: '/var/lib/postgresql/18/main', sub: 'data directory', col: 1, row: 1, span: 2, hue: 4, shape: 'store' },
-                    { id: 'log', label: 'server log', sub: '/var/log/postgresql/', col: 3, row: 1, hue: 4, shape: 'log' },
+                    { id: 'log', label: 'server log', sub: '/var/log/postgresql/', col: 1, row: 1, hue: 4, shape: 'log' },
+                    { id: 'data', label: '/var/lib/postgresql/18/main', sub: 'data directory', col: 2, row: 1, span: 2, hue: 4, shape: 'store' },
                   ]}
                   edges={[
-                    { from: 'unit', to: 'srv', label: 'starts', hue: 7 },
+                    { from: 'unit', to: 'srv', label: 'runs', hue: 7 },
                     { from: 'srv', to: 'conf', label: 'reads', hue: 7, dashed: true },
                     { from: 'psql', to: 'srv', hue: 1, flow: true },
                     { from: 'srv', to: 'data', both: true, hue: 4 },
-                    { from: 'data', to: 'log', hue: 4, dashed: true },
+                    { from: 'srv', to: 'log', label: 'writes', hue: 4, dashed: true },
                   ]}
                   caption="Debian and Ubuntu keep configuration out of the data directory, under /etc. Most other systems (and Docker) keep it inside the data directory."
                 />
@@ -193,7 +199,7 @@ export default function Setup() {
                   rows={2}
                   rowHeight={84}
                   nodes={[
-                    { id: 'secret', label: 'secret file', sub: 'superuser password', col: 0, row: 0, hue: 8 },
+                    { id: 'secret', label: 'secret file', sub: 'superuser password', col: 0, row: 0, hue: 7 },
                     { id: 'init', label: 'initdb/*.sql', sub: 'run once, empty volume', col: 0, row: 1, hue: 7 },
                     { id: 'ctr', label: 'postgres:18.6', sub: 'container', col: 1, row: 0, rowSpan: 2, hue: 3 },
                     { id: 'vol', label: 'volume pgdata', sub: '/var/lib/postgresql', col: 2, row: 1, hue: 4, shape: 'store' },
@@ -201,7 +207,7 @@ export default function Setup() {
                     { id: 'app', label: 'clients', col: 3, row: 0, hue: 1, shape: 'actor' },
                   ]}
                   edges={[
-                    { from: 'secret', to: 'ctr', hue: 8, dashed: true },
+                    { from: 'secret', to: 'ctr', hue: 7, dashed: true },
                     { from: 'init', to: 'ctr', hue: 7, dashed: true },
                     { from: 'ctr', to: 'vol', both: true, hue: 4 },
                     { from: 'port', to: 'ctr', hue: 1, flow: true },
@@ -280,7 +286,7 @@ export default function Setup() {
           { id: 'restart', label: 'restart', sub: 'setting 65536 × 8kB', col: 3, row: 0, hue: 6 },
         ]}
         edges={[
-          { from: 'alter', to: 'auto', label: 'writes', hue: 7 },
+          { from: 'alter', to: 'auto', label: 'saves', hue: 7 },
           { from: 'auto', to: 'reload', label: 'read', hue: 4 },
           { from: 'reload', to: 'restart', hue: 6 },
         ]}
@@ -331,19 +337,19 @@ export default function Setup() {
         rows={2}
         rowHeight={86}
         nodes={[
-          { id: 'pg', label: 'postgres', sub: 'superuser: setup only', col: 0, row: 0, hue: 8 },
+          { id: 'pg', label: 'postgres', sub: 'superuser: creates the roles', col: 0, row: 0, hue: 8 },
           { id: 'owner', label: 'app_owner', sub: 'NOLOGIN, owns schema app', col: 1, row: 0, hue: 7 },
           { id: 'mig', label: 'migrations', sub: 'SET ROLE app_owner', col: 2, row: 0, hue: 1, shape: 'actor' },
           { id: 'tables', label: 'app.orders, …', sub: 'tables and sequences', col: 1, row: 1, hue: 3, shape: 'store' },
-          { id: 'rw', label: 'app_rw', sub: 'LOGIN: the application', col: 2, row: 1, hue: 1, shape: 'actor' },
+          { id: 'rw', label: 'app_rw', sub: 'LOGIN: reads and writes rows', col: 2, row: 1, hue: 1, shape: 'actor' },
         ]}
         edges={[
-          { from: 'pg', to: 'owner', label: 'creates', hue: 8, dashed: true },
-          { from: 'mig', to: 'owner', label: 'acts as', hue: 1 },
+          { from: 'pg', to: 'owner', hue: 8, dashed: true },
+          { from: 'mig', to: 'owner', hue: 1 },
           { from: 'owner', to: 'tables', label: 'owns', hue: 7 },
-          { from: 'rw', to: 'tables', label: 'SELECT … DELETE', hue: 6, flow: true },
+          { from: 'rw', to: 'tables', hue: 6, flow: true },
         ]}
-        caption="Only the owner (or a superuser) can ALTER or DROP a table. The application role gets the four row privileges through default privileges."
+        caption="The superuser creates the roles; migrations act as app_owner (SET ROLE), which owns the tables. Only the owner (or a superuser) can ALTER or DROP a table. The application role gets the four row privileges (SELECT, INSERT, UPDATE, DELETE) through default privileges."
       />
       <CodeBlock title="as the postgres superuser" language="sql" code={ROLES} />
       <CodeBlock title="recorded: \dp app.*" language="text" code={setup.privileges} />

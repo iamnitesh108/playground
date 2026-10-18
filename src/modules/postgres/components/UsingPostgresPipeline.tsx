@@ -68,21 +68,27 @@ export function UsingPostgresPipeline({ recorded }: Props) {
   const server = recorded[sql]
   const same = server !== undefined && JSON.stringify(server) === JSON.stringify(resultKey(stages))
   const set = (patch: Partial<QuerySpec>) => setSpec({ ...spec, ...patch })
-  const stage = stages[at]
+  const usedAt = (i: number) => stages[i].sql !== null || stages[i].clause === 'FROM' || stages[i].clause === 'SELECT'
+  // Back and Next step over clauses the query does not use, so the stage shown always did something
+  const used = stages.map((_, i) => i).filter(usedAt)
+  const current = usedAt(at) ? at : (used.find((i) => i > at) ?? used[used.length - 1])
+  const prev = [...used].reverse().find((i) => i < current)
+  const next = used.find((i) => i > current)
+  const stage = stages[current]
 
   return (
     <Demo
       title="Run a SELECT clause by clause"
-      hint="Pick the parts of the query. PostgreSQL evaluates them in this order — not in the order you write them. Click a clause to see the rows after it."
+      hint="Pick the parts of the query. PostgreSQL evaluates them in this order — not in the order you write them. Click a clause (or use Next) to see the rows after it; clauses the query does not use are skipped."
       controls={
         <div className={styles.controls}>
-          <Segmented label="FROM" value={s.from} onChange={(from) => set({ from })} options={[{ value: 'orders', label: 'orders' }, { value: 'inner', label: 'JOIN customers' }, { value: 'left', label: 'customers LEFT JOIN' }]} />
+          <Segmented label="FROM" value={s.from} onChange={(from) => set({ from })} options={[{ value: 'orders', label: 'orders only' }, { value: 'inner', label: 'customers JOIN orders' }, { value: 'left', label: 'customers LEFT JOIN orders' }]} />
           <Segmented label="WHERE" value={s.where} onChange={(where) => set({ where })} options={[{ value: 'none', label: 'none' }, { value: 'paid', label: "status = 'paid'" }, { value: 'big', label: 'amount >= 40' }]} />
           <Segmented label="GROUP BY" value={s.group} onChange={(group) => set({ group })} options={[{ value: 'none', label: 'none' }, { value: 'customer', label: 'customer' }]} />
           {s.group === 'customer' && (
             <Segmented label="HAVING" value={s.having} onChange={(having) => set({ having })} options={[{ value: 'none', label: 'none' }, { value: 'two', label: 'count >= 2' }]} />
           )}
-          <Segmented label="ORDER BY" value={s.order} onChange={(order) => set({ order })} options={[{ value: 'amount', label: 'amount, high first' }, { value: 'key', label: s.group === 'customer' ? 'customer' : 'id' }]} />
+          <Segmented label="ORDER BY" value={s.order} onChange={(order) => set({ order })} options={[{ value: 'amount', label: s.group === 'customer' ? 'total, high first' : 'amount, high first' }, { value: 'key', label: s.group === 'customer' ? (s.from === 'orders' ? 'customer_id' : 'name') : 'id' }]} />
           <Segmented label="LIMIT" value={s.limit} onChange={(limit) => set({ limit })} options={[{ value: 'none', label: 'none' }, { value: '3', label: '3' }]} />
         </div>
       }
@@ -91,19 +97,20 @@ export function UsingPostgresPipeline({ recorded }: Props) {
 
       <ol className={styles.pipeline} aria-label="clauses in evaluation order">
         {stages.map((st, i) => {
-          const used = st.sql !== null || st.clause === 'FROM' || st.clause === 'SELECT'
+          const isUsed = usedAt(i)
           return (
             <li key={st.clause} className={styles.step}>
               <button
                 type="button"
-                className={cx(styles.chip, i === at && styles.current, !used && styles.unused)}
-                style={hue(used ? (i === at ? 7 : 3) : undefined)}
+                className={cx(styles.chip, i === current && styles.current, !isUsed && styles.unused)}
+                style={hue(isUsed ? (i === current ? 7 : 3) : undefined)}
                 onClick={() => setAt(i)}
-                aria-pressed={i === at}
+                disabled={!isUsed}
+                aria-pressed={i === current}
               >
                 <span className={styles.order}>{i + 1}</span>
                 <span className={styles.clause}>{st.clause}</span>
-                <span className={styles.count}>{used ? `${st.rows.length} row${st.rows.length === 1 ? '' : 's'}` : 'not used'}</span>
+                <span className={styles.count}>{isUsed ? `${st.rows.length} row${st.rows.length === 1 ? '' : 's'}` : 'not used'}</span>
               </button>
             </li>
           )
@@ -113,17 +120,17 @@ export function UsingPostgresPipeline({ recorded }: Props) {
       <div className={styles.stageHead}>
         <div>
           <strong>
-            {at + 1}. {stage.clause}
+            {current + 1}. {stage.clause}
           </strong>{' '}
           {stage.sql && <code className={styles.sql}>{stage.sql.replace(/\n\s*/g, ' ')}</code>}
           <p className={styles.note}>{stage.note}</p>
         </div>
         <div className={styles.nav}>
-          <Button size="sm" onClick={() => setAt(Math.max(0, at - 1))} disabled={at === 0}>Back</Button>
-          <Button size="sm" variant="primary" onClick={() => setAt(Math.min(stages.length - 1, at + 1))} disabled={at === stages.length - 1}>Next</Button>
+          <Button size="sm" onClick={() => prev !== undefined && setAt(prev)} disabled={prev === undefined}>Back</Button>
+          <Button size="sm" variant="primary" onClick={() => next !== undefined && setAt(next)} disabled={next === undefined}>Next</Button>
         </div>
       </div>
-      <StageTable stage={stage} before={at > 0 ? stages[at - 1] : null} />
+      <StageTable stage={stage} before={prev !== undefined ? stages[prev] : null} />
 
       <p className={styles.verdict} style={hue(same ? 6 : 8)}>
         <span className={styles.dot} aria-hidden="true" />

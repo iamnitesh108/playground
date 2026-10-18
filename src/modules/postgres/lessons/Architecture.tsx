@@ -85,12 +85,12 @@ export default function Architecture() {
         rowHeight={80}
         nodes={PROCESS_NODES}
         edges={[
-          { from: 'app', to: 'pm', label: 'connect', hue: 1 },
+          { from: 'app', to: 'pm', hue: 1 },
           { from: 'app', to: 'backend', label: 'SQL', hue: 1, flow: true },
           { from: 'recv', to: 'walsender', label: 'replication', hue: 5, both: true },
           { from: 'avl', to: 'avw', label: 'start', hue: 3, dashed: true },
         ]}
-        caption={`In the ps output below every server process has PPID 1, the postmaster. The postmaster forked “${BACKEND}” for the client. The logical replication launcher (not drawn) starts workers for logical subscriptions.`}
+        caption={`The app connects to the postmaster, which forks a backend; from then on the app talks only to that backend. In the ps output below every server process has PPID 1, the postmaster. The postmaster forked “${BACKEND}” for the client. The logical replication launcher (not drawn) starts workers for logical subscriptions.`}
       />
       <CodeBlock title="recorded: ps -eo pid,ppid,cmd   (inside the server's container)" language="text" code={A.ps} />
       <TermList
@@ -144,15 +144,16 @@ export default function Architecture() {
       <Flow
         title="One SELECT inside a backend"
         cols={4}
-        rows={2}
+        rows={3}
+        rowHeight={80}
         nodes={[
-          { id: 'client', label: 'client', sub: 'SELECT … FROM paid_orders', col: 0, row: 0, hue: 1, shape: 'actor' },
+          { id: 'client', label: 'client', sub: 'SELECT … paid_orders', col: 0, row: 0, rowSpan: 2, hue: 1, shape: 'actor' },
           { id: 'parse', label: 'parser', sub: 'text → parse tree', col: 1, row: 0, hue: 7 },
           { id: 'rewrite', label: 'rewriter', sub: 'views, rules', col: 2, row: 0, hue: 7 },
           { id: 'plan', label: 'planner', sub: 'cheapest plan', col: 3, row: 0, hue: 7 },
           { id: 'exec', label: 'executor', sub: 'runs the plan', col: 3, row: 1, hue: 1 },
-          { id: 'buf', label: 'shared buffers', sub: '8 kB pages', col: 2, row: 1, hue: 3, shape: 'store' },
-          { id: 'disk', label: 'data files', sub: 'base/…', col: 1, row: 1, hue: 4, shape: 'store' },
+          { id: 'buf', label: 'shared buffers', sub: '8 kB pages', col: 3, row: 2, hue: 3, shape: 'store' },
+          { id: 'disk', label: 'data files', sub: 'base/…', col: 2, row: 2, hue: 4, shape: 'store' },
         ]}
         edges={[
           { from: 'client', to: 'parse', hue: 1 },
@@ -233,7 +234,7 @@ export default function Architecture() {
         ]}
         edges={[
           { from: 'client', to: 'backend', hue: 1, both: true },
-          { from: 'backend', to: 'buf', label: 'change', hue: 3 },
+          { from: 'backend', to: 'buf', label: 'edit', hue: 3 },
           { from: 'backend', to: 'walbuf', label: 'log it', hue: 4 },
           { from: 'walbuf', to: 'wal', label: 'fsync', hue: 4, flow: true },
           { from: 'buf', to: 'writer', hue: 4, dashed: true },

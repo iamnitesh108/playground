@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { hue } from '@/shared/figures/palette'
 import { Demo, Segmented } from '@/shared/ui'
+import { cx } from '@/shared/utils/cx'
 import { matching, summaries, type BrinTable } from '../simulation/indexTypesBrin'
 import { QueryPlanningSlider } from './QueryPlanningSlider'
 import styles from './IndexTypes.module.css'
@@ -39,7 +40,7 @@ export function IndexTypesBrinView({ table }: { table: BrinTable }) {
   return (
     <Demo
       title={`BRIN on events.created_at: ${ranges.length} block ranges of ${table.pagesPerRange} pages`}
-      hint="One bar per range of 128 pages, in page order. A bar spans the smallest to the largest created_at in that range (earliest at the top). The blue band is the query window: every range whose bar crosses it is read, all 128 pages."
+      hint="One bar per range of 128 pages, in page order. A bar spans the smallest to the largest created_at in that range (earliest at the top). The band labelled “query window” is the time the query asks for: every range whose bar crosses it is read, all 128 pages."
       controls={
         <>
           <Segmented label="rows arrived" value={ordered ? 1 : 0} onChange={(v) => setOrdered(v === 1)} options={[{ value: 1, label: 'in time order' }, { value: 0, label: 'shuffled' }]} />
@@ -60,6 +61,9 @@ export function IndexTypesBrinView({ table }: { table: BrinTable }) {
             </g>
           )
         })}
+        <text x={W - 4} y={y(from) > 14 ? y(from) - 4 : Math.min(H - 2, y(from + win) + 12)} textAnchor="end" className={cx(styles.brinAxis, styles.brinWindowLabel)}>
+          query window
+        </text>
         <text x={0} y={H + 14} className={styles.brinAxis}>
           page {shown[0].page.toLocaleString()}
         </text>

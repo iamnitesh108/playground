@@ -138,7 +138,7 @@ export default function Vacuum() {
         }
       />
 
-      <SessionPlayer title="HOT updates, a delete, and VACUUM on one page" frames={frames} columns={['id', 'balance']} notes={NOTES} />
+      <SessionPlayer title="HOT updates, a delete, and VACUUM on one page" frames={frames} columns={['id', 'balance']} notes={NOTES} sessions={['A']} />
 
       <h2>HOT: updates that skip the indexes</h2>
       <p>Normally every new version needs a new entry in every index of the table; a HOT update avoids that.</p>
@@ -183,10 +183,10 @@ export default function Vacuum() {
         HOT plus pruning, a table updated in place can run for a long time without growing.
       </p>
       <StatTiles
-        title={`Recorded: ${hot100.upd.toLocaleString()} updates of a non-indexed column (10 rounds over 20,000 rows)`}
+        title={`Recorded: ${hot100.upd.toLocaleString()} updates of a non-indexed column — every one of 20,000 rows once, in 10 rounds of 2,000`}
         stats={[
-          { label: 'HOT, fillfactor 100', value: pct(hot100.hot, hot100.upd), sub: `${hot100.newpage.toLocaleString()} updates moved to another page`, hue: 8, bar: { value: hot100.hot, max: hot100.upd } },
-          { label: 'HOT, fillfactor 90', value: pct(hot90.hot, hot90.upd), sub: `${hot90.newpage.toLocaleString()} moved`, hue: 6, bar: { value: hot90.hot, max: hot90.upd } },
+          { label: 'HOT, fillfactor 100', value: pct(hot100.hot, hot100.upd), sub: `${hot100.newpage.toLocaleString()} updates moved to another page`, hue: 3, bar: { value: hot100.hot, max: hot100.upd } },
+          { label: 'HOT, fillfactor 90', value: pct(hot90.hot, hot90.upd), sub: `${hot90.newpage.toLocaleString()} moved`, hue: 3, bar: { value: hot90.hot, max: hot90.upd } },
           { label: 'index growth, fillfactor 100', value: `+${Math.round((hot100.after.indexes - hot100.before.indexes) / 1024)} kB`, sub: 'every non-HOT update adds entries to both indexes', hue: 7 },
           { label: 'index growth, fillfactor 90', value: `+${Math.round((hot90.after.indexes - hot90.before.indexes) / 1024)} kB`, hue: 7 },
         ]}
@@ -244,7 +244,7 @@ export default function Vacuum() {
             { label: 'live tuples', value: b.tuple_percent, hue: 6, display: `${b.tuple_percent} %` },
             { label: 'dead tuples', value: b.dead_tuple_percent, hue: 8, display: `${b.dead_tuple_percent} %` },
             { label: 'free space', value: b.free_percent, hue: 4, display: `${b.free_percent} %` },
-            { label: 'headers, pointers', value: Math.max(0, 100 - b.tuple_percent - b.dead_tuple_percent - b.free_percent), hue: 7, display: `${(100 - b.tuple_percent - b.dead_tuple_percent - b.free_percent).toFixed(2)} %` },
+            { label: 'page headers, line pointers, padding', value: Math.max(0, 100 - b.tuple_percent - b.dead_tuple_percent - b.free_percent), hue: 7, display: `${(100 - b.tuple_percent - b.dead_tuple_percent - b.free_percent).toFixed(2)} %` },
           ]}
         />
       ))}
@@ -265,7 +265,10 @@ export default function Vacuum() {
       </Callout>
 
       <h2>Autovacuum</h2>
-      <p>The autovacuum launcher wakes every <code>autovacuum_naptime</code> (1 min) and starts a worker for each table over its threshold.</p>
+      <p>
+        Every <code>autovacuum_naptime</code> (1 min) the autovacuum launcher starts a worker in each database; the worker vacuums or analyzes every
+        table there that is over its threshold.
+      </p>
       <CodeBlock
         title="when a table is vacuumed or analyzed (PostgreSQL 18)"
         language="text"

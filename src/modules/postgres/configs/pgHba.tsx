@@ -30,7 +30,7 @@ export const PG_HBA: ConfigEntry[] = [
   {
     key: 'replication',
     text: 'local   replication     all                                     peer\nhost    replication     all             127.0.0.1/32            scram-sha-256',
-    explain: <p><code>replication</code> is not a database name: it matches replication connections, used by <code>pg_basebackup</code> and standbys (lesson 11).</p>,
+    explain: <p><code>replication</code> is not a database name: it matches replication connections, used by <code>pg_basebackup</code> and standbys (see <a href="#/postgres/replication">Replication and failover</a>).</p>,
   },
   {
     section: '# application servers',
