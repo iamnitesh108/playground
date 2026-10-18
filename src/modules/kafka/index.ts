@@ -34,6 +34,12 @@ export const kafkaModule: LearningModule = {
           summary: 'How a topic is split into ordered, append-only logs, and why that unlocks scale.',
           load: () => import('./lessons/TopicsPartitions'),
         },
+        {
+          slug: 'segments',
+          title: 'Segments: the log on disk',
+          summary: 'How a partition is stored as segment files: base offsets, .log, .index and .timeindex, when segments roll, how one offset is found, and why retention deletes whole segments.',
+          load: () => import('./lessons/Segments'),
+        },
       ],
     },
     {

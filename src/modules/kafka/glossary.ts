@@ -7,7 +7,8 @@ export interface GlossaryEntry {
 
 export const GLOSSARY: GlossaryEntry[] = [
   { term: 'acks', definition: 'Producer setting for how many replicas must store a record before the write counts as successful: 0, 1 or all.', lesson: 'producers' },
-  { term: 'Active segment', definition: 'The newest segment file of a partition; the only one that receives writes and is never deleted by retention.', lesson: 'retention' },
+  { term: 'Active segment', definition: 'The newest segment file of a partition; the only one that receives writes. Retention deletes it only when every record has expired, after rolling a new empty one.', lesson: 'segments' },
+  { term: 'Base offset', definition: 'The first offset a segment holds; its file name, zero-padded to 20 digits.', lesson: 'segments' },
   { term: 'Assignor', definition: 'Strategy that decides which partitions each member of a consumer group gets (range, round robin, sticky, cooperative-sticky).', lesson: 'consumer-groups' },
   { term: 'At-least-once', definition: 'Delivery guarantee where nothing is lost but records may be processed more than once. Process, then commit.', lesson: 'delivery' },
   { term: 'At-most-once', definition: 'Delivery guarantee where records are never processed twice but may be lost. Commit, then process.', lesson: 'delivery' },
@@ -73,7 +74,10 @@ export const GLOSSARY: GlossaryEntry[] = [
   { term: 'Replication factor', definition: 'Number of replicas of each partition in a topic.', lesson: 'replication' },
   { term: 'Retention', definition: 'How long or how much data a topic keeps before old segments are deleted.', lesson: 'retention' },
   { term: 'Schema Registry', definition: 'Service storing record schemas under subjects with versions and ids, and checking that a new version is compatible, so producers and consumers agree on formats.', lesson: 'schema-registry' },
-  { term: 'Segment', definition: 'File holding a contiguous range of a partition’s records.', lesson: 'retention' },
+  { term: 'Segment', definition: 'File holding a contiguous range of a partition’s records, with its .index and .timeindex.', lesson: 'segments' },
+  { term: 'Offset index', definition: 'Sparse .index file mapping offsets to byte positions in a segment, one entry per ~4 KB.', lesson: 'segments' },
+  { term: 'Log start offset', definition: 'The oldest offset a partition still stores; retention moves it forward.', lesson: 'segments' },
+  { term: 'Roll (segment)', definition: 'Closing the active segment and starting a new one, by size (segment.bytes) or age (segment.ms) on the next write.', lesson: 'segments' },
   { term: 'Serializer', definition: 'Producer component that turns objects into bytes.', lesson: 'events' },
   { term: 'session.timeout.ms', definition: 'Time without heartbeats after which a consumer is considered dead.', lesson: 'consumer-groups' },
   { term: 'Sink connector', definition: 'Connector that reads from Kafka and writes to an external system.', lesson: 'kafka-connect' },

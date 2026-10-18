@@ -157,7 +157,9 @@ export default function TopicsPartitions() {
         <strong>segment</strong> files: the log is chopped into chunks (a new one starts at 1 GB, <code>segment.bytes</code>, or after 7 days,{' '}
         <code>segment.ms</code>) so old data can be deleted a
         whole file at a time. Each segment has a <code>.log</code> file with the records and small{' '}
-        <code>.index</code>/<code>.timeindex</code> files to find an offset or timestamp quickly.
+        <code>.index</code>/<code>.timeindex</code> files to find an offset or timestamp quickly. The whole story — what is in each
+        file, when segments roll, how an offset is found and how retention removes them, recorded on a real broker — is in{' '}
+        <a href="#/kafka/segments">Segments: the log on disk</a>.
       </p>
       <TopicsPartitionsSegments />
       <CodeBlock

@@ -209,3 +209,36 @@ Which partitions the sticky partitioner picks is random and differs between runs
 lengths (all records on one partition with the default `batch.size`, 16-record runs with
 `batch.size=1024`) and everything keyed do not. librdkafka's default `consistent_random`
 partitioner is described in the lesson but not recorded (no librdkafka client in the lab).
+
+## capture-segments.mjs — segments: the log on disk
+
+Records the lesson *Segments: the log on disk* into `src/modules/kafka/data/segments.ts`. Uses its own
+container `kafka-segments` (ports 19892/19893) with `log.retention.check.interval.ms=1000`, so the
+retention step takes seconds instead of minutes; the container is removed when the script exits.
+
+- A one-partition topic `payments` with `segment.bytes=1048576` (the minimum; `4096` is recorded being
+  refused), 3000 records of 1000 bytes from `kafka-producer-perf-test.sh`, and `ls -l` of the
+  partition directory before and after.
+- `kafka-dump-log.sh` of the first segment's `.log`, `.index` and `.timeindex`; the lookup of offset
+  1500 (segment, index entries around it, the batches from the entry's position, and a console
+  consumer started at `--offset 1500`).
+- `segment.ms=10000` on topic `clicks`: three records, 13 seconds without writes (still one segment),
+  two more records (the roll).
+- Retention: 600 new records, then `retention.ms=10000` — the segments holding only old records are
+  renamed to `.deleted`, the mixed one stays and becomes the log start; 12 seconds later every record
+  has expired and Kafka rolls an empty segment before deleting the old active one.
+- Checks: an index entry is 8 bytes, and the lesson's model (`simulation/segmentedLog.ts`) fed the
+  recorded batches builds the same offset index and rolls at the same offset as the broker.
+
+What the recording changes: ports are shown as 9092/9093 and `/opt/kafka/bin/` is left out of the
+commands; `kafka-dump-log.sh` batch lines keep base and last offset, count, position, CreateTime and
+size, and long dumps are cut with a `…` line saying how much was left out. The run fails if the output
+contains the user name, the home directory or the capture port.
+
+```sh
+cd tools/kafka-capture
+node capture-segments.mjs ../../src/modules/kafka/data/segments.ts      # ~1 minute
+```
+
+Throughput figures, timestamps and where the 600 extra records roll (by batch boundaries) differ
+between runs; the file layout and the rules do not.

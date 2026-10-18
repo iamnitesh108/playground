@@ -1,0 +1,242 @@
+.figure {
+  margin: var(--space-4) 0;
+}
+
+/* ------------------------------------------------------------------ a partition directory */
+
+.dir {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-2);
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in oklab, var(--hue) 45%, var(--border));
+  border-radius: var(--radius);
+  background: var(--hue-soft);
+  transition:
+    opacity 0.3s ease,
+    border-color 0.3s ease;
+}
+
+.cardActive {
+  border-width: 2px;
+  border-color: var(--hue);
+}
+
+.cardDeleted {
+  border-style: dashed;
+  opacity: 0.75;
+}
+
+.cardHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 8px;
+}
+
+.baseName {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.zeros {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.badge {
+  font-size: 0.7rem;
+  color: var(--hue);
+  font-weight: 600;
+}
+
+.fill {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.fillBar {
+  height: 100%;
+  background: var(--hue);
+  transition: width 0.3s ease;
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 8px;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+}
+
+.chipMissing {
+  border-style: dashed;
+  color: var(--text-faint);
+}
+
+/* ------------------------------------------------------------------ the interactive log */
+
+.cells {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  min-height: 22px;
+}
+
+.cell {
+  min-width: 22px;
+  padding: 1px 4px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--hue);
+  color: var(--text);
+  animation: cell-in 0.25s ease;
+}
+
+@keyframes cell-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+}
+
+.emptyNote {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+.clock {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.event {
+  margin: var(--space-2) 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+/* ------------------------------------------------------------------ the lookup walkthrough */
+
+.slider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--space-2);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.slider input {
+  flex: 1;
+  max-width: 320px;
+  accent-color: var(--c3);
+}
+
+.slider output {
+  font-family: var(--font-mono);
+  color: var(--text);
+  min-width: 4ch;
+}
+
+.lookup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+.lookupRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: cell-in 0.25s ease;
+}
+
+.lookupLabel {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.lookupItems {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  padding: 3px 8px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.item small {
+  font-family: var(--font-sans);
+  font-size: 0.66rem;
+  color: var(--text-faint);
+}
+
+.itemOn {
+  border-color: var(--hue);
+  background: var(--hue-soft);
+  color: var(--text);
+}
+
+.itemOn small {
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card,
+  .fillBar {
+    transition: none;
+  }
+  .cell,
+  .lookupRow {
+    animation: none;
+  }
+}
