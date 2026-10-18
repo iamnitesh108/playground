@@ -7,6 +7,7 @@ import { ModuleSidebar } from '../layout/ModuleSidebar'
 import { ThemeToggle } from '../layout/ThemeToggle'
 import { paths } from '../router/routes'
 import { progress } from '../state/progress'
+import { useSidebar } from '../state/sidebar'
 import { lazyLesson } from './lazyLesson'
 import styles from './LessonPage.module.css'
 
@@ -18,6 +19,9 @@ function LessonOutlet({ lesson }: { lesson: Lesson }) {
 export function LessonPage({ location }: { location: LessonLocation }) {
   const { module, lesson, index, previous, next } = location
   const [menuOpen, setMenuOpen] = useState(false)
+  const sidebar = useSidebar()
+  // narrow screens slide the sidebar over the page; wide screens collapse it (and remember that)
+  const toggleSidebar = () => (window.matchMedia('(max-width: 900px)').matches ? setMenuOpen((open) => !open) : sidebar.toggle())
   const total = lessonsOf(module).length
 
   useEffect(() => {
@@ -26,15 +30,17 @@ export function LessonPage({ location }: { location: LessonLocation }) {
   }, [module, lesson])
 
   return (
-    <div className={styles.layout}>
+    <div className={styles.layout} data-collapsed={sidebar.collapsed}>
       <aside className={styles.sidebar} data-open={menuOpen}>
         <ModuleSidebar module={module} activeSlug={lesson.slug} onNavigate={() => setMenuOpen(false)} />
       </aside>
 
       <div className={styles.main}>
         <header className={styles.top}>
-          <button type="button" className={styles.menuButton} onClick={() => setMenuOpen((open) => !open)}>
-            {menuOpen ? 'Close' : 'Lessons'}
+          <button type="button" className={styles.menuButton} onClick={toggleSidebar} aria-label="Toggle the lesson list" title="Show or hide the lesson list">
+            <span className={styles.menuIcon} aria-hidden />
+            <span className={styles.narrowLabel}>{menuOpen ? 'Close' : 'Lessons'}</span>
+            <span className={styles.wideLabel}>{sidebar.collapsed ? 'Show lessons' : 'Hide lessons'}</span>
           </button>
           <span className={styles.crumb}>
             {module.title} · Lesson {index + 1} of {total}

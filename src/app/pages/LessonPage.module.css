@@ -2,6 +2,24 @@
   display: grid;
   grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   min-height: 100vh;
+  transition: grid-template-columns 0.2s var(--ease);
+}
+
+@media (min-width: 901px) {
+  .layout[data-collapsed='true'] {
+    grid-template-columns: 0 minmax(0, 1fr);
+  }
+
+  .layout[data-collapsed='true'] .sidebar {
+    visibility: hidden;
+    border-right: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout {
+    transition: none;
+  }
 }
 
 .sidebar {
@@ -36,13 +54,36 @@
 }
 
 .menuButton {
-  display: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
   border: 1px solid var(--border);
   background: var(--surface);
   border-radius: var(--radius);
   padding: 3px 10px;
   font-size: 0.8rem;
   cursor: pointer;
+}
+
+.menuButton:hover {
+  border-color: var(--border-strong);
+}
+
+/* three bars drawn with borders, no icon font */
+.menuIcon {
+  box-sizing: border-box;
+  width: 12px;
+  height: 9px;
+  padding: 2.25px 0;
+  border-top: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  background: currentColor;
+  background-clip: content-box;
+}
+
+.narrowLabel {
+  display: none;
 }
 
 .article {
@@ -119,8 +160,12 @@
     box-shadow: 0 0 0 100vmax rgb(0 0 0 / 0.25);
   }
 
-  .menuButton {
-    display: inline-block;
+  .narrowLabel {
+    display: inline;
+  }
+
+  .wideLabel {
+    display: none;
   }
 
   .top,
