@@ -12,9 +12,11 @@ const REDIS_COMMANDS = 'SET|GET|DEL|EXISTS|EXPIRE|TTL|PERSIST|INCR|INCRBY|DECR|M
 const RULES: Rule[] = [
   { language: 'cli', test: new RegExp(`^(?:\\$\\s+)?(?:sudo\\s+)?(?:${PROGRAMS})(?:\\s|$)`) },
   // SQL before Redis: both have SELECT, so SQL needs its own shape (FROM, INTO, TABLE…)
-  { language: 'sql', test: /^(?:SELECT\s.+\bFROM\b|SELECT\s+(?:\*|[\w(]+.*[,(])|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|CREATE\s|ALTER\s|DROP\s|BEGIN\b|COMMIT\b|ROLLBACK\b|WITH\s|EXPLAIN\s|VACUUM\b|GRANT\s|SHOW\s|TRUNCATE\s|LOCK\s)/i },
+  { language: 'sql', test: /^(?:SELECT\s.+\bFROM\b|SELECT\s+(?:\*|[\w(]+.*[,(])|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM|CREATE\s|ALTER\s|DROP\s|BEGIN\b|COMMIT\b|ROLLBACK\b|WITH\s|EXPLAIN\s|VACUUM\b|GRANT\s|SHOW\s|TRUNCATE\s|LOCK\s|SET\s+(?:LOCAL\s+|SESSION\s+)?[\w.]+\s*(?:=|TO\s))/i },
   { language: 'redis', test: new RegExp(`^(?:${REDIS_COMMANDS})(?:\\s|$)`) },
   { language: 'java', test: /^(?:package|import\s+[\w.]+;|public|private|protected|@\w+|class\s|record\s|var\s|final\s)/ },
+  // a Java method or a typed declaration: `void onMessage(…) {`, `List<Order> orders = …`, `static int max(…)`
+  { language: 'java', test: /^(?:void\s+\w+\s*\(|static\s|(?:[A-Z]\w*(?:<[^>]*>)?(?:\[\])?)\s+\w+\s*(?:\(|=[^=>]))/ },
   { language: 'lua', test: /^(?:local\s|redis\.(?:call|pcall)|return\s+redis|if\s.+\sthen\b)/ },
   { language: 'typescript', test: /^(?:const|let|function|export|import\s.+from|async\s|await\s|interface\s|type\s)/ },
   // a single JS/TS statement: a call or an assignment, often with a // comment

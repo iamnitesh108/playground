@@ -22,6 +22,14 @@ import './highlight.css'
 const LANGUAGES = { bash, groovy, ini, java, javascript, json, lua, properties, rust, sql, typescript, xml, yaml, redis, cli, conf, output }
 for (const [name, language] of Object.entries(LANGUAGES)) hljs.registerLanguage(name, language)
 
+// highlight.js colours little of everyday Java beyond keywords; builder chains like
+// Caffeine.newBuilder().maximumSize(…) read better with types and method calls marked too
+const JAVA_KEYWORDS_BEFORE_PAREN = 'if|for|while|switch|catch|synchronized|return|new|throw|try|super|this|assert'
+hljs.getLanguage('java')!.contains.push(
+  { scope: 'title.function', begin: new RegExp(`\\b(?!(?:${JAVA_KEYWORDS_BEFORE_PAREN})\\b)[a-z_]\\w*(?=\\s*\\()`), relevance: 0 },
+  { scope: 'type', begin: /\b[A-Z][A-Za-z0-9_]*\b/, relevance: 0 },
+)
+
 /** Names used in lessons that highlight.js knows under another name. */
 const ALIASES: Record<string, string> = { bash: 'cli', sh: 'cli', shell: 'cli', console: 'cli', ts: 'typescript', tsx: 'typescript', js: 'javascript', jsx: 'javascript', rs: 'rust', yml: 'yaml', toml: 'ini', 'redis-cli': 'redis', text: 'output', plaintext: 'output' }
 

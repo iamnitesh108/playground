@@ -10,6 +10,9 @@ export function output(hljs: HLJSApi): Language {
     name: 'output',
     contains: [
       { scope: 'comment', begin: /^\s*#.*$/ },
+      // a command typed at a shell prompt inside a recorded session: the program and its flags stand out
+      { scope: 'title', begin: /^\$ [\w./-]+/ },
+      { scope: 'attr', begin: /(?<=^\$ .*\s)--?[A-Za-z][\w-]*/ },
       { scope: 'section', begin: /^\s*\[[^\]\n]+\]/ },
       // redis-cli reply types and the replies that mean "done"
       { scope: 'meta', begin: /\((?:integer|nil|empty array|empty list or set|double)\)/ },

@@ -259,6 +259,7 @@ export default function Delivery() {
       />
       <CodeBlock
         title="a manual-ack listener that never blocks its partition"
+        language="java"
         code={`
 void onMessage(ConsumerRecord<String, byte[]> record, Acknowledgement ack) {
     try {
