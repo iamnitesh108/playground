@@ -4,8 +4,8 @@ export const kafkaModule: LearningModule = {
   id: 'kafka',
   title: 'Apache Kafka',
   description:
-    'Event streaming from zero: topics, partitions, offsets, consumer groups, replication, then Kafka Connect, Debezium change data capture and the outbox pattern.',
-  tags: ['messaging', 'event streaming', 'kafka connect', 'debezium', 'cdc'],
+    'Event streaming from zero: topics, partitions, offsets, how consumers and consumer groups really work — with animations and three hands-on practicals recorded on Kafka 4.3 with the CLI and a Micronaut app — then replication, Kafka Connect, Debezium change data capture and the outbox pattern.',
+  tags: ['messaging', 'event streaming', 'consumer groups', 'micronaut', 'kafka connect', 'debezium', 'cdc'],
   groups: [
     {
       title: 'Foundations',
@@ -52,6 +52,12 @@ export const kafkaModule: LearningModule = {
           load: () => import('./lessons/Offsets'),
         },
         {
+          slug: 'consumers',
+          title: 'How a consumer works',
+          summary: 'The poll loop from the inside: fetching, position and committed offset, heartbeats, and what a crash costs.',
+          load: () => import('./lessons/Consumers'),
+        },
+        {
           slug: 'consumer-groups',
           title: 'Consumers and groups',
           summary: 'How consumers share partitions, what a rebalance is, and why groups read independently.',
@@ -62,6 +68,29 @@ export const kafkaModule: LearningModule = {
           title: 'Commits and delivery guarantees',
           summary: 'At-most-once, at-least-once and exactly-once — decided by when you commit.',
           load: () => import('./lessons/Delivery'),
+        },
+      ],
+    },
+    {
+      title: 'Hands-on practicals',
+      lessons: [
+        {
+          slug: 'practical-1',
+          title: 'Practical 1: a producer and a consumer',
+          summary: 'Run Kafka, create a topic, send and read messages — with the CLI and with a Micronaut app, recorded.',
+          load: () => import('./lessons/Practical1'),
+        },
+        {
+          slug: 'practical-2',
+          title: 'Practical 2: partitions and consumers',
+          summary: 'Three partitions, one group, one to four consumers: watch partitions being shared and moved.',
+          load: () => import('./lessons/Practical2'),
+        },
+        {
+          slug: 'practical-3',
+          title: 'Practical 3: several consumer groups',
+          summary: 'Two groups on one topic each get every message; lag, catching up, and replaying with an offset reset.',
+          load: () => import('./lessons/Practical3'),
         },
       ],
     },

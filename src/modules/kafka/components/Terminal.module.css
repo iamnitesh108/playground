@@ -1,0 +1,52 @@
+.terminal {
+  margin: var(--space-4) 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.head {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-muted);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.body {
+  padding: var(--space-3);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.step + .step {
+  margin-top: var(--space-3);
+}
+
+.label {
+  color: var(--text-faint);
+}
+
+.cmd {
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.prompt {
+  color: var(--text-faint);
+  user-select: none;
+}
+
+.out {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  white-space: pre;
+}
+
+.error {
+  color: var(--danger);
+}

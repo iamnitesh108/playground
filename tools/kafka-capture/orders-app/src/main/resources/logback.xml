@@ -1,0 +1,14 @@
+<configuration>
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{0} - %msg%n</pattern>
+        </encoder>
+    </appender>
+    <!-- The Kafka client logs partition assignments at INFO: keep those, hide the rest -->
+    <logger name="org.apache.kafka" level="WARN"/>
+    <logger name="org.apache.kafka.clients.consumer.internals.ConsumerRebalanceListenerInvoker" level="INFO"/>
+    <logger name="org.apache.kafka.clients.consumer.internals.ConsumerCoordinator" level="INFO"/>
+    <root level="INFO">
+        <appender-ref ref="STDOUT"/>
+    </root>
+</configuration>

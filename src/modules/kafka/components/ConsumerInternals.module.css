@@ -1,0 +1,132 @@
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--font-sans);
+}
+
+.box {
+  fill: var(--surface);
+  stroke: var(--border-strong);
+  stroke-width: 1.2;
+  transition: stroke 0.3s;
+}
+
+.crashed {
+  stroke: var(--danger);
+  stroke-dasharray: 6 4;
+}
+
+.title {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.small,
+.lane {
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+
+.warn {
+  font-size: 10.5px;
+  font-weight: 600;
+  fill: var(--danger);
+}
+
+.laneBox {
+  fill: var(--surface-muted);
+  stroke: var(--border);
+}
+
+.logCell {
+  fill: var(--surface);
+  stroke: var(--border-strong);
+  transition: fill 0.4s, stroke 0.4s;
+}
+
+.logFetched {
+  stroke: var(--accent);
+}
+
+.cellText {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-anchor: middle;
+  fill: var(--text);
+}
+
+.marker {
+  transition: transform 0.6s var(--ease);
+}
+
+.markerMark {
+  fill: var(--text-muted);
+}
+
+.markerLabel {
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+
+.copy {
+  transition: transform 0.7s var(--ease), opacity 0.4s;
+}
+
+.copy rect {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+
+.copy text {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  fill: var(--surface);
+  text-anchor: middle;
+}
+
+.hidden {
+  opacity: 0;
+}
+
+.done rect {
+  fill: var(--text-faint);
+}
+
+.again rect {
+  fill: var(--warn);
+}
+
+.heartbeat circle {
+  fill: var(--border-strong);
+}
+
+.beating circle {
+  fill: var(--ok);
+  animation: beat 1.2s ease-in-out infinite;
+  transform-origin: 734px 45px;
+}
+
+@keyframes beat {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  15% {
+    transform: scale(1.6);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .copy,
+  .marker {
+    transition: none;
+  }
+
+  .beating circle {
+    animation: none;
+  }
+}

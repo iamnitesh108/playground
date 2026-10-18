@@ -132,6 +132,15 @@ export class ConsumerGroup {
     return this.offsetReset === 'earliest' ? 0 : this.topic.endOffset(partition)
   }
 
+  /**
+   * What `kafka-consumer-groups.sh --reset-offsets --to-earliest --execute` does: the committed
+   * offset of every partition goes back to the start of the log, so the group reads it all again.
+   */
+  resetToEarliest(): void {
+    for (const partition of this.topic.partitionIds) this.committed.set(partition, 0)
+    this.rebalance()
+  }
+
   private rebalance(): void {
     // Every member gives up its partitions; progress restarts from committed offsets.
     for (const partition of this.topic.partitionIds) {

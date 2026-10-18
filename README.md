@@ -7,7 +7,7 @@ module of short lessons with step-through diagrams and small in-browser simulato
 
 | Module | Covers |
 | ------ | ------ |
-| Apache Kafka | Events, brokers, topics, partitions, producers, offsets, consumer groups, delivery guarantees, replication, retention, Kafka Connect, Debezium CDC, the transactional outbox pattern, CLI and glossary |
+| Apache Kafka | Events, brokers, topics, partitions, producers, offsets, how consumers work, consumer groups and rebalancing (animated), three hands-on practicals recorded on Kafka 4.3 with the CLI and a Micronaut app, delivery guarantees, replication, retention, Kafka Connect, Debezium CDC, the transactional outbox pattern, CLI and glossary |
 | Kafka from scratch | Production-style setup of Kafka 4.3 (KRaft), PostgreSQL, Kafka Connect and Debezium 3.7 — on Ubuntu with systemd and with Docker, single node and 3 controllers + 3 brokers; every config file explained; pub-sub and CDC from Java; operations and troubleshooting |
 | Redis internals and design | Recorded from a real Redis 8.8: the event loop, RESP and pipelining, data types and encodings, sorted sets, rehashing and SCAN, expiry, eviction, transactions and scripts, locks, rate limits, persistence and crashes, replication, Sentinel, Cluster, Pub/Sub and Streams, caching and design patterns, operations |
 

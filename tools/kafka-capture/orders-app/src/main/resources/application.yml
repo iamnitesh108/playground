@@ -1,0 +1,8 @@
+micronaut:
+  application:
+    name: orders-app
+kafka:
+  bootstrap:
+    servers: ${KAFKA_BOOTSTRAP:`localhost:9092`}
+app:
+  topic: orders
