@@ -1,0 +1,137 @@
+.figure {
+  margin: var(--space-4) 0;
+}
+
+.title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+}
+
+.panel {
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--hue);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.panel h4 {
+  margin: 0 0 var(--space-2);
+  font-size: 0.9rem;
+}
+
+.tree {
+  list-style: none;
+  margin: 0 0 var(--space-2);
+  padding: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  background: var(--hue-soft);
+  border-radius: var(--radius-sm);
+  min-height: 112px;
+}
+
+.tree li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.7;
+}
+
+.folder,
+.file {
+  width: 10px;
+  height: 9px;
+  border: 1.5px solid var(--hue);
+  border-radius: 2px;
+}
+
+.folder {
+  background: var(--hue);
+}
+
+.blocks {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 4px;
+  margin-bottom: var(--space-2);
+  min-height: 112px;
+  align-content: center;
+}
+
+.block,
+.used {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-align: center;
+  padding: 4px 0;
+  border-radius: 3px;
+  border: 1px solid var(--border-strong);
+  color: var(--text-faint);
+}
+
+.used {
+  border-color: var(--hue);
+  background: var(--hue-soft);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.bucket {
+  border: 2px dashed var(--hue);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+  margin-bottom: var(--space-2);
+  display: grid;
+  gap: 4px;
+  min-height: 112px;
+}
+
+.bucketName {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.object {
+  display: flex;
+  flex-direction: column;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--hue-soft);
+  border-left: 3px solid var(--hue);
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  min-width: 0;
+}
+
+.object code {
+  font-size: 0.72rem;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.facts {
+  margin: 0;
+  font-size: 0.78rem;
+}
+
+.facts dt {
+  color: var(--text-faint);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: var(--space-1);
+}
+
+.facts dd {
+  margin: 0;
+  color: var(--text-muted);
+}

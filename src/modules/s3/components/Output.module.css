@@ -1,0 +1,25 @@
+.output {
+  margin: var(--space-2) 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--c6);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.head {
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  background: var(--surface-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.body {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  line-height: 1.5;
+  white-space: pre;
+}

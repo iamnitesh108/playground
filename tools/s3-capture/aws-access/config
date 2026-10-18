@@ -1,0 +1,30 @@
+# one profile per identity; all of them talk to the same server
+[default]
+region = us-east-1
+endpoint_url = http://localhost:9000
+s3 =
+    addressing_style = path
+
+[profile reader]
+region = us-east-1
+endpoint_url = http://localhost:9000
+s3 =
+    addressing_style = path
+
+[profile uploader]
+region = us-east-1
+endpoint_url = http://localhost:9000
+s3 =
+    addressing_style = path
+
+[profile app]
+region = us-east-1
+endpoint_url = http://localhost:9000
+s3 =
+    addressing_style = path
+
+[profile app-key]
+region = us-east-1
+endpoint_url = http://localhost:9000
+s3 =
+    addressing_style = path

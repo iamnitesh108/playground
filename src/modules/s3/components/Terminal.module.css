@@ -1,0 +1,87 @@
+.terminal {
+  margin: var(--space-4) 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-muted);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.head > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.copy,
+.more {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.more {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+}
+
+.body {
+  padding: var(--space-3);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.step + .step,
+.note + .step,
+.step + .note {
+  margin-top: var(--space-3);
+}
+
+.cmd {
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.prompt {
+  color: var(--text-faint);
+  user-select: none;
+}
+
+.out {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  white-space: pre;
+}
+
+.failed {
+  border-left: 3px solid var(--c8);
+  padding-left: var(--space-2);
+}
+
+.exit {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  color: var(--danger);
+}
+
+.note {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: var(--space-1) 0;
+}

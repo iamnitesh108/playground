@@ -1,0 +1,16 @@
+micronaut:
+  application:
+    name: s3-java-app
+  object-storage:
+    aws:
+      default:
+        bucket: catalog-java            # the bucket ObjectStorageOperations works on
+aws:
+  region: us-east-1                     # signed into every request; any value works for a single RustFS
+  access-key-id: ${S3_ACCESS_KEY:labadmin}
+  secret-key: ${S3_SECRET_KEY:labsecret123}
+  services:
+    s3:
+      endpoint-override: ${S3_ENDPOINT:`http://localhost:9000`}   # not AWS: your server
+  s3:
+    path-style-access-enabled: true     # http://host/bucket/key instead of http://bucket.host/key

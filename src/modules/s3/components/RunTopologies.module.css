@@ -1,0 +1,71 @@
+.figure {
+  margin: var(--space-4) 0;
+}
+
+.title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--space-3);
+}
+
+.card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+}
+
+.card h4 {
+  margin: 0 0 var(--space-2);
+  font-size: 0.85rem;
+}
+
+.card h4 span {
+  color: var(--text-faint);
+  font-weight: 400;
+}
+
+.card p {
+  margin: var(--space-2) 0 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.servers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.server {
+  border: 1.5px solid var(--hue);
+  background: var(--hue-soft);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  min-width: 70px;
+}
+
+.label {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.drives {
+  display: flex;
+  gap: 4px;
+}
+
+.drive {
+  width: 18px;
+  height: 24px;
+  border-radius: 3px 3px 6px 6px;
+  border: 1.5px solid var(--hue);
+  background: var(--hue-soft);
+}

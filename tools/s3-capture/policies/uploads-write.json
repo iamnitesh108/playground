@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "WriteUploadsOnly",
+      "Effect": "Allow",
+      "Action": ["s3:PutObject"],
+      "Resource": ["arn:aws:s3:::catalog/uploads/*"]
+    },
+    {
+      "Sid": "ListUploadsOnly",
+      "Effect": "Allow",
+      "Action": ["s3:ListBucket"],
+      "Resource": ["arn:aws:s3:::catalog"],
+      "Condition": { "StringLike": { "s3:prefix": ["uploads/*"] } }
+    }
+  ]
+}

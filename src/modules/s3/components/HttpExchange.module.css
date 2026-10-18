@@ -1,0 +1,105 @@
+.figure {
+  margin: var(--space-4) 0;
+}
+
+.title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--space-3);
+}
+
+.side {
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--hue);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  min-width: 0;
+}
+
+.label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  margin: var(--space-1) 0;
+}
+
+.line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-2);
+}
+
+.line code {
+  overflow-wrap: anywhere;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 1px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--hue-soft);
+  border: 1.5px solid var(--hue);
+}
+
+.headers {
+  margin: 0;
+  display: grid;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+}
+
+.headers div {
+  display: grid;
+  grid-template-columns: minmax(7rem, 38%) 1fr;
+  gap: var(--space-2);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.headers dt {
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.headers dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.tag {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  color: var(--text-faint);
+}
+
+.signing {
+  background: color-mix(in oklab, var(--c7) 12%, var(--surface));
+}
+
+.etag {
+  background: color-mix(in oklab, var(--c3) 12%, var(--surface));
+}
+
+.body {
+  margin: 0;
+  font-size: 0.72rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  background: var(--surface-muted);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+}

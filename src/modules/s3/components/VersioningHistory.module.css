@@ -1,0 +1,60 @@
+.figure {
+  margin: var(--space-4) 0;
+}
+
+.title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: var(--space-2);
+}
+
+.column {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-2);
+}
+
+.head {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  min-height: 2.2em;
+}
+
+.version,
+.marker {
+  display: grid;
+  gap: 0;
+  padding: 3px 6px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--hue);
+  background: var(--hue-soft);
+  font-size: 0.75rem;
+}
+
+.marker {
+  background: repeating-linear-gradient(135deg, var(--hue-soft) 0 6px, var(--surface) 6px 12px);
+}
+
+.version code,
+.marker code {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  background: none;
+  padding: 0;
+}
+
+.version strong,
+.marker strong {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+}

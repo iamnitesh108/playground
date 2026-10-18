@@ -1,0 +1,67 @@
+.request {
+  display: block;
+  font-size: 0.78rem;
+  padding: var(--space-1) var(--space-2);
+  border-left: 3px solid var(--c5);
+  background: color-mix(in oklab, var(--c5) 10%, var(--surface));
+  border-radius: var(--radius-sm);
+  overflow-wrap: anywhere;
+  margin-bottom: var(--space-3);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+  display: block;
+  overflow-x: auto;
+}
+
+.table th,
+.table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.table th {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.hit {
+  background: var(--hue-soft);
+}
+
+.hit td:first-child {
+  border-left: 3px solid var(--hue);
+}
+
+.verdicts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+
+.verdict {
+  display: grid;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--hue, var(--border-strong));
+  background: var(--hue-soft, var(--surface));
+}
+
+.verdict span {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+}
+
+.verdict small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}

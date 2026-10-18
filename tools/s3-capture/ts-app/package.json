@@ -1,0 +1,11 @@
+{
+  "name": "s3-ts-app",
+  "private": true,
+  "type": "module",
+  "description": "Everyday S3 tasks with the AWS SDK for JavaScript v3, run against RustFS (node usage.ts).",
+  "dependencies": {
+    "@aws-sdk/client-s3": "3.1145.0",
+    "@aws-sdk/s3-request-presigner": "3.1145.0",
+    "@aws-sdk/s3-presigned-post": "3.1145.0"
+  }
+}

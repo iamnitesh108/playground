@@ -1,0 +1,6 @@
+{
+  "name": "s3-capture",
+  "private": true,
+  "type": "module",
+  "description": "Records real S3 behaviour of a RustFS server for the s3 module's lessons."
+}

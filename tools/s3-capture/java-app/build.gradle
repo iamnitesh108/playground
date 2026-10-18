@@ -1,0 +1,35 @@
+plugins {
+    id("io.micronaut.application") version "4.4.0"
+}
+
+version = "0.1"
+group = "demo.s3"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // ObjectStorageOperations for one bucket, plus the AWS SDK v2 S3Client underneath it
+    implementation("io.micronaut.objectstorage:micronaut-object-storage-aws")
+    implementation("software.amazon.awssdk:url-connection-client")
+    runtimeOnly("ch.qos.logback:logback-classic")
+    runtimeOnly("org.yaml:snakeyaml")
+}
+
+application {
+    mainClass = "demo.s3.Application"
+}
+
+java {
+    sourceCompatibility = JavaVersion.toVersion("17")
+}
+
+micronaut {
+    version("4.5.0")
+    runtime("none")
+    processing {
+        incremental(true)
+        annotations("demo.s3.*")
+    }
+}

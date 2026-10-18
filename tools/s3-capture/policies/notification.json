@@ -1,0 +1,22 @@
+{
+  "QueueConfigurations": [
+    {
+      "Id": "uploads-to-webhook",
+      "QueueArn": "arn:rustfs:sqs::primary:webhook",
+      "Events": [
+        "s3:ObjectCreated:*",
+        "s3:ObjectRemoved:*"
+      ],
+      "Filter": {
+        "Key": {
+          "FilterRules": [
+            {
+              "Name": "prefix",
+              "Value": "uploads/"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

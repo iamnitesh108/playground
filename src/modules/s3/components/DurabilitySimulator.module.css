@@ -1,0 +1,40 @@
+.drives {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+
+.drive,
+.down {
+  display: grid;
+  gap: 2px;
+  justify-items: center;
+  padding: var(--space-2) 4px;
+  border-radius: 6px 6px 12px 12px;
+  border: 2px solid var(--hue);
+  background: var(--hue-soft);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.down {
+  background: repeating-linear-gradient(135deg, var(--hue-soft) 0 6px, var(--surface) 6px 12px);
+}
+
+.shard {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.what {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+}

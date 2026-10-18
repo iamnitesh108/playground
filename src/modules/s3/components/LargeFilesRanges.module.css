@@ -1,0 +1,76 @@
+.figure {
+  margin: var(--space-4) 0;
+}
+
+.title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.object {
+  position: relative;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  border: 1.5px solid var(--c3);
+  background: color-mix(in oklab, var(--c3) 12%, var(--surface));
+}
+
+.partLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-left: 1.5px dashed var(--c3);
+}
+
+.range {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  background: var(--hue);
+  border-radius: 2px;
+  opacity: 0.85;
+}
+
+.scale {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  height: 1.2rem;
+  margin-top: 2px;
+}
+
+.partLabel {
+  position: absolute;
+  transform: translateX(4px);
+}
+
+.legend {
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+  font-size: 0.8rem;
+}
+
+.legend li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.legend code {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--hue);
+}

@@ -1,0 +1,20 @@
+[default]
+region = us-east-1
+endpoint_url = http://localhost:9000
+s3 =
+    addressing_style = path
+
+# only used to show what goes wrong with virtual-hosted addressing
+[profile virtual]
+region = us-east-1
+endpoint_url = http://localhost:9000
+s3 =
+    addressing_style = virtual
+
+# the classic transfer manager: the same uploads, done by Python threads whose debug log shows every part
+[profile classic]
+region = us-east-1
+endpoint_url = http://localhost:9000
+s3 =
+    addressing_style = path
+    preferred_transfer_client = classic

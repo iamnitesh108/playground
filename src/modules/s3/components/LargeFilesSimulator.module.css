@@ -1,0 +1,62 @@
+.problems {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-2) var(--space-3) var(--space-2) var(--space-5);
+  border-left: 3px solid var(--hue);
+  background: var(--hue-soft);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+}
+
+.lanes {
+  margin: var(--space-3) 0 0;
+}
+
+.lanes figcaption {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: var(--space-2);
+}
+
+.lane {
+  display: grid;
+  grid-template-columns: 3.6rem 1fr;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: 3px;
+}
+
+.laneLabel {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.track {
+  position: relative;
+  height: 14px;
+  background: var(--surface-muted);
+  border-radius: 3px;
+}
+
+.part,
+.failed {
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  border-radius: 2px;
+  background: var(--hue-soft);
+  border: 1px solid var(--hue);
+  box-sizing: border-box;
+}
+
+.failed {
+  background: repeating-linear-gradient(135deg, var(--hue) 0 3px, var(--hue-soft) 3px 7px);
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  margin-left: calc(3.6rem + var(--space-2));
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
