@@ -1,0 +1,10 @@
+{
+  "name": "redis-capture",
+  "private": true,
+  "type": "module",
+  "description": "Records real Redis behaviour for the redis module's lessons.",
+  "scripts": {
+    "capture": "node capture.mjs ../../src/modules/redis/data/captures.ts",
+    "check": "node check-simulator.mjs"
+  }
+}

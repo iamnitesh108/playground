@@ -5,6 +5,7 @@ import { postgresModule } from './postgres'
 import { nodejsModule } from './nodejs'
 import { reactModule } from './react'
 import { gitModule } from './git'
+import { redisModule } from './redis'
 
 /** Register new modules here — nothing else in the app needs to change. */
-export const registry = new ModuleRegistry([kafkaModule, kafkaSetupModule, postgresModule, nodejsModule, reactModule, gitModule])
+export const registry = new ModuleRegistry([kafkaModule, kafkaSetupModule, postgresModule, nodejsModule, reactModule, gitModule, redisModule])

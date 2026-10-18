@@ -1,0 +1,117 @@
+.terminal {
+  margin: var(--space-4) 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-muted);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.head > span:first-child {
+  flex: 1;
+}
+
+.people {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.who {
+  padding: 0 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text);
+}
+
+.copy {
+  border: none;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.body {
+  padding: var(--space-3);
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.step + .step,
+.note + .step,
+.step + .note {
+  margin-top: var(--space-2);
+}
+
+/* Several connections: each one gets its own left rule, by position (not by colour alone). */
+.lane {
+  padding-left: var(--space-3);
+  border-left: 2px solid var(--border);
+}
+
+.lane[data-index='1'] {
+  margin-left: var(--space-5);
+  border-left-style: dashed;
+}
+
+.lane[data-index='2'] {
+  margin-left: calc(var(--space-5) * 2);
+  border-left-style: dotted;
+}
+
+.lane[data-index='3'] {
+  margin-left: calc(var(--space-5) * 3);
+}
+
+.cmd {
+  color: var(--text);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.event {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.prompt {
+  color: var(--text-faint);
+  user-select: none;
+}
+
+.out {
+  margin: 2px 0 0;
+  color: var(--text-muted);
+  white-space: pre;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.blocked {
+  color: var(--warn);
+  font-style: italic;
+}
+
+.note {
+  font-family: var(--font-sans);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: var(--space-1) 0;
+}
