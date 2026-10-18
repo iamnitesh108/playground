@@ -79,10 +79,10 @@ const retentionRow = (hours: number): { label: string; cells: LogCell[] } => {
       const newest = Math.min(...seg.entries.map((e) => e.ageHours))
       const oldest = Math.max(...seg.entries.map((e) => e.ageHours))
       return {
-        label: seg.active ? 'active · kept' : kept.has(seg.index) ? 'kept' : 'deleted',
+        label: kept.has(seg.index) ? (seg.active ? 'active · kept' : 'kept') : 'deleted',
         content: `${oldest}–${newest} h old`,
         weight: seg.entries.length,
-        hue: (kept.has(seg.index) || seg.active ? 3 : 8) as Hue,
+        hue: (kept.has(seg.index) ? 3 : 8) as Hue,
       }
     }),
   }
@@ -168,18 +168,20 @@ export default function Retention() {
           { from: 'closed', to: 'delete', label: 'retention', hue: 8, dashed: true },
           { from: 'closed', to: 'compact', label: 'cleaner', hue: 3, dashed: true },
         ]}
-        caption="The active segment rolls into a closed one at segment.bytes (1 GB) or segment.ms. Only closed segments are deleted or compacted; cleanup.policy decides which."
+        caption="The active segment rolls into a closed one at segment.bytes (1 GiB) or segment.ms, on the next write. Retention deletes whole segments, oldest first; compaction only rewrites closed ones. cleanup.policy decides which."
       />
       <ReplicationLogRows
         title="The same 12 records in 4 segments, under three retention settings (computed like the demo below)"
         rows={[24, 48, 168].map(retentionRow)}
-        caption="A whole segment goes only when its newest record is older than the limit; the active segment always stays."
+        caption="A whole segment goes only when its newest record is older than the limit. The active segment stays here because its newest record is 0 h old; it would go only if every record had expired."
       />
       <RetentionDemo />
       <Callout tone="note">
-        Because only closed segments can be deleted, data may live somewhat longer than the retention setting. A small
-        topic whose active segment never fills may keep old records surprisingly long — lower{' '}
-        <code>segment.ms</code> if that matters.
+        Because a segment goes only when its <em>newest</em> record has expired, data may live somewhat longer than the
+        retention setting. A small topic whose active segment never fills keeps adding fresh records to it, so its old
+        records stay surprisingly long — lower <code>segment.ms</code> if that matters. When every record has expired,
+        Kafka rolls a new, empty segment and deletes the old active one too; offsets carry on. Recorded on a real broker in{' '}
+        <a href="#/kafka/segments">Segments: the log on disk</a>.
       </Callout>
 
       <h2>Compact: the latest value per key</h2>

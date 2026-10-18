@@ -24,15 +24,14 @@ export function toSegments(entries: readonly LogEntry[], segmentSize: number): S
 }
 
 /**
- * cleanup.policy=delete: whole closed segments are removed once their newest
- * record is older than the retention period. The active segment is never deleted.
+ * cleanup.policy=delete: whole segments are removed, oldest first, while their newest record is older
+ * than the retention period; the first segment that is still young stops the deletion. The active
+ * segment goes only when every record has expired (Kafka then rolls a new, empty one first).
  */
 export function applyRetention(segments: readonly Segment[], retentionHours: number): Segment[] {
-  return segments.filter((segment) => {
-    if (segment.active) return true
-    const newest = Math.min(...segment.entries.map((e) => e.ageHours))
-    return newest <= retentionHours
-  })
+  const expired = (segment: Segment) => Math.min(...segment.entries.map((e) => e.ageHours)) > retentionHours
+  const firstKept = segments.findIndex((segment) => !expired(segment))
+  return firstKept === -1 ? [] : segments.slice(firstKept)
 }
 
 /**

@@ -52,7 +52,7 @@ export function TopicsPartitionsSegments() {
           </marker>
         </defs>
       </svg>
-      <div className={styles.caption}>Schematic (file names follow the real naming: the base offset, zero-padded to 20 digits). Retention deletes old data a whole closed segment at a time; the active segment is never deleted.</div>
+      <div className={styles.caption}>Schematic (file names follow the real naming: the base offset, zero-padded to 20 digits). Retention deletes old data a whole segment at a time, oldest first; the active segment goes only once every record in it has expired.</div>
     </figure>
   )
 }
