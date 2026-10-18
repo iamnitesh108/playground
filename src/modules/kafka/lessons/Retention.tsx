@@ -203,7 +203,8 @@ export default function Retention() {
       <CompactionDemo />
       <p>
         Kafka itself relies on compaction: <code>__consumer_offsets</code> keeps each group’s latest offset, and Kafka
-        Connect keeps its configs, statuses and source offsets in compacted topics (next lesson).
+        Connect keeps its configs, statuses and source offsets in compacted topics (next lesson). How the cleaner actually does it — dirty ratio, offset
+        map, recopying, tombstone horizons — is recorded step by step in <a href="#/kafka/compaction">Log compaction internals</a>.
       </p>
 
       <Table

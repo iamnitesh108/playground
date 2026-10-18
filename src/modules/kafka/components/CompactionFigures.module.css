@@ -1,0 +1,170 @@
+.figure {
+  margin: var(--space-4) 0;
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
+}
+
+/* ------------------------------------------------------------------ a compacted log */
+
+.log {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: var(--space-2);
+}
+
+.segment {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--hue);
+  border-radius: var(--radius);
+  background: var(--hue-soft);
+}
+
+.segmentHead {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 8px;
+  font-size: 0.72rem;
+}
+
+.file {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.section {
+  font-weight: 600;
+  color: var(--hue);
+}
+
+.records {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.record {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  padding: 2px 6px;
+  border: 1px solid color-mix(in oklab, var(--hue) 50%, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  font-size: 0.74rem;
+  animation: record-in 0.25s ease;
+}
+
+@keyframes record-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+
+.offset {
+  min-width: 2ch;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.kv {
+  font-family: var(--font-mono);
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.note {
+  margin-left: auto;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--hue);
+}
+
+.tombstone {
+  border-style: dashed;
+}
+
+.removed {
+  opacity: 0.7;
+  border-style: dashed;
+}
+
+.removed .kv {
+  text-decoration: line-through;
+  color: var(--text-muted);
+}
+
+.mapped,
+.horizon {
+  border-width: 2px;
+  border-color: var(--hue);
+}
+
+.empty {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+
+/* ------------------------------------------------------------------ the offset map */
+
+.map {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 6px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--hue);
+  border-radius: var(--radius);
+  background: var(--hue-soft);
+}
+
+.mapHead {
+  flex-basis: 100%;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.mapEntry {
+  padding: 1px 6px;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--hue);
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------------ the lab */
+
+.status {
+  margin-bottom: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.event {
+  margin: var(--space-2) 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .record {
+    animation: none;
+  }
+}

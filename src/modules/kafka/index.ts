@@ -122,6 +122,12 @@ export const kafkaModule: LearningModule = {
           summary: 'How long Kafka keeps data: segments, time-based deletion, and log compaction.',
           load: () => import('./lessons/Retention'),
         },
+        {
+          slug: 'compaction',
+          title: 'Log compaction internals',
+          summary: 'How the log cleaner really works: clean and dirty sections, the dirty ratio, the offset map, recopy and swap, delete horizons for tombstones — two cleanings recorded on a real broker.',
+          load: () => import('./lessons/Compaction'),
+        },
       ],
     },
     {

@@ -242,3 +242,35 @@ node capture-segments.mjs ../../src/modules/kafka/data/segments.ts      # ~1 min
 
 Throughput figures, timestamps and where the 600 extra records roll (by batch boundaries) differ
 between runs; the file layout and the rules do not.
+
+## capture-compaction.mjs — log compaction internals
+
+Records the lesson *Log compaction internals* into `src/modules/kafka/data/compaction.ts`. Uses its own
+container `kafka-compaction` (ports 20092/20093) with `log.cleaner.backoff.ms=1000`, so the cleaner looks for
+work every second instead of every 15; the container is removed when the script exits. The facts the lesson
+states come from the Kafka 4.3.1 source (`LogCleaner`, `Cleaner`, `LogCleanerManager`, `SkimpyOffsetMap`,
+`CleanerConfig`, `LogConfig`) and `docs/design/design.md`; this script only records what they predict.
+
+- Topic `profiles`, one partition, `segment.ms=2000`, written in three rounds 2.5 s apart (one segment each)
+  with the console producer (`parse.key`, `null.marker=NULL` for a tombstone), first as a `delete` topic.
+- `kafka-configs.sh --alter` to `cleanup.policy=compact`, `min.cleanable.dirty.ratio=0.01`,
+  `delete.retention.ms=5000`; the script waits until `cleaner-offset-checkpoint` says `profiles 0 6`.
+- 8 s later one more write rolls the active segment; it waits for `profiles 0 8` (the second cleaning,
+  which drops the superseded record and the tombstone past its delete horizon).
+- At each stage: `ls -l` of the partition, `kafka-dump-log.sh --print-data-log` of every `.log` (shortened to
+  batch offsets, count and `deleteHorizonMs`, and record offset, key and payload), a console consumer from the
+  beginning, and the checkpoint file; at the end the summary lines of `log-cleaner.log`.
+- Checks: the lesson's model (`simulation/logCompactor.ts`), fed the same records and times, keeps exactly the
+  offsets the consumer read after each cleaning, and the first cleaning set a delete horizon.
+
+What the recording changes: ports are shown as 9092/9093, `/opt/kafka/bin/` is left out of the commands,
+the topic id in the cleaner log is cut to 6 characters, and log timestamps are removed. The run fails if
+the output contains the user name, the home directory or the capture port.
+
+```sh
+cd tools/kafka-capture
+node capture-compaction.mjs ../../src/modules/kafka/data/compaction.ts      # ~1 minute
+```
+
+When the cleaner starts after the switch to `compact`, and therefore the exact times, differ between runs;
+which offsets survive each cleaning does not.
