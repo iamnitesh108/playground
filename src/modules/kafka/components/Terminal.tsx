@@ -26,7 +26,7 @@ export function Terminal({ steps, title = 'recorded terminal' }: TerminalProps) 
             <div className={styles.cmd}>
               <span className={styles.prompt}>$</span> <Highlighted code={s.cmd} language="bash" />
             </div>
-            {s.out && <pre className={cx(styles.out, /Exception|ERROR|Error/.test(s.out) && styles.error)}>{s.out}</pre>}
+            {s.out && <pre className={cx(styles.out, /Exception|ERROR|Error/.test(s.out) && styles.error)}><Highlighted language="output" code={s.out} /></pre>}
           </div>
         ))}
       </div>

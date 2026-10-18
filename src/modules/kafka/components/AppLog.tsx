@@ -1,4 +1,5 @@
 import styles from './AppLog.module.css'
+import { Highlighted } from '@/shared/code'
 
 interface AppLogProps {
   /** One panel per running process: its name, how it was started, and the log lines it printed. */
@@ -17,7 +18,7 @@ export function AppLog({ panels, title = 'recorded application logs' }: AppLogPr
         {panels.map((p) => (
           <section key={p.name} className={styles.panel}>
             <div className={styles.name}>{p.name}</div>
-            {p.command && <div className={styles.command}>$ {p.command}</div>}
+            {p.command && <div className={styles.command}>$ <Highlighted language="bash" code={p.command} /></div>}
             <ol className={styles.lines}>
               {p.lines.length === 0 && <li className={styles.empty}>(nothing)</li>}
               {p.lines.map((l, i) => (

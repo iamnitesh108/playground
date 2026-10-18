@@ -6,6 +6,7 @@ import { CAPTURE } from '../data/captures'
 import { simulate, type ModuleKind, type Phase, type QueueName } from '../simulation/eventLoop'
 import { PROGRAMS, type Program } from '../simulation/programs'
 import styles from './EventLoopPlayer.module.css'
+import { Highlighted } from '@/shared/code'
 
 const PHASES: { id: Phase; label: string }[] = [
   { id: 'main', label: 'main script' },
@@ -34,7 +35,7 @@ function Replay({ program, kind, timerDueAtStart }: { program: Program; kind: Mo
   return (
     <>
       <div className={styles.top}>
-        <pre className={styles.source}>{program.source}</pre>
+        <pre className={styles.source}><Highlighted language="javascript" code={program.source} /></pre>
         <div className={styles.console}>
           <div className={styles.label}>console</div>
           {frame.output.map((line, i) => (

@@ -1,5 +1,6 @@
 import type { TransformStage } from '../simulation'
 import styles from './TransformTrace.module.css'
+import { Highlighted } from '@/shared/code'
 
 const show = (value: unknown) => (typeof value === 'string' ? JSON.stringify(value) : JSON.stringify(value, null, 2))
 
@@ -26,7 +27,7 @@ export function TransformTrace({ stages }: { stages: readonly TransformStage[] }
               </div>
               <div className={styles.row}>
                 <span className={styles.field}>value</span>
-                <pre className={styles.json}>{show(stage.record.value)}</pre>
+                <pre className={styles.json}><Highlighted language="json" code={show(stage.record.value)} /></pre>
               </div>
             </div>
           ) : (

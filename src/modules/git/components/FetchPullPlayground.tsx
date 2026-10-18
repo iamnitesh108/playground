@@ -5,6 +5,7 @@ import { RemoteModel, type Action } from '../simulation/remote'
 import { REMOTE_SCENARIOS } from '../simulation/remoteScenarios'
 import { GraphView } from './GraphView'
 import styles from './FetchPullPlayground.module.css'
+import { Highlighted } from '@/shared/code'
 
 /** Replays actions into a fresh model, keeping each outcome. */
 function build(actions: readonly Action[]): RemoteModel {
@@ -105,7 +106,7 @@ export function FetchPullPlayground() {
       <div className={styles.output} aria-live="polite">
         {last ? (
           <>
-            <span className={styles.prompt}>$</span> {last.command}
+            <span className={styles.prompt}>$</span> <Highlighted language="bash" code={last.command} />
             <div className={cx(styles.result, !last.ok && styles.error)}>{last.text}</div>
           </>
         ) : (

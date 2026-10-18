@@ -3,6 +3,7 @@ import { Flow, Proportion, StatTiles, Timeline } from '@/shared/figures'
 import { CliSession, LogLines } from '../components'
 import { K8S } from '../data/kubernetes'
 import { MANIFESTS } from '../data/kubernetesManifests'
+import { Highlighted } from '@/shared/code'
 
 const MAXMEMORY_MB = Number(K8S.config[0].split(' ')[1]) / 1024 / 1024
 const LOAD_S = K8S.loading.readyAfterSeconds
@@ -103,8 +104,8 @@ export default function Kubernetes() {
       <Table
         head={['On', 'INFO replication (recorded)']}
         rows={[
-          [<code key="c0">redis-0</code>, <pre key="c1">{K8S.primaryReplication.join('\n')}</pre>],
-          [<code key="c2">redis-1</code>, <pre key="c3">{K8S.replicaReplication.join('\n')}</pre>],
+          [<code key="c0">redis-0</code>, <pre key="c1"><Highlighted language="output" code={K8S.primaryReplication.join('\n')} /></pre>],
+          [<code key="c2">redis-1</code>, <pre key="c3"><Highlighted language="output" code={K8S.replicaReplication.join('\n')} /></pre>],
         ]}
       />
       <CliSession

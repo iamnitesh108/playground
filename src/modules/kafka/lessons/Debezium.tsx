@@ -6,6 +6,7 @@ import { cx } from '@/shared/utils/cx'
 import { CdcPipeline, ExtractNewRecordState, type ChangeEvent, type ReplicaIdentity } from '../simulation'
 import styles from './lesson.module.css'
 import own from './Debezium.module.css'
+import { Highlighted } from '@/shared/code'
 
 const OP_LABEL = { c: 'INSERT', u: 'UPDATE', d: 'DELETE' } as const
 
@@ -175,7 +176,7 @@ function CdcPlayground() {
             ]}
           />
           <pre className={styles.json} style={{ marginTop: 8 }}>
-            {`key: ${JSON.stringify(latest.key)}\nvalue: ${JSON.stringify(shown, null, 2)}${view === 'unwrapped' && latest.value.op === 'd' ? '   (a delete becomes a tombstone by default)' : ''}`}
+            <Highlighted language="yaml" code={`key: ${JSON.stringify(latest.key)}\nvalue: ${JSON.stringify(shown, null, 2)}${view === 'unwrapped' && latest.value.op === 'd' ? '   # a delete becomes a tombstone by default' : ''}`} />
           </pre>
         </div>
       )}

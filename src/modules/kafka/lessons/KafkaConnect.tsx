@@ -4,6 +4,7 @@ import { Box, Button, Callout, CodeBlock, Demo, Row, Segmented, Table, Tabs, Ter
 import { TransformTrace } from '../components'
 import { ExtractKeyField, RegexRouter, TransformChain, type Transform } from '../simulation'
 import styles from './lesson.module.css'
+import { Highlighted } from '@/shared/code'
 
 const FLOW_STEPS: FlowStep[] = [
   { title: 'Something changes at the source', body: <p>A row is inserted, a file appears, an API returns new data.</p>, active: ['src'] },
@@ -143,7 +144,7 @@ function ConverterDemo() {
         />
       }
     >
-      <pre className={styles.json}>{JSON.stringify(output, null, 2)}</pre>
+      <pre className={styles.json}><Highlighted language="json" code={JSON.stringify(output, null, 2)} /></pre>
       <p className={styles.demoNote}>
         {schemas
           ? 'Every single message carries its schema. Self-describing, but large, and consumers must unwrap “payload”.'

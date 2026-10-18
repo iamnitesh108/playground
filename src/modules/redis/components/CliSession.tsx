@@ -62,7 +62,7 @@ export function CliSession({ steps, title = 'recorded redis-cli session', prompt
               <div className={cx(styles.cmd, event && styles.event)}>
                 <span className={styles.prompt}>{lead}</span> {event ? s.cmd : <Highlighted code={s.cmd ?? ''} language={s.shell ? 'bash' : 'redis'} />}
               </div>
-              {s.out !== undefined && s.out !== '' && <pre className={cx(styles.out, isError(s.out) && styles.error, s.out.startsWith('(blocked') && styles.blocked)}>{s.out}</pre>}
+              {s.out !== undefined && s.out !== '' && <pre className={cx(styles.out, isError(s.out) && styles.error, s.out.startsWith('(blocked') && styles.blocked)}><Highlighted language="output" code={s.out} /></pre>}
             </div>
           )
         })}

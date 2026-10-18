@@ -3,6 +3,7 @@ import { Button } from '@/shared/ui'
 import { KafkaStage } from './KafkaStage'
 import { useKafkaStage, type StageAction, type StageOptions } from './useKafkaStage'
 import styles from './ScenarioPlayer.module.css'
+import { Highlighted } from '@/shared/code'
 
 export interface ScenarioStep {
   title: string
@@ -85,7 +86,7 @@ export function ScenarioPlayer({ title, setup, steps, producer }: ScenarioPlayer
           <>
             <div className={styles.stepTitle}>{index + 1}. {step.title}</div>
             <div className={styles.stepBody}>{step.body}</div>
-            {step.command && <pre className={styles.command}>{step.command}</pre>}
+            {step.command && <pre className={styles.command}><Highlighted language="bash" code={step.command} /></pre>}
           </>
         ) : (
           <div className={styles.stepBody}>Press <strong>Start</strong> to play the scenario step by step.</div>

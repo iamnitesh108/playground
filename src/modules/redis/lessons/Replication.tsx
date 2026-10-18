@@ -221,7 +221,7 @@ export default function Replication() {
       </p>
       <CodeBlock
         title="sentinel.conf (each of the three)"
-        language="text"
+        language="conf"
         code={`# name, address of the primary, quorum
 sentinel monitor shop 127.0.0.1 6379 2
 # no reply for 1 s = down (in this sentinel's view)

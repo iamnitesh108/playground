@@ -5,6 +5,7 @@ import { GitGraph } from '../simulation/graph'
 import { GRAPH_SCENARIOS } from '../simulation/scenarios'
 import { GraphView } from './GraphView'
 import styles from './GraphPlayground.module.css'
+import { Highlighted } from '@/shared/code'
 
 /** Replays commands into a fresh model (cheap: a handful of commits). */
 function build(commands: readonly string[]): GitGraph {
@@ -55,7 +56,7 @@ export function GraphPlayground({ initial = 'fast-forward', only }: GraphPlaygro
       <div className={styles.steps}>
         {scenario.commands.map((c, i) => (
           <button key={i} type="button" className={cx(styles.cmd, i < shown && styles.done, i === shown && styles.nextCmd)} onClick={() => { setShown(i + 1); setExtra([]) }}>
-            {c}
+            <Highlighted language="bash" code={c} />
           </button>
         ))}
       </div>
@@ -63,7 +64,7 @@ export function GraphPlayground({ initial = 'fast-forward', only }: GraphPlaygro
       <div className={styles.output} aria-live="polite">
         {last ? (
           <>
-            <span className={styles.prompt}>$</span> {last.command}
+            <span className={styles.prompt}>$</span> <Highlighted language="bash" code={last.command} />
             {last.result.text && <pre className={cx(styles.text, !last.result.ok && styles.error)}>{last.result.text}</pre>}
           </>
         ) : (

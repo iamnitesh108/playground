@@ -43,7 +43,7 @@ export function Transcript({ steps, title = 'recorded', prompt = '$' }: Transcri
               <span className={styles.prompt}>{prompt}</span> <Highlighted code={s.cmd} language="bash" />
               {s.exit !== 0 && <span className={styles.exit}>exit {s.exit}</span>}
             </div>
-            {s.out && <pre className={cx(styles.out, s.exit !== 0 && styles.failed)}>{s.out}</pre>}
+            {s.out && <pre className={cx(styles.out, s.exit !== 0 && styles.failed)}><Highlighted language="output" code={s.out} /></pre>}
           </div>
         ))}
       </div>
