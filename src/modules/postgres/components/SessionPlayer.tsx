@@ -5,6 +5,7 @@ import { cx } from '@/shared/utils/cx'
 import type { Frame, SessionId, StepResult } from '../data/types'
 import { HeapPageView } from './HeapPageView'
 import styles from './SessionPlayer.module.css'
+import { Highlighted } from '@/shared/code'
 
 interface SessionPlayerProps {
   title: string
@@ -95,7 +96,7 @@ function Terminal({ session, frames, index }: { session: SessionId; frames: read
         {entries.map((e) => (
           <div key={`${e.step}-${e.sql}`} className={cx(styles.entry, e.step === index && styles.current)}>
             <div className={styles.sql}>
-              <span className={styles.prompt}>{session.toLowerCase()}=#</span> {e.sql};
+              <span className={styles.prompt}>{session.toLowerCase()}=#</span> <Highlighted code={`${e.sql};`} language="sql" />
             </div>
             {e.waitedFrom !== undefined && <div className={styles.waited}>(waited since step {e.waitedFrom})</div>}
             <Result result={e.result} />

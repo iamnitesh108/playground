@@ -1,0 +1,65 @@
+/*
+ * Token colours for highlighted code, from the figure palette. Mixed with the text colour so that they keep
+ * text contrast on code backgrounds in both themes.
+ */
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-doctag {
+  color: color-mix(in oklab, var(--c7) 72%, var(--text));
+}
+
+.hljs-string,
+.hljs-regexp,
+.hljs-template-tag,
+.hljs-template-variable {
+  color: color-mix(in oklab, var(--c6) 72%, var(--text));
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-symbol,
+.hljs-bullet {
+  color: color-mix(in oklab, var(--c4) 72%, var(--text));
+}
+
+.hljs-title,
+.hljs-title.function_,
+.hljs-section {
+  color: color-mix(in oklab, var(--c1) 72%, var(--text));
+}
+
+.hljs-attr,
+.hljs-attribute,
+.hljs-property,
+.hljs-variable,
+.hljs-params {
+  color: color-mix(in oklab, var(--c5) 72%, var(--text));
+}
+
+.hljs-type,
+.hljs-title.class_,
+.hljs-built_in {
+  color: color-mix(in oklab, var(--c3) 72%, var(--text));
+}
+
+.hljs-meta,
+.hljs-meta .hljs-keyword {
+  color: color-mix(in oklab, var(--c2) 72%, var(--text));
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--text-faint);
+}
+
+.hljs-deletion {
+  color: color-mix(in oklab, var(--c8) 72%, var(--text));
+}
+
+.hljs-addition {
+  color: color-mix(in oklab, var(--c6) 72%, var(--text));
+}
+
+.hljs-strong {
+  font-weight: 600;
+}

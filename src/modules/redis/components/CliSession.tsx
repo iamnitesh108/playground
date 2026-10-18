@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { cx } from '@/shared/utils/cx'
 import styles from './CliSession.module.css'
+import { Highlighted } from '@/shared/code'
 
 export interface CliStep {
   readonly who?: string
@@ -59,7 +60,7 @@ export function CliSession({ steps, title = 'recorded redis-cli session', prompt
           return (
             <div key={i} className={cx(styles.step, people.length > 1 && styles.lane)} data-index={s.who ? people.indexOf(s.who) % 4 : undefined}>
               <div className={cx(styles.cmd, event && styles.event)}>
-                <span className={styles.prompt}>{lead}</span> {s.cmd}
+                <span className={styles.prompt}>{lead}</span> {event ? s.cmd : <Highlighted code={s.cmd ?? ''} language={s.shell ? 'bash' : 'redis'} />}
               </div>
               {s.out !== undefined && s.out !== '' && <pre className={cx(styles.out, isError(s.out) && styles.error, s.out.startsWith('(blocked') && styles.blocked)}>{s.out}</pre>}
             </div>

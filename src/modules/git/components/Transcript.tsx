@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { cx } from '@/shared/utils/cx'
 import styles from './Transcript.module.css'
+import { Highlighted } from '@/shared/code'
 
 export interface Step {
   readonly cmd: string
@@ -39,7 +40,7 @@ export function Transcript({ steps, title = 'recorded', prompt = '$' }: Transcri
         {steps.map((s, i) => (
           <div key={i} className={styles.step}>
             <div className={styles.cmd}>
-              <span className={styles.prompt}>{prompt}</span> {s.cmd}
+              <span className={styles.prompt}>{prompt}</span> <Highlighted code={s.cmd} language="bash" />
               {s.exit !== 0 && <span className={styles.exit}>exit {s.exit}</span>}
             </div>
             {s.out && <pre className={cx(styles.out, s.exit !== 0 && styles.failed)}>{s.out}</pre>}

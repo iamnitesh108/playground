@@ -1,5 +1,6 @@
 import { cx } from '@/shared/utils/cx'
 import styles from './Terminal.module.css'
+import { Highlighted } from '@/shared/code'
 
 export interface TerminalStep {
   readonly cmd: string
@@ -23,7 +24,7 @@ export function Terminal({ steps, title = 'recorded terminal' }: TerminalProps) 
           <div key={i} className={styles.step}>
             {s.label && <div className={styles.label}># {s.label}</div>}
             <div className={styles.cmd}>
-              <span className={styles.prompt}>$</span> {s.cmd}
+              <span className={styles.prompt}>$</span> <Highlighted code={s.cmd} language="bash" />
             </div>
             {s.out && <pre className={cx(styles.out, /Exception|ERROR|Error/.test(s.out) && styles.error)}>{s.out}</pre>}
           </div>

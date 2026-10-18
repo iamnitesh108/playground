@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Highlighted } from '../code'
 import styles from './CodeBlock.module.css'
 
 interface CodeBlockProps {
@@ -29,7 +30,9 @@ export function CodeBlock({ code, title, language }: CodeBlockProps) {
         </button>
       </figcaption>
       <pre className={styles.pre}>
-        <code>{code.trim()}</code>
+        <code>
+          <Highlighted code={code.trim()} language={language} />
+        </code>
       </pre>
     </figure>
   )
