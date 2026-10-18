@@ -7,6 +7,7 @@ import javascript from 'highlight.js/lib/languages/javascript'
 import json from 'highlight.js/lib/languages/json'
 import lua from 'highlight.js/lib/languages/lua'
 import properties from 'highlight.js/lib/languages/properties'
+import rust from 'highlight.js/lib/languages/rust'
 import sql from 'highlight.js/lib/languages/sql'
 import typescript from 'highlight.js/lib/languages/typescript'
 import xml from 'highlight.js/lib/languages/xml'
@@ -18,14 +19,14 @@ import { output } from './outputLanguage'
 import { redis } from './redisLanguage'
 import './highlight.css'
 
-const LANGUAGES = { bash, groovy, ini, java, javascript, json, lua, properties, sql, typescript, xml, yaml, redis, cli, conf, output }
+const LANGUAGES = { bash, groovy, ini, java, javascript, json, lua, properties, rust, sql, typescript, xml, yaml, redis, cli, conf, output }
 for (const [name, language] of Object.entries(LANGUAGES)) hljs.registerLanguage(name, language)
 
 /** Names used in lessons that highlight.js knows under another name. */
-const ALIASES: Record<string, string> = { bash: 'cli', sh: 'cli', shell: 'cli', console: 'cli', ts: 'typescript', tsx: 'typescript', js: 'javascript', jsx: 'javascript', yml: 'yaml', toml: 'ini', 'redis-cli': 'redis', text: 'output', plaintext: 'output' }
+const ALIASES: Record<string, string> = { bash: 'cli', sh: 'cli', shell: 'cli', console: 'cli', ts: 'typescript', tsx: 'typescript', js: 'javascript', jsx: 'javascript', rs: 'rust', yml: 'yaml', toml: 'ini', 'redis-cli': 'redis', text: 'output', plaintext: 'output' }
 
 /** Languages worth guessing for blocks that do not say what they are. */
-const GUESSABLE = ['bash', 'java', 'javascript', 'yaml', 'json', 'sql', 'lua', 'typescript', 'xml', 'properties']
+const GUESSABLE = ['bash', 'java', 'javascript', 'yaml', 'json', 'sql', 'lua', 'typescript', 'xml', 'properties', 'rust']
 
 /** Below this relevance a guess is more likely wrong than right, so the block stays plain. */
 const MIN_RELEVANCE = 4

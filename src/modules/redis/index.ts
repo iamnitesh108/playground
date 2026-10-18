@@ -49,6 +49,7 @@ export const redisModule: LearningModule = {
       title: 'System design',
       lessons: [
         { slug: 'caching', title: 'Caching patterns', summary: 'Cache-aside and its alternatives, invalidation, TTLs — and stampedes, penetration and hot keys.', load: () => import('./lessons/Caching') },
+        { slug: 'tiered-caching', title: 'Multi-level caching: L1 → Redis → Postgres', summary: 'An in-process cache (Caffeine, lru-cache, moka) in front of Redis in front of Postgres: read and write paths, invalidation across instances, stampedes and a recorded benchmark — in Micronaut, TypeScript and Rust.', load: () => import('./lessons/TieredCaching') },
         { slug: 'patterns', title: 'Design patterns with Redis', summary: 'Sessions, counters, leaderboards, unique counts, presence, geo and more — and when not to use Redis.', load: () => import('./lessons/Patterns') },
       ],
     },

@@ -1,0 +1,17 @@
+micronaut:
+  application:
+    name: tiered-cache
+redis:
+  uri: ${REDIS_URI:`redis://localhost:6379?timeout=2s`}
+datasources:
+  default:
+    url: ${PG_URL:`jdbc:postgresql://localhost:5432/shop`}
+    username: ${PG_USER:shop}
+    password: ""
+    maximum-pool-size: 20
+cache:
+  l1:
+    ttl: ${L1_TTL:10s}
+    max-size: 1000
+  l2:
+    ttl: 300s

@@ -1,0 +1,11 @@
+{
+  "name": "tiered-cache-ts",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "node main.ts" },
+  "dependencies": {
+    "ioredis": "5.4.1",
+    "lru-cache": "11.0.2",
+    "pg": "8.13.1"
+  }
+}

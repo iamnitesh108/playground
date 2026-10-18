@@ -91,3 +91,27 @@ node capture-beyond.mjs ../../src/modules/redis/data/beyond.ts          # ~2 min
   from a fixed seed).
 
 All containers, volumes and the podman network are removed when the scripts finish.
+
+## Multi-level caching (`capture-tiered.mjs`)
+
+Records the "Multi-level caching: L1 → Redis → Postgres" lesson into `src/modules/redis/data/tiered.ts`. The same
+three-level cache is written three times in `tiered/`:
+
+| app | L1 | Redis | Postgres |
+|---|---|---|---|
+| `tiered/micronaut` | Caffeine | micronaut-redis-lettuce | JDBC (Hikari) |
+| `tiered/ts` | lru-cache | ioredis | pg |
+| `tiered/rust` | moka | redis-rs | tokio-postgres |
+
+All three read commands on stdin (`get`, `update`, `update-silent`, `clear-l1`, `bench`, `stampede`) and print one
+JSON event per line, so the script drives two instances of each against one throwaway Redis (port 17400) and one
+throwaway PostgreSQL cluster (port 17401, 10,000 products and 500,000 reviews): a trace with Pub/Sub invalidation and a
+stale read, a 100-request stampede with and without single-flight, and a 20,000-read Zipf benchmark of no cache,
+Redis only and L1 + Redis.
+
+```sh
+(cd tiered/micronaut && gradle installDist)
+(cd tiered/ts && npm install)
+(cd tiered/rust && cargo build --release)
+node capture-tiered.mjs ../../src/modules/redis/data/tiered.ts
+```
