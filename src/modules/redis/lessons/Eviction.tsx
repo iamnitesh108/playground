@@ -1,6 +1,8 @@
 import { Callout, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
-import { BarList, CliSession, EvictionPlayground } from '../components'
+import { BarChart, Flow, Proportion, StatTiles, Timeline } from '@/shared/figures'
+import { CliSession, EvictionPlayground } from '../components'
 import { CAPTURE } from '../data/captures'
+import styles from './lesson.module.css'
 
 const V = CAPTURE.eviction
 const defaultPolicy = CAPTURE.operations.defaults['maxmemory-policy']
@@ -60,6 +62,14 @@ export default function Eviction() {
         The same experiment with <code>volatile-lru</code> and keys that have no TTL accepted {V.volatileNoTtl.acceptedBeforeError.toLocaleString()} keys and
         then failed with the same error: <code>{V.volatileNoTtl.error}</code>. No key was eligible for eviction.
       </Callout>
+      <StatTiles
+        title="maxmemory 2mb, 100-byte values, recorded"
+        stats={[
+          { label: 'noeviction: writes accepted', value: V.noeviction.acceptedBeforeError, sub: 'then every write: OOM', hue: 8 },
+          { label: 'volatile-lru, no TTLs: writes accepted', value: V.volatileNoTtl.acceptedBeforeError, sub: 'nothing eligible, same OOM', hue: 8 },
+          { label: 'keys evicted in both runs', value: 0, sub: 'reads kept working', hue: 6 },
+        ]}
+      />
 
       <h2>Approximated LRU: sample, then evict the oldest</h2>
       <p>
@@ -68,15 +78,46 @@ export default function Eviction() {
         To evict, Redis samples <code>maxmemory-samples</code> random keys (default 5), adds the best candidates to a small <strong>eviction pool</strong>{' '}
         (16 entries, kept sorted across evictions), and evicts the best candidate in the pool. More samples come closer to true LRU at more CPU cost.
       </p>
+      <Flow
+        title="What a write does when memory is full"
+        cols={5}
+        rows={2}
+        nodes={[
+          { id: 'write', label: 'a write', sub: 'SET cold:9001 …', col: 0, row: 0, hue: 1, shape: 'actor' },
+          { id: 'check', label: 'too full?', sub: 'used > maxmemory', col: 1, row: 0, hue: 2 },
+          { id: 'policy', label: 'policy', sub: 'which keys may go', col: 2, row: 0, hue: 2 },
+          { id: 'sample', label: 'sample keys', sub: 'maxmemory-samples', col: 3, row: 0, hue: 3 },
+          { id: 'pool', label: 'eviction pool', sub: '16 best candidates', col: 4, row: 0, hue: 3, shape: 'queue' },
+          { id: 'evict', label: 'evict the best', sub: 'oldest / least used', col: 4, row: 1, hue: 8 },
+          { id: 'run', label: 'run the write', sub: 'under the limit', col: 3, row: 1, hue: 6 },
+          { id: 'oom', label: 'OOM error', sub: 'nothing eligible', col: 2, row: 1, hue: 8 },
+        ]}
+        edges={[
+          { from: 'write', to: 'check', flow: true, hue: 1 },
+          { from: 'check', to: 'policy', label: 'yes', hue: 2 },
+          { from: 'policy', to: 'sample', flow: true, hue: 3 },
+          { from: 'sample', to: 'pool', flow: true, hue: 3 },
+          { from: 'pool', to: 'evict', flow: true, hue: 8 },
+          { from: 'evict', to: 'run', hue: 6 },
+          { from: 'policy', to: 'oom', label: 'none', dashed: true, hue: 8 },
+        ]}
+        steps={[
+          { title: 'Every write checks the limit first', body: <p>Before a command that adds memory runs, Redis compares <code>used_memory</code> with <code>maxmemory</code>.</p>, active: ['write', 'check', 'write>check'] },
+          { title: 'The policy decides who may go', body: <p><code>allkeys-*</code>: any key; <code>volatile-*</code>: only keys with a TTL; <code>noeviction</code>: nobody — the write fails with OOM.</p>, active: ['check', 'policy', 'oom', 'check>policy', 'policy>oom'] },
+          { title: 'Sample, keep the best candidates', body: <p>A few random keys are sampled; their idle time (LRU) or counter (LFU) is compared, and the best candidates go into a sorted pool of 16 that survives between evictions.</p>, active: ['policy', 'sample', 'pool', 'policy>sample', 'sample>pool'] },
+          { title: 'Evict, repeat, then run the write', body: <p>The best candidate in the pool is deleted; this repeats until memory is under the limit, then the write runs.</p>, active: ['pool', 'evict', 'run', 'pool>evict', 'evict>run'] },
+        ]}
+      />
       <p>
         The recording filled a 20 MB instance with 1,000 hot keys, then wrote 200,000 cold keys once while reading the hot keys over and over (200 hot reads
         per 1,000 writes). Memory held about {lru.keysLeft.toLocaleString()} keys, so roughly {lru.evicted.toLocaleString()} had to go. How many of the 1,000
         hot keys survived?
       </p>
-      <BarList
+      <BarChart
         title="Hot keys still present after the run (of 1,000), recorded"
         max={1000}
-        bars={baseline.map((r) => ({ label: r.policy, value: r.hotSurvived, emphasis: r.policy === 'allkeys-lfu', note: `${r.evicted.toLocaleString()} keys evicted` }))}
+        marker={{ value: 1000, label: 'all 1,000 hot keys' }}
+        bars={baseline.map((r) => ({ label: r.policy, value: r.hotSurvived, hue: r.policy === 'allkeys-lfu' ? 6 : 4, note: `${r.evicted.toLocaleString()} keys evicted` }))}
       />
       <p>
         LRU kept only {lru.hotSurvived} — far fewer than you would expect for keys read constantly. The suspect is the one-second clock: the whole run
@@ -84,26 +125,48 @@ export default function Eviction() {
         them apart. The recording tested exactly that: the same LRU workload in one burst (twice) and spread over about 20 seconds with a short pause after
         every 1,000 writes.
       </p>
-      <BarList
+      <BarChart
         title="allkeys-lru, the same workload at two speeds (hot keys kept of 1,000), recorded"
         max={1000}
+        marker={{ value: 1000, label: 'all 1,000 hot keys' }}
         bars={V.lruPace.map((r, i) => ({
           label: 'pauseMsPerBatch' in r ? 'spread over ~20 s' : `one burst, run ${i + 1}`,
           value: r.hotSurvived,
-          emphasis: 'pauseMsPerBatch' in r,
+          hue: 'pauseMsPerBatch' in r ? 6 : 4,
         }))}
       />
+      <Timeline
+        title="Schematic: why a burst confuses LRU — the clock only ticks once a second"
+        start={0}
+        end={2000}
+        lanes={[
+          { id: 'clock', label: 'LRU clock' },
+          { id: 'hot', label: 'hot key' },
+          { id: 'cold', label: 'cold key' },
+        ]}
+        segments={[
+          { lane: 'clock', from: 0, to: 1000, label: 'clock = t', hue: 4 },
+          { lane: 'clock', from: 1000, to: 2000, label: 'clock = t + 1', hue: 4 },
+        ]}
+        events={[
+          { lane: 'hot', at: 300, label: 'read: stamped t', hue: 6 },
+          { lane: 'cold', at: 800, label: 'written: stamped t', hue: 3 },
+        ]}
+      />
+      <p className={styles.note}>
+        The hot key was used later than the cold key was written, but both carry the same stamp — for eviction they look exactly as old as each other.
+      </p>
       <p>
         Spread out, hot keys are clearly fresher than cold ones and LRU keeps them; in a burst the result is low and varies from run to run. In a cache
         that lives for hours the clock’s resolution matters little; under a burst of writes it matters a lot.
       </p>
-      <BarList
+      <BarChart
         title="allkeys-lru with different maxmemory-samples, recorded"
         max={1000}
         bars={bySamples.map((r) => ({
           label: `samples ${'maxmemory-samples' in r ? r['maxmemory-samples'] : 5}`,
           value: r.hotSurvived,
-          emphasis: !('maxmemory-samples' in r),
+          hue: r.writeErrors ? 8 : 4,
           note: r.writeErrors ? `${r.writeErrors} writes failed with OOM although the policy allows evicting` : undefined,
           display: `${r.hotSurvived}${r.writeErrors ? ` · ${r.writeErrors} OOM errors` : ''}`,
         }))}
@@ -128,7 +191,12 @@ export default function Eviction() {
         grows logarithmically and saturates at 255. Every <code>lfu-decay-time</code> minutes without access it drops by one, so yesterday’s favourite
         fades. Recorded with the defaults (log factor {V.lfu.logFactor}, decay time {V.lfu.decayTime} minute):
       </p>
-      <Table head={['accesses', ...V.lfu.points.map((p) => p.accesses.toLocaleString())]} rows={[['OBJECT FREQ', ...V.lfu.points.map((p) => p.freq)]]} />
+      <BarChart
+        title="OBJECT FREQ after n accesses of a new key, recorded"
+        max={255}
+        marker={{ value: 255, label: 'the counter saturates at 255' }}
+        bars={V.lfu.points.map((p) => ({ label: `${p.accesses.toLocaleString()} access${p.accesses === 1 ? '' : 'es'}`, value: p.freq, hue: 3 }))}
+      />
       <p>
         Ten accesses barely move the counter; a thousand reach about {V.lfu.points.find((p) => p.accesses === 1000)?.freq}; a million saturate it. That is enough to separate hot from cold — which
         is why <code>allkeys-lfu</code> kept {baseline.find((r) => r.policy === 'allkeys-lfu')!.hotSurvived.toLocaleString()} of 1,000 hot keys above. With LRU the server tracks idle seconds instead: a key left alone for two seconds
@@ -147,6 +215,16 @@ export default function Eviction() {
       <p>
         <code>maxmemory</code> limits Redis’s own accounting of data, not the process size. Leave headroom for what is not counted or not data:
       </p>
+      <Proportion
+        title="Schematic: where a machine’s RAM goes besides the data (illustrative split, not a measurement)"
+        parts={[
+          { label: 'data, up to maxmemory', value: 65, hue: 3, display: 'what maxmemory limits' },
+          { label: 'replica / AOF buffers', value: 8, hue: 5, display: 'not counted in maxmemory' },
+          { label: 'client output buffers', value: 5, hue: 1, display: 'big replies, slow subscribers' },
+          { label: 'fragmentation', value: 10, hue: 7, display: 'RSS above used_memory' },
+          { label: 'copy-on-write while saving', value: 12, hue: 4, display: 'pages changed during BGSAVE' },
+        ]}
+      />
       <Table
         head={['Also uses RAM', 'Why it matters']}
         rows={[

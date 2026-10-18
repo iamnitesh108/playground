@@ -29,7 +29,8 @@
 .who {
   padding: 0 6px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--who, var(--border-strong));
+  background: color-mix(in oklab, var(--who, var(--surface)) 14%, var(--surface));
   font-family: var(--font-mono);
   font-size: 0.72rem;
   color: var(--text);
@@ -60,7 +61,19 @@
 /* Several connections: each one gets its own left rule, by position (not by colour alone). */
 .lane {
   padding-left: var(--space-3);
-  border-left: 2px solid var(--border);
+  border-left: 3px solid var(--c1);
+}
+
+.lane[data-index='1'] {
+  border-left-color: var(--c2);
+}
+
+.lane[data-index='2'] {
+  border-left-color: var(--c3);
+}
+
+.lane[data-index='3'] {
+  border-left-color: var(--c7);
 }
 
 .lane[data-index='1'] {
@@ -85,7 +98,6 @@
 
 .event {
   color: var(--text-muted);
-  font-style: italic;
 }
 
 .prompt {
@@ -105,13 +117,28 @@
 
 .blocked {
   color: var(--warn);
-  font-style: italic;
 }
 
 .note {
   font-family: var(--font-sans);
   font-size: 0.8rem;
   color: var(--text-muted);
-  font-style: italic;
   padding: var(--space-1) 0;
+}
+
+/* the connection chips in the header carry the same colour as their lane */
+.who[data-index='0'] {
+  --who: var(--c1);
+}
+
+.who[data-index='1'] {
+  --who: var(--c2);
+}
+
+.who[data-index='2'] {
+  --who: var(--c3);
+}
+
+.who[data-index='3'] {
+  --who: var(--c7);
 }

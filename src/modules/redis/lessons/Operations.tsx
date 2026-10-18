@@ -1,10 +1,26 @@
 import { Callout, CodeBlock, ConfigExplorer, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
+import { BarChart, Flow, Proportion, StatTiles } from '@/shared/figures'
 import { CliSession, LogLines } from '../components'
+import { OperationsChecklist } from '../components/OperationsChecklist'
 import { REDIS_CONF } from '../configs/redisConf'
 import { CAPTURE, REDIS_VERSION } from '../data/captures'
 import styles from './lesson.module.css'
 
 const O = CAPTURE.operations
+
+/** A field of a recorded INFO excerpt. */
+const field = (text: string, k: string) => text.match(new RegExp(`^${k}:(.*)$`, 'm'))?.[1]?.trim() ?? ''
+const human = (v: string) => Number.parseFloat(v) * ({ K: 1024, M: 1024 ** 2, G: 1024 ** 3 }[v.slice(-1)] ?? 1)
+const usedMemory = human(field(O.infoMemory, 'used_memory_human'))
+const rssMemory = human(field(O.infoMemory, 'used_memory_rss_human'))
+const maxMemory = human(field(O.infoMemory, 'maxmemory_human'))
+const mbOf = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`
+/** Slow log entries: duration (µs) and command, from the recorded SLOWLOG GET. */
+const SLOW = [...(O.slowlog[0].out ?? '').matchAll(/3\) \(integer\) (\d+)\n\s+4\) 1\) "([^"]+)"/g)].map((m) => ({ us: Number(m[1]), command: m[2] }))
+const slowThreshold = Number(O.defaults['slowlog-log-slower-than'])
+const latency = (O.latency[0].out ?? '').match(/"([^"]+)"[\s\S]*?3\) \(integer\) (\d+)[\s\S]*?4\) \(integer\) (\d+)/)
+const MEM = O.memoryUsage.map((s) => ({ key: s.cmd.split(' ').pop()!, bytes: Number(s.out.match(/\d+/)?.[0] ?? 0) }))
+const aclReply = (prefix: string) => O.acl.find((s) => s.cmd.startsWith(prefix))?.out.split(' ').slice(0, 2).join(' ') ?? ''
 
 export default function Operations() {
   return (
@@ -53,6 +69,36 @@ sudo systemctl restart redis-server
 sudo systemctl status redis-server
 redis-cli ping`}
       />
+      <Flow
+        title="A production layout: what talks to what (lessons 10–11 explain each part)"
+        cols={5}
+        rows={3}
+        rowHeight={74}
+        nodes={[
+          { id: 'apps', label: 'applications', sub: 'pooled clients', col: 0, row: 1, hue: 1, shape: 'queue' },
+          { id: 'primary', label: 'primary', sub: 'all writes', col: 2, row: 1, hue: 2 },
+          { id: 'r1', label: 'replica 1', sub: 'reads, standby', col: 4, row: 0, hue: 5 },
+          { id: 'r2', label: 'replica 2', sub: 'reads, standby', col: 4, row: 1, hue: 5 },
+          { id: 'sentinels', label: '3 Sentinels', sub: 'watch, fail over', col: 2, row: 0, hue: 5, shape: 'queue' },
+          { id: 'disk', label: 'RDB / AOF', sub: 'local disk', col: 2, row: 2, hue: 4, shape: 'store' },
+          { id: 'backup', label: 'backups', sub: 'another machine', col: 4, row: 2, hue: 4, shape: 'store' },
+        ]}
+        edges={[
+          { from: 'apps', to: 'primary', label: 'commands', flow: true, hue: 1 },
+          { from: 'primary', to: 'r1', flow: true, hue: 2 },
+          { from: 'primary', to: 'r2', label: 'replication', flow: true, hue: 2 },
+          { from: 'sentinels', to: 'primary', label: 'PING', hue: 5, dashed: true },
+          { from: 'apps', to: 'sentinels', label: 'who is primary?', hue: 5, dashed: true },
+          { from: 'primary', to: 'disk', label: 'persist', hue: 4 },
+          { from: 'disk', to: 'backup', label: 'copy off host', flow: true, hue: 4 },
+        ]}
+        steps={[
+          { title: 'Applications talk to the primary', body: <p>Every write goes to one primary through pooled, named connections (an ACL user per application).</p>, active: ['apps', 'primary', 'apps>primary'] },
+          { title: 'Replicas copy every write', body: <p>Replicas follow the primary's write stream asynchronously; they can serve reads that tolerate a little staleness and stand by for failover.</p>, active: ['primary', 'r1', 'r2', 'primary>r1', 'primary>r2'] },
+          { title: 'Persistence and backups', body: <p>The primary writes RDB snapshots and/or the AOF to local disk; a job copies them off the host — a backup on the same disk is not a backup.</p>, active: ['primary', 'disk', 'backup', 'primary>disk', 'disk>backup'] },
+          { title: 'Sentinels watch and fail over', body: <p>Three Sentinels on separate hosts ping the primary; if a quorum agrees it is down, they promote a replica. Clients ask a Sentinel for the current primary's address.</p>, active: ['sentinels', 'primary', 'apps', 'r1', 'r2', 'sentinels>primary', 'apps>sentinels'] },
+        ]}
+      />
       <p>Whichever you use, the server tells you at start-up what it does not like. The recorded server, started with no configuration, logged:</p>
       <LogLines title="start-up warnings" lines={O.startupWarnings} highlight={/WARNING/} />
 
@@ -77,6 +123,37 @@ redis-cli ping`}
         Every application gets its own ACL user, limited to its key prefixes (<code>~checkout:*</code>) and to command categories
         (<code>+@read</code>, <code>-@dangerous</code>). Recorded:
       </p>
+      <Flow
+        title="How Redis decides, for every command of user checkout (replies as recorded)"
+        cols={5}
+        rows={2}
+        rowHeight={84}
+        nodes={[
+          { id: 'cmd', label: 'command', sub: 'from the app', col: 0, row: 0, hue: 1, shape: 'actor' },
+          { id: 'auth', label: 'authenticated?', sub: 'AUTH user pass', col: 1, row: 0, hue: 2 },
+          { id: 'category', label: 'command allowed?', sub: '+@read +@write …', col: 2, row: 0, hue: 2 },
+          { id: 'keys', label: 'keys allowed?', sub: '~checkout:* ~session:*', col: 3, row: 0, hue: 2 },
+          { id: 'run', label: 'executed', sub: aclReply('SET checkout:cart:7'), col: 4, row: 0, hue: 6 },
+          { id: 'wrongpass', label: 'refused', sub: aclReply('AUTH checkout wrong'), col: 1, row: 1, hue: 8 },
+          { id: 'nocmd', label: 'refused', sub: aclReply('FLUSHALL'), col: 2, row: 1, hue: 8 },
+          { id: 'nokey', label: 'refused', sub: aclReply('GET billing'), col: 3, row: 1, hue: 8 },
+        ]}
+        edges={[
+          { from: 'cmd', to: 'auth', flow: true, hue: 1 },
+          { from: 'auth', to: 'category', label: 'yes', flow: true, hue: 2 },
+          { from: 'category', to: 'keys', label: 'yes', flow: true, hue: 2 },
+          { from: 'keys', to: 'run', label: 'yes', flow: true, hue: 6 },
+          { from: 'auth', to: 'wrongpass', label: 'no', hue: 8 },
+          { from: 'category', to: 'nocmd', label: 'no', hue: 8 },
+          { from: 'keys', to: 'nokey', label: 'no', hue: 8 },
+        ]}
+        steps={[
+          { title: 'Wrong password', body: <p><code>AUTH checkout wrong-password</code> fails before any command: <code>WRONGPASS</code>.</p>, active: ['cmd', 'auth', 'wrongpass', 'cmd>auth', 'auth>wrongpass'] },
+          { title: 'A command outside the user’s categories', body: <p><code>FLUSHALL</code> (and <code>KEYS</code>, and even <code>ACL WHOAMI</code>) is not in the granted categories: <code>NOPERM</code> for the command.</p>, active: ['cmd', 'auth', 'category', 'nocmd', 'cmd>auth', 'auth>category', 'category>nocmd'] },
+          { title: 'A key outside the user’s patterns', body: <p><code>GET billing:invoice:1</code>: GET is allowed, but the key matches neither <code>~checkout:*</code> nor <code>~session:*</code> — <code>NOPERM</code> for the key, before the key is even read.</p>, active: ['cmd', 'auth', 'category', 'keys', 'nokey', 'cmd>auth', 'auth>category', 'category>keys', 'keys>nokey'] },
+          { title: 'Everything matches', body: <p><code>SET checkout:cart:7 apple</code> passes all three checks and runs: <code>OK</code>.</p>, active: ['cmd', 'auth', 'category', 'keys', 'run', 'cmd>auth', 'auth>category', 'category>keys', 'keys>run'] },
+        ]}
+      />
       <CliSession title="recorded: an application user with limited rights" steps={O.acl} />
       <p className={styles.note}>
         Note the surprise: <code>ACL WHOAMI</code> was denied — it is only in the <code>@slow</code> category, which this user was not given.
@@ -94,6 +171,24 @@ redis-cli ping`}
       <h2>What to watch: INFO</h2>
       <p><code>INFO</code> returns sections of plain <code>field:value</code> lines. The sections this version has:</p>
       <p className={styles.mono}>{O.infoSections.join(' · ')}</p>
+      <StatTiles
+        title="The recorded server at a glance (from the excerpts below)"
+        stats={[
+          { label: 'used memory', value: field(O.infoMemory, 'used_memory_human'), sub: `of maxmemory ${field(O.infoMemory, 'maxmemory_human')}`, hue: 3, bar: { value: usedMemory, max: maxMemory } },
+          { label: 'fragmentation ratio', value: field(O.infoMemory, 'mem_fragmentation_ratio'), sub: `RSS ${field(O.infoMemory, 'used_memory_rss_human')}`, hue: 7 },
+          { label: 'keys in db0', value: Number(field(O.infoKeyspace, 'db0').match(/keys=(\d+)/)?.[1] ?? 0), hue: 3 },
+          { label: 'connected clients', value: field(O.infoClients, 'connected_clients'), sub: `max ${field(O.infoClients, 'maxclients')}`, hue: 1 },
+          { label: 'evicted keys', value: field(O.infoStats, 'evicted_keys'), sub: field(O.infoMemory, 'maxmemory_policy'), hue: 6 },
+        ]}
+      />
+      <Proportion
+        title="Where the memory limit stands (recorded INFO memory)"
+        parts={[
+          { label: 'used_memory (data, buffers)', value: usedMemory, display: mbOf(usedMemory), hue: 3 },
+          { label: 'extra the OS sees (RSS − used)', value: Math.max(0, rssMemory - usedMemory), display: mbOf(Math.max(0, rssMemory - usedMemory)), hue: 7 },
+          { label: 'free below maxmemory', value: Math.max(0, maxMemory - rssMemory), display: mbOf(Math.max(0, maxMemory - rssMemory)), hue: 6 },
+        ]}
+      />
       <div className={styles.grid2}>
         <CodeBlock title="INFO memory (excerpt)" language="text" code={O.infoMemory} />
         <CodeBlock title="INFO stats (excerpt)" language="text" code={O.infoStats} />
@@ -122,6 +217,12 @@ redis-cli ping`}
         is not included). Each entry: id, unix time, duration in microseconds, the command, the client address and name. Recorded with a 10 ms
         threshold:
       </p>
+      <BarChart
+        title="Slow log entries (recorded) against the threshold"
+        bars={SLOW.map((s) => ({ label: s.command, value: s.us / 1000, display: `${(s.us / 1000).toFixed(1)} ms`, hue: 8 }))}
+        max={Math.max(...SLOW.map((s) => s.us / 1000), slowThreshold / 1000) * 1.3}
+        marker={{ value: slowThreshold / 1000, label: `slowlog-log-slower-than ${slowThreshold.toLocaleString()} µs (the default) — anything longer is logged` }}
+      />
       <CliSession title="recorded: the slow log" steps={O.slowlog} />
       <p className={styles.note}>
         An <code>HGETALL</code> on a 100,000-field hash: one command, one key, and every other client waited behind it (lesson 1). Read big
@@ -130,11 +231,24 @@ redis-cli ping`}
 
       <h2>Latency spikes</h2>
       <p>The latency monitor groups events by cause, including those that are not commands (forks, expiry cycles, fsync):</p>
+      {latency && (
+        <StatTiles
+          stats={[
+            { label: 'event', value: latency[1], sub: 'what caused the spike', hue: 2 },
+            { label: 'latest spike', value: `${latency[2]} ms`, sub: 'one Lua loop', hue: 8 },
+            { label: 'worst ever', value: `${latency[3]} ms`, sub: 'since monitoring started', hue: 8 },
+          ]}
+        />
+      )}
       <CliSession title="recorded: after a 20,000,000-iteration Lua loop" steps={O.latency} />
       <CodeBlock title="LATENCY DOCTOR (recorded, start)" language="text" code={O.latencyDoctor.split('\n').slice(0, 9).join('\n')} />
 
       <h2>Memory: per key, and big keys</h2>
       <CliSession title="recorded: MEMORY USAGE" steps={O.memoryUsage} />
+      <BarChart
+        title="MEMORY USAGE of three keys (recorded): one small, two big"
+        bars={MEM.map((m) => ({ label: m.key, value: m.bytes, display: m.bytes > 1024 * 1024 ? mbOf(m.bytes) : `${m.bytes} B`, hue: m.bytes > 1024 * 1024 ? 8 : 3 }))}
+      />
       <p>
         <code>redis-cli --bigkeys</code> scans the keyspace with <code>SCAN</code> (safe on a live server) and reports the largest key of each
         type by element count; <code>--memkeys</code> does the same by bytes:
@@ -166,17 +280,17 @@ redis-cli ping`}
       </ul>
 
       <h2>Production checklist</h2>
-      <Table
-        head={['Area', 'Check']}
-        rows={[
-          ['Network', 'bound to private addresses only; firewall; TLS if traffic leaves a trusted network'],
-          ['Access', 'one ACL user per application, least privilege; default user disabled or strongly protected'],
-          ['Memory', 'maxmemory set with headroom; the eviction policy matches the data; overcommit_memory = 1; THP off'],
-          ['Durability', 'persistence chosen per data class (lesson 10); backups copied off the host and tested'],
-          ['Availability', 'replicas plus Sentinel or Cluster; repl-backlog-size sized; failover tested'],
-          ['Latency', 'no KEYS, no unbounded HGETALL/SMEMBERS/LRANGE on big keys; slow log and latency monitor on'],
-          ['Clients', 'pools with names, timeouts and retries with backoff; pipelining for batches'],
-          ['Monitoring', 'memory, evictions, hit ratio, clients, replication lag, persistence status, slow log'],
+      <OperationsChecklist
+        title="Before go-live"
+        areas={[
+          { area: 'Network', hue: 7, checks: ['bound to private addresses only', 'firewall in front', 'TLS if traffic leaves a trusted network'] },
+          { area: 'Access', hue: 2, checks: ['one ACL user per application', 'least privilege: key patterns and categories', 'default user disabled or strongly protected'] },
+          { area: 'Memory', hue: 3, checks: ['maxmemory set with headroom', 'eviction policy matches the data', 'vm.overcommit_memory = 1; THP not in the way'] },
+          { area: 'Durability', hue: 4, checks: ['persistence chosen per data class (lesson 10)', 'backups copied off the host', 'a restore actually tested'] },
+          { area: 'Availability', hue: 5, checks: ['replicas plus Sentinel or Cluster', 'repl-backlog-size sized for outages', 'failover rehearsed'] },
+          { area: 'Latency', hue: 8, checks: ['no KEYS in application code', 'no unbounded HGETALL / SMEMBERS / LRANGE on big keys', 'slow log and latency monitor on'] },
+          { area: 'Clients', hue: 1, checks: ['named pools with timeouts', 'retries with backoff', 'pipelining for batches'] },
+          { area: 'Monitoring', hue: 6, checks: ['memory and evictions', 'hit ratio and clients', 'replication lag and persistence status'] },
         ]}
       />
       <Callout tone="tip" title="Design rules">

@@ -2,9 +2,12 @@ import { useState } from 'react'
 import { useInterval } from '@/shared/hooks/useInterval'
 import { useObservable } from '@/shared/hooks/useObservable'
 import { Button, Demo, Segmented, TextField } from '@/shared/ui'
-import { ActivityFeed, ClusterView } from '../components'
+import { StatTiles } from '@/shared/figures'
+import { ActivityFeed, ClusterView, KafkaStage } from '../components'
 import { DefaultPartitioner, KafkaCluster, RoundRobinPartitioner, type OffsetReset } from '../simulation'
 import styles from './lesson.module.css'
+
+const consumersLabel = (n: number) => `${n} ${n === 1 ? 'consumer' : 'consumers'} in total`
 
 const RANDOM_KEYS = ['alice', 'bob', 'carol', 'dave', 'erin', 'frank', 'grace', 'heidi']
 
@@ -110,6 +113,16 @@ export default function Sandbox() {
             </Button>
           </div>
         </div>
+        <StatTiles
+          stats={[
+            { label: 'records in the topic', value: cluster.topic.partitionIds.reduce((n, p) => n + cluster.topic.endOffset(p), 0), sub: `${cluster.topic.partitionCount} partitions · ${cluster.partitionerName}`, hue: 3 },
+            { label: 'consumer groups', value: cluster.groups.length, sub: consumersLabel(cluster.groups.reduce((n, g) => n + g.members.length, 0)), hue: 1 },
+            { label: 'total lag', value: cluster.groups.reduce((n, g) => n + g.totalLag(), 0), sub: 'records not yet committed, all groups', hue: 8 },
+            { label: 'producing', value: producing ? 'streaming' : 'idle', sub: `next record v${seq}`, hue: 7 },
+          ]}
+        />
+        <KafkaStage cluster={cluster} flights={[]} now={0} />
+        <p className={styles.demoNote}>The picture above is the same cluster as the panels below; use the panels to poll, add or remove single consumers.</p>
         <ClusterView cluster={cluster} />
         <ActivityFeed items={cluster.activity} />
       </Demo>

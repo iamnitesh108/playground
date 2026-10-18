@@ -122,7 +122,6 @@
 
 .empty {
   color: var(--text-faint);
-  font-style: italic;
   font-size: 0.78rem;
 }
 

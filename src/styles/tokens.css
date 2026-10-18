@@ -29,6 +29,17 @@
   --tone-4: #5a5f8a;
   --tone-5: #6b7a4f;
 
+  /* Figure palette: eight categorical hues in a colour-blind-safe order (adjacent pairs).
+     Light slots 3, 4 and 5 are under 3:1 on white: always pair a colour with a visible label. */
+  --c1: #2a78d6;
+  --c2: #eb6834;
+  --c3: #1baf7a;
+  --c4: #eda100;
+  --c5: #e87ba4;
+  --c6: #008300;
+  --c7: #6250d6;
+  --c8: #e34948;
+
   --radius-sm: 4px;
   --radius: 6px;
   --radius-lg: 10px;
@@ -72,6 +83,15 @@
     --tone-3: #c296a6;
     --tone-4: #979cc8;
     --tone-5: #a7b684;
+
+    --c1: #3987e5;
+    --c2: #d95926;
+    --c3: #199e70;
+    --c4: #c98500;
+    --c5: #d55181;
+    --c6: #008300;
+    --c7: #9085e9;
+    --c8: #e66767;
     color-scheme: dark;
   }
 }
@@ -100,5 +120,14 @@
   --tone-3: #c296a6;
   --tone-4: #979cc8;
   --tone-5: #a7b684;
+
+    --c1: #3987e5;
+    --c2: #d95926;
+    --c3: #199e70;
+    --c4: #c98500;
+    --c5: #d55181;
+    --c6: #008300;
+    --c7: #9085e9;
+    --c8: #e66767;
   color-scheme: dark;
 }

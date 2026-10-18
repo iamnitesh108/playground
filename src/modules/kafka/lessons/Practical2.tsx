@@ -1,5 +1,8 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
+import { BarChart, StatTiles } from '@/shared/figures'
 import { AppLog, ScenarioPlayer, StagePlayground, Terminal, type ScenarioStep, type StageAction } from '../components'
+import { PracticalAssignments, PracticalPartitions, PracticalTopology } from '../components/PracticalFigures'
+import { parseMembers, parseOffsets, parseRecords } from '../components/PracticalParse'
 import { RUN_APP } from '../data/ordersApp'
 import { PRACTICALS } from '../data/practicals'
 
@@ -58,16 +61,24 @@ const STEPS: ScenarioStep[] = [
   },
 ]
 
-/** The member rows of a --members --verbose description, as client id → partitions. */
-const owners = (out: string) =>
-  out
-    .split('\n')
-    .filter((l) => /^\S+\s+\S+…/.test(l) && !l.startsWith('GROUP'))
-    .map((l) => {
-      const f = l.trim().split(/\s+/)
-      return `${f[3]}: ${f[6] === '-' ? 'idle' : f[6]}`
-    })
-    .join(' · ')
+/** Recorded stages as figure data: each consumer (client id) and the partitions it owned. */
+const stageOf = (label: string, out: string) => ({ label, members: parseMembers(out).map((m) => ({ name: m.client, partitions: m.partitions })).sort((a, b) => a.name.localeCompare(b.name)) })
+const STAGES = [
+  stageOf('1 consumer', one.describe.out),
+  stageOf('2 consumers', two.describe.out),
+  stageOf('3 consumers', three.describe.out),
+  stageOf('4 consumers', four.describe.out),
+  stageOf('c2 stopped', P.afterStop.describe.out),
+]
+const burstCounts = Object.entries(P.burst.outputs).map(([name, lines]) => ({ name, records: parseRecords(lines) }))
+const committed = parseOffsets(P.offsets.out)
+
+/** The app instances all share one client id; their member ids (and what they received) tell them apart. */
+const partitionOwner = new Map<number, string>()
+for (const [name, l] of Object.entries(P.app.logs)) for (const line of l.received) { const m = line.match(/partition=(\d+)/); if (m) partitionOwner.set(Number(m[1]), name) }
+const memberName = new Map<string, string>()
+for (const m of parseMembers(P.app.assignments.out)) if (m.partitions.length) memberName.set(m.member, partitionOwner.get(m.partitions[0]) ?? m.member)
+const appStage = (label: string, out: string) => ({ label, members: parseMembers(out).map((m) => ({ name: memberName.get(m.member) ?? 'app-4 (new)', partitions: m.partitions })).sort((a, b) => a.name.localeCompare(b.name)) })
 
 export default function Practical2() {
   return (
@@ -88,6 +99,7 @@ export default function Practical2() {
         a group splits the work by partition, so more consumers process more in parallel — up to the number of partitions. Every assignment below
         was read from a real Kafka {PRACTICALS.version} broker.
       </p>
+      <PracticalTopology topic="orders" partitions={3} groups={['billing']} />
       <ScenarioPlayer title="Practical 2: three partitions, one group, one to four consumers" setup={{ topic: 'orders', partitions: 3, groups: [{ id: 'billing', consumers: 0 }] }} steps={STEPS} />
 
       <h2>Part A — the command-line tools</h2>
@@ -98,6 +110,7 @@ export default function Practical2() {
       <h3>2. Keyed messages</h3>
       <p>With <code>parse.key=true</code> the producer splits each typed line at the separator into key and value:</p>
       <Terminal steps={[produce, where]} title="recorded: produce with keys, then read everything once" />
+      <PracticalPartitions title="Where the six keyed orders landed (recorded)" partitions={3} records={parseRecords(where.out.split('\n'))} />
       <p>
         The producer hashes the key (murmur2) and takes it modulo the number of partitions. The same key always lands in the same partition, so
         all orders of one customer stay <strong>in order</strong> — Kafka only orders records inside a partition. A different number of partitions
@@ -121,10 +134,7 @@ export default function Practical2() {
           ['CURRENT-EPOCH, TARGET-…', 'Used by the new consumer protocol (KIP-848). These console consumers use the classic protocol, so they show “-”.'],
         ]}
       />
-      <Table
-        head={['Consumers in billing', 'Assignment (recorded)']}
-        rows={[one, two, three, four].map((s, i) => [String(i + 1), owners(s.describe.out)])}
-      />
+      <PracticalAssignments title="Who owned which partition after each change (recorded with --members --verbose)" partitions={3} stages={STAGES} />
       <p>
         With two consumers the default range assignor gives the first member P0 and P1 and the second P2: three partitions do not divide by two,
         so the first members get one extra. The fourth consumer gets <strong>nothing</strong>: inside a group each partition has exactly one owner,
@@ -135,6 +145,11 @@ export default function Practical2() {
       <p>With three consumers running, six more orders were produced. Each consumer printed only its own partition:</p>
       <Terminal steps={[{ cmd: P.burst.cmd, out: P.burst.typed.map((t) => `> ${t}`).join('\n') }]} title="recorded: six more orders" />
       <AppLog title="recorded: what each consumer printed" panels={Object.entries(P.burst.outputs).map(([name, lines]) => ({ name, lines }))} />
+      <BarChart
+        title="Records each consumer received from the burst of six (recorded)"
+        max={P.burst.typed.length}
+        bars={burstCounts.map((b) => ({ label: `${b.name} · P${[...new Set(b.records.map((r) => r.partition))].join(', P')}`, value: b.records.length, hue: 1, display: `${b.records.length} of ${P.burst.typed.length}` }))}
+      />
 
       <h3>5. A consumer stops</h3>
       <p>
@@ -143,6 +158,10 @@ export default function Practical2() {
       </p>
       <Terminal steps={[{ ...P.afterStop.describe, label: P.afterStop.label }]} title="recorded: after c2 stopped" />
       <Terminal steps={[P.offsets]} title="recorded: the group’s progress" />
+      <StatTiles
+        title="Committed offset per partition after the move — it belongs to the group, not to a consumer"
+        stats={committed.map((r) => ({ label: `P${r.partition} → now ${r.client}`, value: `${r.current ?? '-'} / ${r.end}`, sub: `committed / log end · lag ${r.lag ?? '-'}`, hue: (r.lag ?? 0) > 0 ? 8 : 1, bar: { value: r.current ?? 0, max: r.end } }))}
+      />
       <p>
         Nothing was lost and nothing was read twice: the group’s <strong>committed offset</strong> for each partition (CURRENT-OFFSET) belongs to the
         group, not to a consumer. Whoever owns a partition next continues from there. LAG 0 everywhere: every record has been processed.
@@ -193,6 +212,15 @@ ${RUN_APP.producer.replace('APP_TOPIC=orders', 'APP_TOPIC=orders-p2')}`}
       />
       <p>All three instances have the same client id (Micronaut builds it from the application and listener names); the member id tells them apart. A fourth instance joined and stayed idle:</p>
       <Terminal steps={[P.app.fourth]} title="recorded: four instances, three partitions" />
+      <PracticalAssignments
+        title="The Micronaut instances (named by what they received; member ids from the recording)"
+        partitions={3}
+        stages={[appStage('3 instances', P.app.assignments.out), appStage('a 4th instance joins', P.app.fourth.out)]}
+      />
+      <BarChart
+        title="Orders each instance received (recorded)"
+        bars={Object.entries(P.app.logs).map(([name, l]) => ({ label: name, value: l.received.length, hue: 1, display: `${l.received.length} orders` }))}
+      />
       <TermList
         items={[
           { term: 'Rebalance', definition: 'Redistribution of partitions among the members of a group, whenever a member joins or leaves.' },

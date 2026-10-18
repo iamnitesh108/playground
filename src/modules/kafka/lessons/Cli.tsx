@@ -1,3 +1,4 @@
+import { Flow, Proportion } from '@/shared/figures'
 import { Callout, CodeBlock, Tabs } from '@/shared/ui'
 
 const BS = '--bootstrap-server localhost:9092'
@@ -10,6 +11,34 @@ export default function Cli() {
         some systems without the <code>.sh</code>). All of them need to know where the cluster is via{' '}
         <code>--bootstrap-server</code>.
       </p>
+
+      <Flow
+        title="Which tool acts on what"
+        cols={4}
+        rows={3}
+        rowHeight={78}
+        nodes={[
+          { id: 'producer', label: 'console-producer', sub: 'writes records', col: 0, row: 0, hue: 7 },
+          { id: 'topics', label: 'kafka-topics', sub: 'create · describe · alter', col: 1, row: 0, hue: 3 },
+          { id: 'configs', label: 'kafka-configs', sub: 'topic & broker settings', col: 2, row: 0, hue: 5 },
+          { id: 'offsets', label: 'kafka-get-offsets', sub: 'partition ends', col: 3, row: 0, hue: 3 },
+          { id: 'cluster', label: 'Kafka cluster', sub: '--bootstrap-server localhost:9092', col: 1, row: 1, span: 2, hue: 3, shape: 'store' },
+          { id: 'consumer', label: 'console-consumer', sub: 'reads records', col: 0, row: 2, hue: 1 },
+          { id: 'groups', label: 'kafka-consumer-groups', sub: 'members · lag · reset', col: 1, row: 2, hue: 5 },
+          { id: 'connect', label: 'Connect REST', sub: 'curl :8083', col: 2, row: 2, hue: 4 },
+          { id: 'psql', label: 'psql', sub: 'WAL · slots · CDC source', col: 3, row: 2, hue: 6 },
+        ]}
+        edges={[
+          { from: 'producer', to: 'cluster', label: 'records in', hue: 7, flow: true },
+          { from: 'topics', to: 'cluster', hue: 3 },
+          { from: 'configs', to: 'cluster', hue: 5 },
+          { from: 'offsets', to: 'cluster', hue: 3 },
+          { from: 'cluster', to: 'consumer', label: 'records out', hue: 1, flow: true },
+          { from: 'groups', to: 'cluster', label: 'offsets', hue: 5 },
+          { from: 'connect', to: 'cluster', label: 'via workers', hue: 4, dashed: true },
+          { from: 'psql', to: 'connect', hue: 6, dashed: true },
+        ]}
+      />
 
       <h2>Run a broker locally</h2>
       <CodeBlock
@@ -132,6 +161,13 @@ SELECT pg_drop_replication_slot('old_slot');      -- free WAL held by an unused 
         ]}
       />
 
+      <Proportion
+        title="One partition as kafka-consumer-groups --describe sees it (schematic numbers)"
+        parts={[
+          { label: 'CURRENT-OFFSET: committed, done', value: 1500, hue: 1, display: '0 – 1499' },
+          { label: 'LAG: written, not yet committed', value: 300, hue: 8, display: '1500 – 1799' },
+        ]}
+      />
       <Callout tone="tip" title="Reading consumer group output">
         In <code>--describe --group</code>, <code>CURRENT-OFFSET</code> is the committed offset,{' '}
         <code>LOG-END-OFFSET</code> is the end of the partition, and <code>LAG</code> is the difference. A{' '}

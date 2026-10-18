@@ -1,0 +1,63 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow-x: auto;
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.grid {
+  display: grid;
+  gap: 4px;
+  min-width: 520px;
+}
+
+.head {
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--hue-soft);
+  border-bottom: 3px solid var(--hue);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.rowLabel {
+  padding: 6px 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+  align-self: center;
+}
+
+.cell {
+  display: flex;
+  gap: 6px;
+  align-items: flex-start;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--hue-soft);
+  font-size: 0.76rem;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.mark {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--hue);
+  color: var(--surface);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}

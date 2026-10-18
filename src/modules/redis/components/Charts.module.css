@@ -77,11 +77,12 @@
 }
 
 .lineMain {
-  stroke: var(--accent);
+  stroke: var(--line, var(--accent));
+  stroke-width: 2.6;
 }
 
 .lineOther {
-  stroke: var(--text-faint);
+  stroke: var(--line, var(--text-faint));
   stroke-dasharray: 5 4;
 }
 
@@ -93,11 +94,11 @@
 }
 
 .dotMain {
-  fill: var(--accent);
+  fill: var(--line, var(--accent));
 }
 
 .dotOther {
-  fill: var(--text-faint);
+  fill: var(--line, var(--text-faint));
 }
 
 .hoverDot {
@@ -164,11 +165,11 @@
 }
 
 .barMain {
-  background: var(--accent);
+  background: var(--c2);
 }
 
 .barOther {
-  background: var(--text-faint);
+  background: var(--c1);
 }
 
 .barValue {

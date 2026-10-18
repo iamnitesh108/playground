@@ -1,0 +1,78 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow-x: auto;
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.grid {
+  display: grid;
+  gap: 3px;
+  align-items: center;
+  min-width: 480px;
+}
+
+.index {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  text-align: center;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--text);
+  padding-right: 6px;
+}
+
+.resultLabel {
+  font-weight: 700;
+}
+
+.bit {
+  height: 22px;
+  border-radius: 3px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  line-height: 20px;
+  text-align: center;
+  color: var(--text-faint);
+}
+
+.on {
+  background: color-mix(in oklab, var(--c3) 22%, var(--surface));
+  border-color: var(--c3);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.onResult {
+  background: color-mix(in oklab, var(--c6) 22%, var(--surface));
+  border-color: var(--c6);
+  color: var(--text);
+  font-weight: 700;
+}
+
+.count {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  padding-left: 6px;
+}
+
+.caption {
+  margin-top: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

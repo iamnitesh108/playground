@@ -1,11 +1,20 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, Tabs, TermList } from '@/shared/ui'
+import { Flow, StatTiles, Timeline } from '@/shared/figures'
 import { AppLog, ScenarioPlayer, Terminal, type ScenarioStep } from '../components'
+import { PracticalTopology } from '../components/PracticalFigures'
+import { parseOffsets } from '../components/PracticalParse'
 import { ORDERS_APP, RUN_APP } from '../data/ordersApp'
 import { PRACTICALS } from '../data/practicals'
 
 const P = PRACTICALS.p1
 const [create, describe, produce, readAll, readAgain, list] = P.cli
 const generated = list.out.split('\n').filter(Boolean)
+/** Offsets printed by the first read and the live consumer, and how many lines the second read printed. */
+const firstRead = [...readAll.out.matchAll(/Offset:(\d+)\t(.*)/g)].map((m) => ({ offset: Number(m[1]), value: m[2] }))
+const secondReadCount = readAgain.out.split('\n').filter(Boolean).length
+const live = P.liveConsumer.out.map((l) => l.match(/Offset:(\d+)\t(.*)/)).filter((m) => m !== null).map((m) => ({ offset: Number(m![1]), value: m![2] }))
+const LOG = [...firstRead, ...live]
+const appGroup = parseOffsets(P.app.describe.out)[0]
 
 const STEPS: ScenarioStep[] = [
   {
@@ -97,6 +106,7 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
         recording used the same image ({PRACTICALS.image}) with the same single-node setup written out explicitly (see{' '}
         <code>tools/kafka-capture</code>).
       </p>
+      <PracticalTopology topic="greetings" partitions={1} groups={['generated (console)', 'billing (app)']} />
       <Callout tone="note" title="No ZooKeeper">
         Kafka 4 runs without ZooKeeper: the brokers keep their own metadata with the KRaft protocol. Many older tutorials (and videos) start a
         ZooKeeper process first — with Kafka 4 there is nothing to start besides the broker.
@@ -144,6 +154,24 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
         left out of the recordings.
       </Callout>
 
+      <Timeline
+        title="One log, three readers: which offsets each one read (recorded)"
+        lanes={[
+          { id: 'log', label: 'partition 0' },
+          { id: 'r1', label: 'read 1 · --from-beginning' },
+          { id: 'r2', label: 'read 2 · --from-beginning' },
+          { id: 'r3', label: 'live consumer · latest' },
+        ]}
+        segments={[
+          ...LOG.map((r) => ({ lane: 'log', from: r.offset, to: r.offset + 1, label: r.value, hue: 3 as const })),
+          { lane: 'r1', from: 0, to: firstRead.length, label: `${firstRead.length} records`, hue: 1 },
+          { lane: 'r2', from: 0, to: secondReadCount, label: `${secondReadCount} records`, hue: 1 },
+          ...live.map((r) => ({ lane: 'r3', from: r.offset, to: r.offset + 1, label: `offset ${r.offset}`, hue: 2 as const })),
+        ]}
+        events={[{ lane: 'r3', at: live[0]?.offset ?? 0, label: 'starts at the end', hue: 2 }]}
+        end={LOG.length}
+        unit=""
+      />
       <h3>4. A live consumer</h3>
       <p>
         Now start a consumer <em>without</em> <code>--from-beginning</code> and leave it running. In a second terminal, produce one more line.
@@ -158,6 +186,13 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
 
       <h3>5. Every consumer was in a group</h3>
       <Terminal steps={[list]} title="recorded: the groups the broker knows" />
+      <StatTiles
+        stats={[
+          { label: 'records in the log', value: LOG.length, sub: 'nothing was deleted by reading', hue: 3 },
+          { label: 'console consumers run', value: generated.length, sub: 'each one a generated group', hue: 1 },
+          { label: 'offsets they committed', value: 0, sub: 'no --group: nothing saved', hue: 8 },
+        ]}
+      />
       <p>
         Three console consumers, three groups. Without <code>--group</code>, the console consumer makes up a group name, so every run is a new,
         independent reader. Practical 2 gives consumers the <em>same</em> group on purpose.
@@ -175,6 +210,26 @@ docker exec -it kafka /opt/kafka/bin/kafka-topics.sh --bootstrap-server localhos
         A Micronaut application can be a producer, a consumer, or both. The recording used one small app, <code>orders-app</code>, started in
         producer mode or consumer mode by an environment variable. These are its real files:
       </p>
+      <Flow
+        title="The app's two modes, and where the progress is saved"
+        cols={5}
+        rows={2}
+        nodes={[
+          { id: 'send', label: 'SendOrders', sub: 'producer mode', col: 0, row: 0, hue: 7, shape: 'actor' },
+          { id: 'client', label: 'OrderProducer', sub: '@KafkaClient, acks=all', col: 1, row: 0, hue: 7 },
+          { id: 'topic', label: 'orders-p1', sub: '1 partition', col: 2, row: 0, hue: 3, shape: 'log' },
+          { id: 'listener', label: 'OrderListener', sub: '@KafkaListener, group billing', col: 3, row: 0, hue: 1 },
+          { id: 'offsets', label: '__consumer_offsets', sub: 'commit every 5 s', col: 3, row: 1, hue: 5, shape: 'store' },
+          { id: 'log', label: 'your log', sub: 'received …', col: 4, row: 0, hue: 1, shape: 'actor' },
+        ]}
+        edges={[
+          { from: 'send', to: 'client', label: 'send(key, order)', flow: true, hue: 7 },
+          { from: 'client', to: 'topic', label: 'RecordMetadata', flow: true, hue: 7, both: true },
+          { from: 'topic', to: 'listener', label: 'poll', flow: true, hue: 1 },
+          { from: 'listener', to: 'offsets', label: 'auto-commit', hue: 5, dashed: true },
+          { from: 'listener', to: 'log', flow: true, hue: 1 },
+        ]}
+      />
       <Tabs items={FILES.map((f) => ({ label: f, content: <CodeBlock title={f} language={lang(f)} code={ORDERS_APP[f]} /> }))} />
       <TermList
         items={[
@@ -214,6 +269,13 @@ ${RUN_APP.consumer('app-1', 'billing', 'orders-p1')}`}
         first logged its assignment (<code>orders-p1-0</code>: topic orders-p1, partition 0), then received the three orders in order.
       </p>
       <Terminal steps={[P.app.describe]} title="recorded: the group’s progress, as Kafka sees it" />
+      <StatTiles
+        stats={[
+          { label: 'CURRENT-OFFSET (committed)', value: appGroup?.current ?? '-', sub: 'next offset the group will read', hue: 1 },
+          { label: 'LOG-END-OFFSET', value: appGroup?.end ?? '-', sub: 'next offset a new record gets', hue: 3 },
+          { label: 'LAG', value: appGroup?.lag ?? '-', sub: 'records waiting for the group', hue: (appGroup?.lag ?? 0) > 0 ? 8 : 6 },
+        ]}
+      />
       <p>
         <code>CURRENT-OFFSET 3</code> is the group’s committed offset — “everything before offset 3 is done” — and <code>LAG 0</code> means nothing
         is waiting. Micronaut’s default (<code>OffsetStrategy.AUTO</code>) uses Kafka’s automatic commit, which saves the position every 5 s

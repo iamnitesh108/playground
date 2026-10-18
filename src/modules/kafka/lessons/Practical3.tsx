@@ -1,5 +1,7 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
+import { BarChart, Flow, StatTiles, Timeline, type Hue } from '@/shared/figures'
 import { AppLog, ScenarioPlayer, Terminal, type ScenarioStep, type StageAction } from '../components'
+import { parseOffsets } from '../components/PracticalParse'
 import { PRACTICALS } from '../data/practicals'
 import { ORDERS_APP, RUN_APP } from '../data/ordersApp'
 
@@ -15,6 +17,19 @@ const rounds = (n: number): StageAction[] => Array.from({ length: n }, () => ({ 
 
 const FIRST = P.cli.find((c) => 'typed' in c)
 const FIRST_TYPED: readonly string[] = FIRST && 'typed' in FIRST ? FIRST.typed : []
+
+/** Who owned which partition in each group when the payments arrived (recorded). */
+const OWNERS = parseOffsets(P.describeBoth.out)
+const CONSUMERS = [...new Set(OWNERS.map((r) => `${r.group}|${r.client}`))].map((k) => k.split('|'))
+const groupHue = (g: string): Hue => (g === 'billing' ? 1 : 2)
+const received = [
+  { name: 'billing-1', group: 'billing', n: P.groups.billing.out.length },
+  { name: 'analytics-1', group: 'analytics', n: P.groups['analytics-1'].out.length },
+  { name: 'analytics-2', group: 'analytics', n: P.groups['analytics-2'].out.length },
+]
+const awayLag = parseOffsets(P.whileAway.describe.out)
+const awayTotal = awayLag.reduce((n, r) => n + (r.lag ?? 0), 0)
+const caughtLag = parseOffsets(P.caughtUp.describe.out).reduce((n, r) => n + (r.lag ?? 0), 0)
 
 const STEPS: ScenarioStep[] = [
   {
@@ -100,6 +115,27 @@ export default function Practical3() {
         ]}
       />
 
+      <Flow
+        title="One topic, two groups: who reads which partition (recorded assignment)"
+        cols={4}
+        rows={3}
+        rowHeight={72}
+        nodes={[
+          { id: 'producer', label: 'producer', sub: 'console producer', col: 0, row: 1, hue: 7, shape: 'actor' },
+          ...[0, 1, 2].map((p) => ({ id: `p${p}`, label: `payments P${p}`, col: 1, row: p, hue: 3 as Hue, shape: 'log' as const })),
+          ...CONSUMERS.map(([g, c]) => {
+            // analytics' two consumers next to the partitions, billing's single consumer on the right, so no line crosses a box
+            const peers = CONSUMERS.filter(([pg]) => pg === g).map(([, pc]) => pc)
+            const row = g === 'billing' ? 1 : peers.indexOf(c) * 2
+            return { id: c, label: c, sub: `group ${g}`, col: g === 'billing' ? 3 : 2, row, hue: groupHue(g) }
+          }),
+        ]}
+        edges={[
+          ...[0, 1, 2].map((p) => ({ from: 'producer', to: `p${p}`, hue: 7 as Hue })),
+          ...OWNERS.map((r) => ({ from: `p${r.partition}`, to: r.client, flow: true, hue: groupHue(r.group), dashed: r.group !== 'billing' })),
+        ]}
+        caption="billing (blue) has one consumer, so it owns every partition. analytics (orange, dashed) has two, so they split the partitions. Each group still reads every payment."
+      />
       <ScenarioPlayer title="Two groups on one topic" setup={{ topic: 'payments', partitions: 3, groups: [{ id: 'billing', consumers: 1 }, { id: 'analytics', consumers: 2 }] }} steps={STEPS} />
 
       <Predict
@@ -136,6 +172,19 @@ export default function Practical3() {
           { name: 'terminal 4 — group analytics, consumer 2', lines: P.groups['analytics-2'].out },
         ]}
       />
+      <BarChart
+        title="Payments each consumer printed (recorded)"
+        max={6}
+        bars={received.map((r) => ({ label: `${r.name} · ${r.group}`, value: r.n, hue: groupHue(r.group), display: `${r.n} payments` }))}
+      />
+      <StatTiles
+        stats={[
+          { label: 'payments produced', value: 6, hue: 7 },
+          { label: 'group billing processed', value: received[0].n, sub: 'one consumer', hue: 1 },
+          { label: 'group analytics processed', value: received[1].n + received[2].n, sub: `split ${received[1].n} + ${received[2].n}`, hue: 2 },
+          { label: 'deliveries in total', value: received.reduce((n, r) => n + r.n, 0), sub: 'each group gets everything', hue: 3 },
+        ]}
+      />
       <p>
         billing printed all {P.groups.billing.out.length}. analytics printed all six too, but split: {P.groups['analytics-1'].out.length} from
         partitions 0 and 1 in terminal 3, {P.groups['analytics-2'].out.length} from partition 2 in terminal 4. Within each partition the order is kept
@@ -169,11 +218,23 @@ export default function Practical3() {
       <Terminal steps={[{ cmd: P.whileAway.cmd, out: P.whileAway.typed.map((t) => '> ' + t).join('\n') }]} title="terminal 1 — three more payments" />
       <AppLog title="recorded: terminal 2 (billing) printed them at once" panels={[{ name: 'group billing', lines: P.whileAway.billingSaw }]} />
       <Terminal steps={[P.whileAway.describe]} title="terminal 1 — analytics, no consumer running" />
+      <BarChart
+        title={`analytics lag per partition while it was stopped — ${awayTotal} payments waiting (recorded)`}
+        max={Math.max(1, ...awayLag.map((r) => r.lag ?? 0))}
+        bars={awayLag.map((r) => ({ label: `P${r.partition} · committed ${r.current} of ${r.end}`, value: r.lag ?? 0, hue: (r.lag ?? 0) > 0 ? 8 : 6, display: `lag ${r.lag}` }))}
+      />
       <p>
         No CONSUMER-ID (nobody is running), and LAG where new records arrived: the committed offsets did not move. Start one analytics consumer
         again — without <code>--from-beginning</code> this time; the group has committed offsets, so it would be ignored anyway:
       </p>
       <Terminal steps={[{ cmd: P.caughtUp.cmd, out: lines(P.caughtUp.out) }, P.caughtUp.describe]} title="terminal 3 — analytics catches up" />
+      <StatTiles
+        stats={[
+          { label: 'lag while stopped', value: awayTotal, hue: 8 },
+          { label: 'printed on return', value: P.caughtUp.out.length, sub: 'only the missed ones', hue: 2 },
+          { label: 'lag afterwards', value: caughtLag, hue: 6 },
+        ]}
+      />
       <p>It printed only the three it missed, and the lag is back to 0. One consumer now owns all three partitions of analytics.</p>
 
       <Predict
@@ -191,6 +252,31 @@ export default function Practical3() {
       <Terminal steps={[P.reset.dryRun, P.reset.execute]} title="terminal 1 — reset analytics to the earliest offsets" />
       <Terminal steps={[{ cmd: P.replay.cmd, out: lines(P.replay.out) }]} title="terminal 3 — analytics reads everything again" />
       <p>All {P.replay.out.length} payments again. billing was not affected: its offsets are separate.</p>
+      <Timeline
+        title="The whole practical, in order: two groups, one outage, a replay"
+        lanes={[
+          { id: 'topic', label: 'topic payments' },
+          { id: 'billing', label: 'group billing' },
+          { id: 'analytics', label: 'group analytics' },
+        ]}
+        segments={[
+          { lane: 'billing', from: 0, to: 2, label: `reads ${received[0].n}`, hue: 1 },
+          { lane: 'billing', from: 2, to: 3, label: `reads ${P.whileAway.billingSaw.length}`, hue: 1 },
+          { lane: 'billing', from: 3, to: 6, label: 'up to date', hue: 1 },
+          { lane: 'analytics', from: 0, to: 1, label: `reads ${received[1].n + received[2].n}`, hue: 2 },
+          { lane: 'analytics', from: 1, to: 3, label: `stopped · lag ${awayTotal}`, hue: 8, striped: true },
+          { lane: 'analytics', from: 3, to: 4, label: `catches up ${P.caughtUp.out.length}`, hue: 2 },
+          { lane: 'analytics', from: 5, to: 6, label: `replays ${P.replay.out.length}`, hue: 2 },
+        ]}
+        events={[
+          { lane: 'topic', at: 0, label: '6 payments', hue: 7 },
+          { lane: 'topic', at: 2, label: `${P.whileAway.typed.length} more`, hue: 7 },
+          { lane: 'analytics', at: 4.5, label: 'reset to earliest', hue: 5 },
+        ]}
+        end={6}
+        unit=""
+        playable
+      />
       <Callout tone="warn" title="Resetting offsets">
         <ul>
           <li>
@@ -235,6 +321,11 @@ export default function Practical3() {
         panels={Object.entries(P.app.logs).map(([name, lns]) => ({ name, lines: lns }))}
       />
       <Terminal steps={[P.app.describe]} title="both groups afterwards" />
+      <BarChart
+        title="Orders each Micronaut instance received (recorded)"
+        max={6}
+        bars={Object.entries(P.app.logs).map(([name, l]) => ({ label: name, value: l.length, hue: name.startsWith('billing') ? 1 : 2, display: `${l.length} orders` }))}
+      />
       <p>
         The same picture as with the CLI: billing-app’s single instance received all six, analytics-app’s two instances split them by partition,
         and both groups end with lag 0. The client id is the same for every instance (<code>orders-app-order-listener</code>); the group decides who

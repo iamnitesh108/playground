@@ -6,7 +6,8 @@
 }
 
 .broker {
-  border: 1px solid var(--border-strong);
+  border: 1.5px solid var(--c3);
+  border-top-width: 4px;
   border-radius: var(--radius);
   padding: var(--space-3);
   background: var(--surface);
@@ -34,8 +35,8 @@
 }
 
 .leader {
-  border-color: var(--accent);
-  background: var(--accent-soft);
+  border-color: var(--c3);
+  background: color-mix(in oklab, var(--c3) 16%, var(--surface));
   color: var(--text);
   font-weight: 600;
 }
@@ -44,8 +45,9 @@
   grid-column: 1 / -1;
   text-align: center;
   font-size: 0.8rem;
-  color: var(--text-muted);
-  border: 1px dashed var(--border-strong);
+  color: var(--text);
+  border: 1.5px dashed var(--c5);
+  background: color-mix(in oklab, var(--c5) 12%, var(--surface));
   border-radius: var(--radius);
   padding: var(--space-2);
 }

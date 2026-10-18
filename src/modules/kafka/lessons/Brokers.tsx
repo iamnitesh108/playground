@@ -1,4 +1,5 @@
-import { Box, Callout, CodeBlock, Column, Connector, Row, TermList, Walkthrough } from '@/shared/ui'
+import { Callout, CodeBlock, TermList } from '@/shared/ui'
+import { Flow } from '@/shared/figures'
 import { cx } from '@/shared/utils/cx'
 import own from './Brokers.module.css'
 
@@ -86,48 +87,92 @@ const STEPS = [
 
 function BootstrapFlow() {
   return (
-    <Walkthrough title="How a client finds the right broker" steps={STEPS}>
-      {(step) => (
-        <Row gap={0} align="center">
-          <Box title="Client" caption="producer or consumer" active={step <= 1 || step === 3} />
-          <Column gap={10}>
-            {[1, 2, 3].map((id) => {
-              const isBootstrap = id === 1
-              const forward = (isBootstrap && step <= 1) || (step === 3 && id !== 1) || (step === 4 && id === 3)
-              const back = isBootstrap && step === 2
-              return (
-                <Row key={id} gap={0} align="center">
-                  <div style={{ width: 150, display: 'flex' }}>
-                    <Connector
-                      active={forward || back}
-                      direction={back ? 'left' : 'right'}
-                      dashed={!isBootstrap && step < 3}
-                      label={
-                        isBootstrap && step === 1
-                          ? 'metadata?'
-                          : back
-                            ? 'leaders map'
-                            : step === 3 && id !== 1
-                              ? `P${id - 1}`
-                              : step === 4 && id === 3
-                                ? 'retry P1'
-                                : undefined
-                      }
-                    />
-                  </div>
-                  <Box
-                    title={`Broker ${id}`}
-                    caption={step === 4 && id === 2 ? 'down' : `leader of P${id - 1}${step === 4 && id === 3 ? ' + P1' : ''}`}
-                    active={(isBootstrap && step <= 2) || (step === 3 && id !== 1) || (step === 4 && id === 3)}
-                    dimmed={step === 4 && id === 2}
-                  />
-                </Row>
-              )
-            })}
-          </Column>
-        </Row>
-      )}
-    </Walkthrough>
+    <Flow
+      title="How a client finds the right broker"
+      cols={5}
+      rows={3}
+      rowHeight={72}
+      nodes={[
+        { id: 'client', label: 'client', sub: 'your app', col: 0, row: 1, hue: 7, shape: 'actor' },
+        { id: 'b1', label: 'broker 1', sub: 'leader of P0', col: 2, row: 0, hue: 3 },
+        { id: 'b2', label: 'broker 2', sub: 'leader of P1', col: 2, row: 1, hue: 3 },
+        { id: 'b3', label: 'broker 3', sub: 'leader of P2', col: 2, row: 2, hue: 3 },
+        { id: 'ctrl', label: 'controller', sub: 'publishes metadata', col: 4, row: 1, hue: 5 },
+      ]}
+      edges={[
+        { from: 'client', to: 'b1', label: 'bootstrap · P0', both: true, hue: 7 },
+        { from: 'client', to: 'b2', label: 'P1', flow: true, hue: 7 },
+        { from: 'client', to: 'b3', label: 'P2', flow: true, hue: 7 },
+        { from: 'ctrl', to: 'b1', dashed: true, hue: 5 },
+        { from: 'ctrl', to: 'b2', dashed: true, hue: 5 },
+        { from: 'ctrl', to: 'b3', dashed: true, hue: 5 },
+      ]}
+      steps={STEPS.map((step, i) => ({
+        ...step,
+        active: [
+          ['client', 'b1', 'client>b1'],
+          ['client', 'b1', 'client>b1'],
+          ['b1', 'client', 'client>b1', 'ctrl', 'ctrl>b1', 'ctrl>b2', 'ctrl>b3'],
+          ['client', 'b1', 'b2', 'b3', 'client>b1', 'client>b2', 'client>b3'],
+          ['client', 'b3', 'client>b3', 'ctrl', 'ctrl>b3'],
+        ][i],
+      }))}
+      caption="Step 5: broker 2 is down (dimmed); the controller made broker 3 the new leader of P1, so the client’s retry for P1 goes to broker 3."
+    />
+  )
+}
+
+function Topology() {
+  return (
+    <Flow
+      title="A KRaft cluster: a controller quorum above, brokers below, clients talking to brokers"
+      cols={3}
+      rows={3}
+      rowHeight={76}
+      nodes={[
+        { id: 'c1', label: 'controller 1', sub: 'active (quorum leader)', col: 0, row: 0, hue: 5 },
+        { id: 'c2', label: 'controller 2', sub: 'metadata log replica', col: 1, row: 0, hue: 5 },
+        { id: 'c3', label: 'controller 3', sub: 'metadata log replica', col: 2, row: 0, hue: 5 },
+        { id: 'b1', label: 'broker 1', sub: 'partitions on disk', col: 0, row: 1, hue: 3 },
+        { id: 'b2', label: 'broker 2', sub: 'partitions on disk', col: 1, row: 1, hue: 3 },
+        { id: 'b3', label: 'broker 3', sub: 'partitions on disk', col: 2, row: 1, hue: 3 },
+        { id: 'prod', label: 'producers', sub: 'write to leaders', col: 0, row: 2, hue: 7, shape: 'actor' },
+        { id: 'cons', label: 'consumers', sub: 'read from leaders', col: 2, row: 2, hue: 1, shape: 'actor' },
+      ]}
+      edges={[
+        { from: 'c1', to: 'c2', label: 'Raft', both: true, hue: 5 },
+        { from: 'c2', to: 'c3', label: 'Raft', both: true, hue: 5 },
+        { from: 'c1', to: 'b1', label: 'metadata', dashed: true, hue: 5 },
+        { from: 'c2', to: 'b2', dashed: true, hue: 5 },
+        { from: 'c3', to: 'b3', dashed: true, hue: 5 },
+        { from: 'prod', to: 'b1', flow: true, hue: 7 },
+        { from: 'prod', to: 'b2', flow: true, hue: 7 },
+        { from: 'b2', to: 'cons', flow: true, hue: 1 },
+        { from: 'b3', to: 'cons', flow: true, hue: 1 },
+      ]}
+      caption="Schematic of a 3 + 3 layout. Brokers fetch the metadata log from the controllers (every broker keeps a copy); clients never talk to controllers. A laptop setup runs one process with both roles."
+    />
+  )
+}
+
+function AdvertisedListener() {
+  return (
+    <Flow
+      title="The advertised-listener trap: bootstrap works, everything after it fails"
+      cols={3}
+      rows={2}
+      rowHeight={80}
+      nodes={[
+        { id: 'client', label: 'client on your laptop', sub: 'bootstrap localhost:9092', col: 0, row: 0, hue: 7, shape: 'actor' },
+        { id: 'broker', label: 'broker in a container', sub: 'advertises kafka:9092', col: 2, row: 0, hue: 3 },
+        { id: 'nowhere', label: 'kafka:9092', sub: 'unknown name outside', col: 1, row: 1, hue: 8 },
+      ]}
+      edges={[
+        { from: 'client', to: 'broker', label: '1. bootstrap + metadata OK', both: true, hue: 6 },
+        { from: 'broker', to: 'nowhere', label: '2. “use this”', dashed: true, hue: 3 },
+        { from: 'client', to: 'nowhere', label: '3. connect fails', dashed: true, hue: 8 },
+      ]}
+    />
   )
 }
 
@@ -158,6 +203,7 @@ export default function Brokers() {
         Older Kafka stored metadata in a separate system called ZooKeeper. KRaft replaced it; Kafka 4.0 removed
         ZooKeeper completely. If a tutorial asks you to start ZooKeeper first, it is out of date.
       </Callout>
+      <Topology />
       <p>
         A node’s job is set by <code>process.roles</code>. Big clusters run dedicated controllers; a laptop or test
         setup commonly runs a single process that is both:
@@ -193,6 +239,7 @@ log.dirs=/var/lib/kafka
           client (say, a container-internal hostname), the bootstrap succeeds but every following request fails.
         </p>
       </Callout>
+      <AdvertisedListener />
 
       <h2>Words from this lesson</h2>
       <TermList

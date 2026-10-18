@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react'
 import { useObservable } from '@/shared/hooks/useObservable'
 import { Box, Button, Callout, CodeBlock, Column, Connector, Demo, Row, Segmented, Table, TermList, TextField, Walkthrough } from '@/shared/ui'
+import { Flow, Timeline } from '@/shared/figures'
 import { PartitionLog } from '../components'
 import { DefaultPartitioner, KafkaCluster, murmur2, RoundRobinPartitioner, toPositive } from '../simulation'
 import styles from './lesson.module.css'
-
-const PIPELINE = ['send()', 'Serializer', 'Partitioner', 'Accumulator', 'Sender', 'Leader broker']
 
 const SEND_STEPS = [
   { title: 'Your code calls send()', body: <p>You hand the producer a topic, a key and a value. The call normally returns at once (it only blocks, up to <code>max.block.ms</code>, while fetching metadata or when the send buffer is full); the work happens in the background.</p> },
@@ -18,22 +17,41 @@ const SEND_STEPS = [
 
 function SendPipeline() {
   return (
-    <Walkthrough title="The life of producer.send()" steps={SEND_STEPS}>
-      {(step) => (
-        <Row>
-          {PIPELINE.map((stage, i) => (
-            <Row key={stage}>
-              {i > 0 && (
-                <div style={{ width: 34, display: 'flex' }}>
-                  <Connector active={i === step} />
-                </div>
-              )}
-              <Box title={stage} active={i === step} dimmed={i > step} />
-            </Row>
-          ))}
-        </Row>
-      )}
-    </Walkthrough>
+    <Flow
+      title="The life of producer.send()"
+      cols={5}
+      rows={2}
+      rowHeight={104}
+      caption="The sender thread sends one ProduceRequest per leader broker, carrying the ready batches of all partitions that broker leads."
+      nodes={[
+        { id: 'app', label: 'send()', sub: 'your code', col: 0, row: 0, hue: 7, shape: 'actor' },
+        { id: 'ser', label: 'serializers', sub: 'to bytes', col: 1, row: 0, hue: 7 },
+        { id: 'part', label: 'partitioner', sub: 'picks partition', col: 2, row: 0, hue: 7 },
+        { id: 'acc', label: 'accumulator', sub: 'batch per partition', col: 3, row: 0, hue: 7, shape: 'queue' },
+        { id: 'sender', label: 'sender thread', sub: 'background I/O', col: 4, row: 0, hue: 7 },
+        { id: 'leader', label: 'leader broker', sub: 'appends batch', col: 4, row: 1, hue: 3, shape: 'log' },
+        { id: 'cb', label: 'callback', sub: 'offset or error', col: 0, row: 1, hue: 7 },
+      ]}
+      edges={[
+        { from: 'app', to: 'ser', flow: true, hue: 7 },
+        { from: 'ser', to: 'part', flow: true, hue: 7 },
+        { from: 'part', to: 'acc', flow: true, hue: 7 },
+        { from: 'acc', to: 'sender', flow: true, hue: 7 },
+        { from: 'sender', to: 'leader', flow: true, hue: 3 },
+        { from: 'leader', to: 'cb', label: 'ack: partition + offset', flow: true, hue: 3 },
+      ]}
+      steps={SEND_STEPS.map((step, i) => ({
+        ...step,
+        active: [
+          ['app', 'app>ser'],
+          ['ser', 'app>ser', 'ser>part'],
+          ['part', 'ser>part', 'part>acc'],
+          ['acc', 'part>acc'],
+          ['acc', 'sender', 'acc>sender', 'sender>leader'],
+          ['leader', 'cb', 'sender>leader', 'leader>cb'],
+        ][i],
+      }))}
+    />
   )
 }
 
@@ -55,20 +73,22 @@ function PartitionerMath() {
       }
     >
       {key ? (
-        <div className={styles.grid2}>
-          <div className={styles.stat}>
-            <div className={styles.statLabel}>murmur2(bytes)</div>
-            <div className={styles.statValue}>{hash}</div>
-          </div>
-          <div className={styles.stat}>
-            <div className={styles.statLabel}>make positive (&amp; 0x7fffffff)</div>
-            <div className={styles.statValue}>{positive}</div>
-          </div>
-          <div className={styles.stat}>
-            <div className={styles.statLabel}>% {count}</div>
-            <div className={styles.statValue}>partition {positive % count}</div>
-          </div>
-        </div>
+        <Flow
+          cols={4}
+          rows={1}
+          rowHeight={92}
+          nodes={[
+            { id: 'k', label: 'key bytes', sub: `"${key}"`.slice(0, 18), col: 0, row: 0, hue: 7 },
+            { id: 'h', label: 'murmur2', sub: String(hash), col: 1, row: 0, hue: 7 },
+            { id: 'p', label: '& 0x7fffffff', sub: String(positive), col: 2, row: 0, hue: 7 },
+            { id: 'r', label: `% ${count}`, sub: `partition ${positive % count}`, col: 3, row: 0, hue: 3, shape: 'log' },
+          ]}
+          edges={[
+            { from: 'k', to: 'h', flow: true, hue: 7 },
+            { from: 'h', to: 'p', flow: true, hue: 7 },
+            { from: 'p', to: 'r', flow: true, hue: 3 },
+          ]}
+        />
       ) : (
         <p className={styles.demoNote}>No key: the hash is skipped. The producer uses the “sticky” strategy — it fills a batch for one partition, then switches to another, spreading load evenly over time.</p>
       )}
@@ -205,6 +225,31 @@ export default function Producers() {
         </li>
       </ul>
 
+      <Timeline
+        title="Two batches for one partition: one leaves at linger.ms, one leaves full (schematic, linger.ms=5)"
+        lanes={[
+          { id: 'arrive', label: 'send() calls' },
+          { id: 'batch', label: 'batch for P0' },
+          { id: 'net', label: 'network' },
+        ]}
+        segments={[
+          { lane: 'batch', from: 0, to: 5, label: 'batch 1: 3 records', hue: 7 },
+          { lane: 'batch', from: 6, to: 9, label: 'batch 2', hue: 7 },
+          { lane: 'net', from: 5, to: 6.2, label: 'send', hue: 3 },
+          { lane: 'net', from: 9, to: 10.2, label: 'send', hue: 3 },
+        ]}
+        events={[
+          { lane: 'arrive', at: 0, label: 'r1', hue: 7 },
+          { lane: 'arrive', at: 1.5, label: 'r2', hue: 7 },
+          { lane: 'arrive', at: 3, label: 'r3', hue: 7 },
+          { lane: 'arrive', at: 6, label: 'r4…', hue: 7 },
+          { lane: 'batch', at: 5, label: 'linger.ms reached', hue: 5 },
+          { lane: 'batch', at: 9, label: 'batch.size full', hue: 5 },
+        ]}
+        end={12}
+        playable
+      />
+
       <h2>Acknowledgements: how sure do you need to be?</h2>
       <p>
         The <code>acks</code> setting says when the leader may tell the producer “got it”. It is a trade-off between
@@ -217,6 +262,30 @@ export default function Producers() {
           ['1', 'the leader to write it', 'Lost if the leader dies before followers copy it.'],
           ['all (-1)', 'every in-sync replica', 'Safest. The default since Kafka 3.0.'],
         ]}
+      />
+      <Timeline
+        title="When does the producer hear “OK”? (schematic time)"
+        lanes={[
+          { id: 'a0', label: 'acks=0' },
+          { id: 'a1', label: 'acks=1' },
+          { id: 'aall', label: 'acks=all' },
+        ]}
+        segments={[
+          { lane: 'a0', from: 0, to: 1, label: 'send', hue: 7 },
+          { lane: 'a1', from: 0, to: 1, label: 'send', hue: 7 },
+          { lane: 'a1', from: 1, to: 2, label: 'leader writes', hue: 3 },
+          { lane: 'aall', from: 0, to: 1, label: 'send', hue: 7 },
+          { lane: 'aall', from: 1, to: 2, label: 'leader writes', hue: 3 },
+          { lane: 'aall', from: 2, to: 4.5, label: 'followers fetch a copy', hue: 3 },
+        ]}
+        events={[
+          { lane: 'a0', at: 1, label: 'done — nobody confirmed anything', hue: 8 },
+          { lane: 'a1', at: 2.6, label: 'ack: 1 copy', hue: 6 },
+          { lane: 'aall', at: 5.1, label: 'ack: every in-sync replica has it', hue: 6 },
+        ]}
+        end={8}
+        unit="steps"
+        playable
       />
 
       <h2>Retries and idempotence</h2>
@@ -231,6 +300,27 @@ export default function Producers() {
         retries within one producer session — not against your application calling <code>send()</code> twice, and not
         across a producer restart (the new instance gets a new producer ID).
       </Callout>
+      <Flow
+        title="How the leader recognises a retry"
+        cols={3}
+        rows={1}
+        rowHeight={100}
+        nodes={[
+          { id: 'prod', label: 'producer', sub: 'producer id 7, seq 0, 1, 2…', col: 0, row: 0, hue: 7, shape: 'actor' },
+          { id: 'leader', label: 'leader of P0', sub: 'last 5 batch seqs per producer', col: 1, row: 0, hue: 3 },
+          { id: 'log', label: 'P0 log', sub: 'each batch stored once', col: 2, row: 0, hue: 3, shape: 'log' },
+        ]}
+        edges={[
+          { from: 'prod', to: 'leader', label: 'batch + seq', flow: true, hue: 7 },
+          { from: 'leader', to: 'log', label: 'new seq only', flow: true, hue: 3 },
+        ]}
+        steps={[
+          { title: 'Every batch is numbered', body: <p>The producer gets a producer id (and epoch) when it starts and numbers its batches per partition: 0, 1, 2…</p>, active: ['prod', 'prod>leader'] },
+          { title: 'The leader remembers recent numbers', body: <p>For each producer and partition the leader keeps the sequence numbers of the last 5 batches. That is why idempotence allows at most 5 requests in flight per connection.</p>, active: ['leader'] },
+          { title: 'A retry is recognised', body: <p>A batch whose sequence is already among the recent ones is a retry: the leader does not append it again and just acknowledges it.</p>, active: ['prod', 'leader', 'prod>leader'] },
+          { title: 'Only new batches reach the log', body: <p>The next number (seq + 1) is appended. A gap (say 3 when 2 is expected) is an error, so batches cannot silently go missing or swap order.</p>, active: ['leader', 'log', 'leader>log'] },
+        ]}
+      />
       <p>
         For writing to several partitions atomically, producers also support <strong>transactions</strong>{' '}
         (<code>transactional.id</code>): either all records in the transaction become visible to{' '}

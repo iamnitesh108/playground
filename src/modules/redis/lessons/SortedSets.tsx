@@ -1,10 +1,26 @@
 import { Callout, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { CliSession, SkiplistPlayground } from '../components'
 import { CAPTURE } from '../data/captures'
+import { BarChart, Flow, StatTiles } from '@/shared/figures'
 
 const Z = CAPTURE.types.transitions.find((t) => t.type === 'sorted set')!
 const zLimit = CAPTURE.types.config['zset-max-listpack-entries']
 const zValue = CAPTURE.types.config['zset-max-listpack-value']
+
+/** Final scores of the recorded leaderboard: replay its ZADD and ZINCRBY commands. */
+const board = (() => {
+  const scores = new Map<string, number>()
+  for (const step of CAPTURE.patterns.leaderboard) {
+    const args = step.cmd.split(' ')
+    if (args[0] === 'ZADD') for (let i = 2; i + 1 < args.length; i += 2) scores.set(args[i + 1], Number(args[i]))
+    if (args[0] === 'ZINCRBY') scores.set(args[3], (scores.get(args[3]) ?? 0) + Number(args[2]))
+  }
+  // highest first; equal scores ordered by member, as Redis does
+  return [...scores].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? 1 : -1))
+})()
+
+/** Expected nodes per skiplist level for a million members (each level keeps a node with probability 1/4). */
+const LEVELS = Array.from({ length: 6 }, (_, k) => ({ level: k + 1, nodes: Math.round(1_000_000 / 4 ** k) }))
 
 export default function SortedSets() {
   return (
@@ -43,9 +59,37 @@ export default function SortedSets() {
           { term: 'span', definition: 'Each skiplist link also stores how many nodes it skips — summing spans along a search gives the rank in O(log n).' },
         ]}
       />
+      <Flow
+        title="Inside a big sorted set: two structures, one set of members"
+        cols={4}
+        rows={2}
+        nodes={[
+          { id: 'client', label: 'client', sub: 'ZADD / ZSCORE / ZRANK', col: 0, row: 0, rowSpan: 2, hue: 1, shape: 'actor' },
+          { id: 'zset', label: 'sorted set key', sub: 'encoding: skiplist', col: 1, row: 0, rowSpan: 2, hue: 2 },
+          { id: 'dict', label: 'hash table', sub: 'member → score', col: 2, row: 0, hue: 3, shape: 'store' },
+          { id: 'skip', label: 'skiplist', sub: 'ordered by (score, member)', col: 2, row: 1, hue: 3, shape: 'log' },
+          { id: 'members', label: 'member strings', sub: 'shared by both', col: 3, row: 0, rowSpan: 2, hue: 3 },
+        ]}
+        edges={[
+          { from: 'client', to: 'zset', flow: true, hue: 1 },
+          { from: 'zset', to: 'dict', label: 'by member', hue: 3 },
+          { from: 'zset', to: 'skip', label: 'by order', hue: 3 },
+          { from: 'dict', to: 'members', hue: 3, dashed: true },
+          { from: 'skip', to: 'members', hue: 3, dashed: true },
+        ]}
+        steps={[
+          { title: 'ZADD writes both', body: <p>A new member is inserted into the skiplist at its place in the order (O(log n)) and added to the hash table with its score (O(1)).</p>, active: ['client', 'zset', 'dict', 'skip', 'members', 'client>zset', 'zset>dict', 'zset>skip'] },
+          { title: 'ZSCORE asks the hash table', body: <p>“What is bob’s score?” is a single hash lookup: O(1), no matter how big the set is.</p>, active: ['client', 'zset', 'dict', 'client>zset', 'zset>dict'] },
+          { title: 'ZRANK and ZRANGE walk the skiplist', body: <p>“Who is in the top 10?” or “what is ann’s rank?” need order: a skiplist search, O(log n), then a walk along the bottom level for each result.</p>, active: ['client', 'zset', 'skip', 'client>zset', 'zset>skip'] },
+        ]}
+      />
 
       <h2>A leaderboard, recorded</h2>
       <CliSession title="recorded" steps={CAPTURE.patterns.leaderboard} />
+      <BarChart
+        title="The board after these commands — highest score first (what ZREVRANGE walks)"
+        bars={board.map(([member, score], i) => ({ label: `#${i + 1} ${member}`, value: score, display: score.toLocaleString(), hue: (i === 0 ? 6 : 1) as 1 | 6 }))}
+      />
       <p>
         <code>bob</code> and <code>dan</code> both started at 2800; <code>ZINCRBY</code> moved <code>bob</code> up in one command, atomically — no
         read-modify-write in the client. <code>ZRANGE … BYSCORE</code> walks a score range, <code>ZCOUNT</code> counts one without returning it.
@@ -57,6 +101,14 @@ export default function SortedSets() {
         allows up to 32 levels). A search starts on the highest level, moves right while the next node is still smaller, and drops one level when it
         would overshoot. It goes through about log₄(n) levels and visits only a few nodes on each — O(log n) in total, a handful of steps even for millions of members — and inserting needs no
         rebalancing: a new node just gets a random height.
+      </p>
+      <BarChart
+        title="Expected nodes on each skiplist level, 1,000,000 members (probability ¼ per level)"
+        bars={LEVELS.map((l) => ({ label: `level ${l.level}`, value: l.nodes, display: l.nodes.toLocaleString(), hue: 3 }))}
+      />
+      <p>
+        A search starts on the sparse top levels and drops down, so it touches only a few nodes per level — that is why the levels shrink by four each
+        time and still reach every member at the bottom. Try it:
       </p>
       <SkiplistPlayground />
 
@@ -89,6 +141,13 @@ export default function SortedSets() {
         <code>{Z.steps[0].encoding}</code> to <code>{Z.steps[1].encoding}</code> at member {Z.steps[1].count}, and the key then used{' '}
         {Z.steps[1].memory.toLocaleString()} bytes. Like hashes and sets, a sorted set never converts back.
       </p>
+      <StatTiles
+        title="Recorded MEMORY USAGE of one sorted set"
+        stats={[
+          { label: `${Z.steps[0].count} member, ${Z.steps[0].encoding}`, value: `${Z.steps[0].memory} B`, hue: 6 },
+          { label: `${Z.steps[1].count} members, ${Z.steps[1].encoding}`, value: `${Z.steps[1].memory.toLocaleString()} B`, sub: 'skiplist nodes + hash table + member strings', hue: 8 },
+        ]}
+      />
       <Callout tone="note" title="Geo indexes are sorted sets">
         GEOADD stores each place as a sorted-set member whose score is a 52-bit geohash of its coordinates, so nearby places get nearby scores and a
         radius search becomes a few score-range walks. Lesson 15 shows it.

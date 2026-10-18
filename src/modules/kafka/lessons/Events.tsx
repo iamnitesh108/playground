@@ -1,10 +1,13 @@
 import { useMemo, useState } from 'react'
 import { Callout, CodeBlock, Demo, Table, TermList, TextField } from '@/shared/ui'
+import { ByteLayout, Flow } from '@/shared/figures'
 import { partitionForKey } from '../simulation'
 import styles from './lesson.module.css'
 import own from './Events.module.css'
 
 const encoder = new TextEncoder()
+const EXAMPLE_VALUE = JSON.stringify({ orderId: 42, status: 'PAID', amount: 120.5 })
+const bytes = (text: string) => encoder.encode(text).length
 
 function RecordBuilder() {
   const [key, setKey] = useState('order-42')
@@ -88,6 +91,23 @@ export default function Events() {
         </li>
       </ul>
 
+      <ByteLayout
+        title="One record, drawn to scale: what you send and what Kafka adds"
+        rows={[
+          {
+            label: 'set by your code (violet) and by the broker (aqua)',
+            fields: [
+              { label: 'key', bytes: bytes('order-42'), content: 'order-42', hue: 7 },
+              { label: 'value (JSON)', bytes: bytes(EXAMPLE_VALUE), content: EXAMPLE_VALUE, hue: 7 },
+              { label: 'header trace-id', bytes: bytes('trace-id') + bytes('a1b2c3'), content: 'trace-id: a1b2c3', hue: 7 },
+              { label: 'timestamp', bytes: 8, content: '1727000000000', hue: 7 },
+              { label: 'offset', bytes: 8, content: 'on write', hue: 3 },
+            ],
+          },
+        ]}
+        caption="The key, value and header sizes are this example’s exact byte counts. Timestamp and offset are logically 64-bit numbers; on disk Kafka stores them as small deltas from the values of the record batch the record belongs to. The partition is not stored in the record at all: it is the log the record was written to."
+      />
+
       <RecordBuilder />
 
       <Callout tone="tip" title="Rule of thumb">
@@ -103,6 +123,31 @@ export default function Events() {
         <strong>deserializer</strong> to turn them back. If the two disagree, the consumer cannot read the data — a
         very common beginner bug.
       </p>
+      <Flow
+        title="Objects in, bytes on the broker, objects out — only if both sides agree"
+        cols={5}
+        rows={1}
+        rowHeight={96}
+        nodes={[
+          { id: 'obj', label: 'Order object', sub: 'in the producer', col: 0, row: 0, hue: 7, shape: 'actor' },
+          { id: 'ser', label: 'serializer', sub: 'object → bytes', col: 1, row: 0, hue: 7 },
+          { id: 'broker', label: 'broker log', sub: 'stores bytes only', col: 2, row: 0, hue: 3, shape: 'log' },
+          { id: 'de', label: 'deserializer', sub: 'bytes → object', col: 3, row: 0, hue: 1 },
+          { id: 'out', label: 'Order object', sub: 'in the consumer', col: 4, row: 0, hue: 1, shape: 'actor' },
+        ]}
+        edges={[
+          { from: 'obj', to: 'ser', flow: true, hue: 7 },
+          { from: 'ser', to: 'broker', label: 'bytes', flow: true, hue: 7 },
+          { from: 'broker', to: 'de', label: 'bytes', flow: true, hue: 1 },
+          { from: 'de', to: 'out', flow: true, hue: 1 },
+        ]}
+        steps={[
+          { title: 'Serialize', body: <p>The producer’s key and value serializers turn your objects into byte arrays — e.g. a String key and a JSON value.</p>, active: ['obj', 'ser', 'obj>ser', 'ser>broker'] },
+          { title: 'The broker sees only bytes', body: <p>The broker appends the bytes to the partition log. It never parses them, so it cannot validate the format for you.</p>, active: ['broker', 'ser>broker', 'broker>de'] },
+          { title: 'Deserialize', body: <p>The consumer’s deserializers turn the bytes back into objects. They must match what the producer used.</p>, active: ['de', 'out', 'broker>de', 'de>out'] },
+          { title: 'When the two disagree', body: <p>A producer writing Avro and a consumer expecting JSON: the bytes arrive fine, but deserializing fails with a SerializationException for every record. Agree on the format (or use a Schema Registry).</p>, active: ['ser', 'de'] },
+        ]}
+      />
       <Table
         head={['Format', 'Serializer', 'Good for']}
         rows={[
@@ -127,7 +172,7 @@ value.deserializer=org.apache.kafka.common.serialization.ByteArrayDeserializer
       <Callout tone="warn">
         Records are immutable. You never “update” an event in Kafka; you publish a new event that describes the
         change. To “delete” a key in a compacted topic you write a record with a <code>null</code> value, called a{' '}
-        <strong>tombstone</strong> (lesson 10).
+        <strong>tombstone</strong> (lesson 14).
       </Callout>
 
       <h2>Words from this lesson</h2>

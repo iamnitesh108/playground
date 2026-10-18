@@ -1,0 +1,91 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--font-sans);
+}
+
+.dir {
+  fill: none;
+  stroke: var(--hue);
+  stroke-width: 1.2;
+  stroke-dasharray: 6 4;
+}
+
+.dirName {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.segment,
+.active {
+  fill: var(--hue-soft);
+  stroke: var(--hue);
+  stroke-width: 1.6;
+}
+
+.active {
+  stroke-width: 2.4;
+}
+
+.tick {
+  stroke: var(--hue);
+  stroke-width: 1.4;
+}
+
+.fileName {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  fill: var(--text);
+}
+
+.small {
+  font-size: 10px;
+  fill: var(--text-muted);
+}
+
+.index {
+  fill: var(--hue-soft);
+  stroke: var(--hue);
+  stroke-width: 1.2;
+}
+
+.indexText {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  fill: var(--text);
+}
+
+.write {
+  stroke: var(--hue);
+  stroke-width: 2;
+  fill: none;
+}
+
+.writeText {
+  font-size: 10.5px;
+  font-weight: 600;
+  fill: var(--text);
+}
+
+.caption {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type CSSProperties } from 'react'
 import styles from './Charts.module.css'
 
 export interface LineSeries {
@@ -20,6 +20,9 @@ interface LineChartProps {
   height?: number
   yMin?: number
 }
+
+/** Each series gets a palette colour (by position, so it never changes with emphasis). */
+const seriesColor = (i: number) => ({ '--line': `var(--c${(i % 8) + 1})` }) as CSSProperties
 
 const W = 640
 const PAD = { left: 56, right: 112, top: 26, bottom: 36 }
@@ -70,7 +73,7 @@ export function LineChart({ title, series, xLabel, yLabel, formatX = String, for
         <div className={styles.legend}>
           {series.map((s) => (
             <span key={s.label} className={styles.legendItem}>
-              <svg width="22" height="8" aria-hidden="true"><line x1="0" y1="4" x2="22" y2="4" className={s.emphasis ? styles.lineMain : styles.lineOther} /></svg>
+              <svg width="22" height="8" aria-hidden="true" style={seriesColor(series.indexOf(s))}><line x1="0" y1="4" x2="22" y2="4" className={s.emphasis ? styles.lineMain : styles.lineOther} /></svg>
               {s.label}
             </span>
           ))}
@@ -102,7 +105,7 @@ export function LineChart({ title, series, xLabel, yLabel, formatX = String, for
         <text x={PAD.left} y={H - 4} className={styles.axisLabel}>{xLabel}</text>
         <text x={8} y={4} className={styles.axisLabelY}>{yLabel}</text>
         {ordered.map((s) => (
-          <g key={s.label}>
+          <g key={s.label} style={seriesColor(series.indexOf(s))}>
             <path d={path(s.points)} className={s.emphasis || series.length === 1 ? styles.lineMain : styles.lineOther} />
             {s.points.length <= 12 && s.points.map((p) => <circle key={p[0]} cx={x(p[0])} cy={y(p[1])} r={4} className={s.emphasis || series.length === 1 ? styles.dotMain : styles.dotOther} />)}
             {series.length > 1 && <text x={x(s.points[s.points.length - 1][0]) + 8} y={labelY.get(s.label)} className={styles.directLabel}>{s.label}</text>}

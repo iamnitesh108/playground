@@ -1,8 +1,37 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
+import { Flow, Proportion, StatTiles, Timeline, type FlowEdge, type FlowNode, type Hue } from '@/shared/figures'
 import { CliSession, LogLines, SlotCalculator } from '../components'
 import { CAPTURE } from '../data/captures'
 
 const C = CAPTURE.cluster
+
+/** The recorded cluster: primaries with their slot ranges, and which replica follows which primary. */
+const PRIMARIES = C.nodes.filter((n) => n.flags.includes('master'))
+const port = (addr: string) => addr.split(':')[1]
+const rangeOf = (slots: string) => {
+  const [a, b] = slots.split(' ')[0].split('-').map(Number)
+  return { from: a, to: b ?? a }
+}
+const ownerOf = (slot: number) => PRIMARIES.find((p) => { const r = rangeOf(p.slots); return slot >= r.from && slot <= r.to })
+
+const TOPOLOGY_NODES: FlowNode[] = [
+  { id: 'client', label: 'client', sub: 'caches the slot map', col: 1, row: 0, hue: 1, shape: 'actor' },
+  ...PRIMARIES.map((p, i) => ({ id: p.id, label: `primary ${port(p.addr)}`, sub: `slots ${p.slots}`, col: i, row: 1, hue: 2 as Hue })),
+  ...C.nodes.filter((n) => n.flags.includes('slave')).map((r) => ({ id: r.id, label: `replica ${port(r.addr)}`, sub: `of ${port(PRIMARIES.find((p) => p.id === r.master)?.addr ?? '')}`, col: PRIMARIES.findIndex((p) => p.id === r.master), row: 2, hue: 5 as Hue, shape: 'store' as const })),
+]
+const TOPOLOGY_EDGES: FlowEdge[] = [
+  ...PRIMARIES.map((p) => ({ from: 'client', to: p.id, hue: 1 as Hue, flow: true })),
+  ...C.nodes.filter((n) => n.flags.includes('slave')).map((r) => ({ from: r.master, to: r.id, hue: 2 as Hue, dashed: true })),
+]
+
+const MOVED = (C.moved.find((s) => s.out.includes('MOVED'))?.out ?? '').match(/MOVED (\d+) (\S+)/)
+const VICTIM_ID = C.nodes.find((n) => n.addr === C.failover.victim)?.id
+const VICTIM_REPLICA = C.nodes.find((n) => n.master === VICTIM_ID)
+/** From the recorded migration: a key the source still served, and the key it had already moved. */
+const ASK_KEPT = C.ask.steps.find((s) => s.who === 'source' && s.cmd.startsWith('GET ') && !s.out.startsWith('(error)'))
+const ASK_KEPT_KEY = ASK_KEPT?.cmd.slice(4) ?? ''
+const ASK_MOVED_KEY = C.ask.steps.find((s) => s.cmd.startsWith('MIGRATE '))?.cmd.split(' KEYS ')[1] ?? ''
+const TAGGED = C.slots.find((s) => s.key === '{user:1}:profile')
 
 const SLOT_NOTE: Record<string, string> = {
   '': 'the empty key',
@@ -66,12 +95,40 @@ export default function Cluster() {
         The slots were split into three equal ranges and each primary got one replica. All six nodes run on one host here, hence the warning
         that replicas share a host with their primary; in production put each replica on a different machine from its primary.
       </p>
+      <Flow title="The recorded cluster: three primaries, one replica each" cols={3} rows={3} nodes={TOPOLOGY_NODES} edges={TOPOLOGY_EDGES} />
+      <Proportion
+        title="16384 hash slots, split between the primaries (recorded)"
+        parts={PRIMARIES.map((p, i) => {
+          const r = rangeOf(p.slots)
+          return { label: `${port(p.addr)}: ${r.from}–${r.to}`, value: r.to - r.from + 1, hue: ([2, 3, 7] as Hue[])[i % 3], display: `${(r.to - r.from + 1).toLocaleString()} slots` }
+        })}
+      />
       <div>
         <CodeBlock title="CLUSTER INFO" language="text" code={C.info} />
         <Table head={['node', 'address', 'flags', 'replica of', 'slots']} rows={C.nodes.map((n) => [n.id, n.addr, n.flags, n.master, n.slots || '—'])} />
       </div>
 
       <h2>Key → slot → node</h2>
+      {TAGGED && (
+        <Flow
+          title={`From a key to the node that owns it: ${TAGGED.key}`}
+          cols={5}
+          rows={1}
+          nodes={[
+            { id: 'key', label: TAGGED.key, sub: 'the key', col: 0, row: 0, hue: 1 },
+            { id: 'tag', label: TAGGED.key.match(/\{([^}]+)\}/)?.[1] ?? TAGGED.key, sub: 'hash tag: only this', col: 1, row: 0, hue: 3 },
+            { id: 'crc', label: 'CRC16', sub: 'XMODEM', col: 2, row: 0, hue: 7 },
+            { id: 'slot', label: `slot ${TAGGED.slot}`, sub: 'mod 16384', col: 3, row: 0, hue: 3 },
+            { id: 'node', label: `node ${port(ownerOf(TAGGED.slot)?.addr ?? '')}`, sub: `owns ${ownerOf(TAGGED.slot)?.slots ?? ''}`, col: 4, row: 0, hue: 2 },
+          ]}
+          edges={[
+            { from: 'key', to: 'tag', hue: 3, flow: true },
+            { from: 'tag', to: 'crc', hue: 7, flow: true },
+            { from: 'crc', to: 'slot', hue: 3, flow: true },
+            { from: 'slot', to: 'node', hue: 2, flow: true },
+          ]}
+        />
+      )}
       <SlotCalculator />
       <p>
         The calculator runs the same CRC16 (XMODEM) as Redis; it was checked against <code>CLUSTER KEYSLOT</code> on the real cluster for the keys
@@ -90,6 +147,26 @@ export default function Cluster() {
         redirect:
       </p>
       <CodeBlock title={C.followedCmd} language="text" code={C.followed} />
+      {MOVED && (
+        <Flow
+          title="MOVED: the node redirects, the client goes there and remembers"
+          cols={3}
+          rows={2}
+          nodes={[
+            { id: 'client', label: 'client', sub: 'old or no slot map', col: 0, row: 0, rowSpan: 2, hue: 1, shape: 'actor' },
+            { id: 'wrong', label: 'node 7001', sub: 'not the owner', col: 2, row: 0, hue: 8 },
+            { id: 'right', label: `node ${port(MOVED[2])}`, sub: `owns slot ${MOVED[1]}`, col: 2, row: 1, hue: 2 },
+          ]}
+          edges={[
+            { from: 'client', to: 'wrong', label: `MOVED ${MOVED[1]} …${port(MOVED[2])}`, hue: 8, both: true },
+            { from: 'client', to: 'right', label: 'retry, update map', hue: 2, flow: true },
+          ]}
+          steps={[
+            { title: 'Asked the wrong node', body: <p>The node does not own slot {MOVED[1]}; it does not proxy, it answers <code>MOVED {MOVED[1]} {MOVED[2]}</code>.</p>, active: ['client', 'wrong', 'client>wrong'] },
+            { title: 'Retry at the owner', body: <p>The client sends the command to {MOVED[2]} and updates its slot map, so the next command for that slot goes straight there.</p>, active: ['client', 'right', 'client>right'] },
+          ]}
+        />
+      )}
       <p>
         A real client does better: at startup it loads the whole slot map (<code>CLUSTER SHARDS</code>), sends each command straight to the right
         node, and refreshes the map when it gets a MOVED. A cluster-unaware client library does not work with a cluster.
@@ -128,6 +205,30 @@ export default function Cluster() {
           ['after CLUSTER SETSLOT … NODE <target>', 'the target; the source now replies MOVED'],
         ]}
       />
+      <Flow
+        title={`Slot ${C.ask.slot} half-way between two nodes: ASK`}
+        cols={4}
+        rows={2}
+        nodes={[
+          { id: 'client', label: 'client', col: 0, row: 0, rowSpan: 2, hue: 1, shape: 'actor' },
+          { id: 'src', label: `source ${port(C.ask.src)}`, sub: 'MIGRATING', col: 2, row: 0, hue: 2 },
+          { id: 'dst', label: `target ${port(C.ask.dst)}`, sub: 'IMPORTING', col: 2, row: 1, hue: 2 },
+          { id: 'old', label: ASK_KEPT_KEY, sub: 'not moved yet', col: 3, row: 0, hue: 3, shape: 'store' },
+          { id: 'new', label: ASK_MOVED_KEY, sub: 'already moved', col: 3, row: 1, hue: 3, shape: 'store' },
+        ]}
+        edges={[
+          { from: 'client', to: 'src', label: 'GET', hue: 1, flow: true },
+          { from: 'src', to: 'old', hue: 2 },
+          { from: 'src', to: 'dst', label: 'MIGRATE key by key', hue: 2, dashed: true },
+          { from: 'client', to: 'dst', label: 'ASKING + GET', hue: 2, flow: true },
+          { from: 'dst', to: 'new', hue: 2 },
+        ]}
+        steps={[
+          { title: 'A key still on the source', body: <p>The source answers normally: <code>{ASK_KEPT?.cmd}</code> → <code>{ASK_KEPT?.out}</code>.</p>, active: ['client', 'src', 'old', 'client>src', 'src>old'] },
+          { title: 'A key that has already moved', body: <p>The source no longer has it and answers <code>ASK {C.ask.slot} {C.ask.dst}</code>: “try the target, for this command only”.</p>, active: ['client', 'src', 'src>dst', 'client>src'] },
+          { title: 'ASKING, then the command', body: <p>The client sends <code>ASKING</code> and repeats the command at the target, which serves it although the slot is not officially its own yet. Without ASKING the target would answer MOVED back to the source.</p>, active: ['client', 'dst', 'new', 'client>dst', 'dst>new'] },
+        ]}
+      />
       <p>
         <code>redis-cli --cluster reshard</code> and <code>rebalance</code> run these same steps for you. Large keys move as one piece and block both
         nodes while they do — another reason to avoid huge keys.
@@ -148,6 +249,35 @@ export default function Cluster() {
         head={['ms after the kill', 'cluster_state', 'flags of the dead node', `GET ${C.failover.probeKey} on another node`]}
         rows={t.map((x) => [x.ms, x.state, x.victimFlags, reply(x.reply)])}
       />
+      {suspected && failed && back && (
+        <>
+          <Timeline
+            title={`Primary ${C.failover.victim} killed at 0 ms (node timeout ${C.failover.nodeTimeoutMs} ms): states as the probe sampled them`}
+            lanes={[{ id: 'v', label: `primary ${port(C.failover.victim)}` }, { id: 'c', label: 'cluster_state' }, { id: 'r', label: `replica ${port(VICTIM_REPLICA?.addr ?? '')}` }]}
+            segments={[
+              { lane: 'v', from: 0, to: back.ms + 500, label: 'killed', hue: 8, striped: true },
+              { lane: 'c', from: 0, to: down?.ms ?? failed.ms, label: 'ok', hue: 6 },
+              { lane: 'c', from: down?.ms ?? failed.ms, to: back.ms, label: 'fail', hue: 8, striped: true },
+              { lane: 'c', from: back.ms, to: back.ms + 500, label: 'ok', hue: 6 },
+              { lane: 'r', from: 0, to: back.ms, label: 'replica', hue: 5 },
+              { lane: 'r', from: back.ms, to: back.ms + 500, label: 'primary', hue: 2 },
+            ]}
+            events={[
+              { lane: 'v', at: suspected.ms, label: 'fail? (PFAIL)', hue: 4 },
+              { lane: 'r', at: back.ms, label: 'won the election', hue: 2 },
+            ]}
+            end={back.ms + 500}
+            playable
+          />
+          <StatTiles
+            stats={[
+              { label: 'suspected (fail?)', value: `${suspected.ms} ms`, sub: `node timeout ${C.failover.nodeTimeoutMs} ms`, hue: 4 },
+              { label: 'failed by majority', value: `${failed.ms} ms`, sub: 'CLUSTERDOWN for every key', hue: 8 },
+              { label: 'serving again', value: `${back.ms} ms`, sub: 'replica promoted', hue: 6 },
+            ]}
+          />
+        </>
+      )}
       <p>
         At {suspected?.ms} ms the dead node is flagged <code>fail?</code> (PFAIL: this node has not heard from it for the node timeout). Nodes
         gossip these suspicions; when a majority of primaries agree, it becomes <code>fail</code> ({failed?.ms} ms) and{' '}

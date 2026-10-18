@@ -1,0 +1,68 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.row + .row {
+  margin-top: var(--space-2);
+}
+
+.rowLabel {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.size {
+  color: var(--text-faint);
+}
+
+.fields {
+  display: flex;
+  gap: 2px;
+}
+
+.field {
+  flex: none;
+  min-width: 0;
+  padding: 4px 4px 3px;
+  border-radius: 4px;
+  background: var(--hue-soft);
+  border-top: 4px solid var(--hue);
+  overflow: hidden;
+}
+
+.content {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.fieldLabel {
+  display: block;
+  font-size: 0.62rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.caption {
+  margin-top: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

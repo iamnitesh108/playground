@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react'
 import { Callout, CodeBlock, Demo, Segmented, Table, TermList } from '@/shared/ui'
 import { cx } from '@/shared/utils/cx'
+import { Flow, type Hue } from '@/shared/figures'
+import { ReplicationLogRows, type LogCell } from '../components/ReplicationLogRows'
 import { PartitionLog } from '../components'
 import { applyRetention, compact, toSegments, type LogEntry } from '../simulation'
 import own from './Retention.module.css'
@@ -67,6 +69,32 @@ const KEYED_LOG: LogEntry[] = [
 
 type Stage = 'raw' | 'compacted' | 'tombstones'
 
+/** One row per retention setting: which segments of TIME_LOG survive (computed with the same applyRetention as the demo). */
+const SEGMENTS = toSegments(TIME_LOG, 3)
+const retentionRow = (hours: number): { label: string; cells: LogCell[] } => {
+  const kept = new Set(applyRetention(SEGMENTS, hours).map((s) => s.index))
+  return {
+    label: `log.retention.hours = ${hours}`,
+    cells: SEGMENTS.map((seg) => {
+      const newest = Math.min(...seg.entries.map((e) => e.ageHours))
+      const oldest = Math.max(...seg.entries.map((e) => e.ageHours))
+      return {
+        label: seg.active ? 'active · kept' : kept.has(seg.index) ? 'kept' : 'deleted',
+        content: `${oldest}–${newest} h old`,
+        weight: seg.entries.length,
+        hue: (seg.active ? 5 : kept.has(seg.index) ? 3 : 8) as Hue,
+      }
+    }),
+  }
+}
+
+/** Keys of the compaction example get fixed colours, so a key looks the same in every row. */
+const KEY_HUE: Record<string, Hue> = { 'user-1': 1, 'user-2': 2, 'user-3': 7 }
+const compactRow = (label: string, entries: readonly LogEntry[]): { label: string; cells: LogCell[] } => ({
+  label,
+  cells: entries.map((e) => ({ label: `offset ${e.offset}`, content: `${e.key}=${e.value ?? 'null'}`, hue: KEY_HUE[e.key] })),
+})
+
 function CompactionDemo() {
   const [stage, setStage] = useState<Stage>('raw')
   const entries = stage === 'raw' ? KEYED_LOG : compact(KEYED_LOG, stage === 'tombstones')
@@ -120,6 +148,32 @@ export default function Retention() {
           new one starts (default 1 GB).
         </li>
       </ul>
+      <Flow
+        title="Where records go after they are written"
+        cols={4}
+        rows={2}
+        nodes={[
+          { id: 'producer', label: 'producer', sub: 'appends', col: 0, row: 0, hue: 7, shape: 'actor' },
+          { id: 'active', label: 'active segment', col: 1, row: 0, hue: 5, shape: 'log' },
+          { id: 'closed', label: 'closed segments', sub: 'read-only', col: 2, row: 0, hue: 3, shape: 'queue' },
+          { id: 'consumers', label: 'consumers', sub: 'read any segment', col: 3, row: 0, hue: 1 },
+          { id: 'delete', label: 'delete', sub: 'by age or size', col: 2, row: 1, hue: 8 },
+          { id: 'compact', label: 'compact', sub: 'latest per key', col: 3, row: 1, hue: 6 },
+        ]}
+        edges={[
+          { from: 'producer', to: 'active', flow: true, hue: 7 },
+          { from: 'active', to: 'closed', label: 'roll', hue: 5 },
+          { from: 'closed', to: 'consumers', flow: true, hue: 1 },
+          { from: 'closed', to: 'delete', label: 'retention', hue: 8, dashed: true },
+          { from: 'closed', to: 'compact', label: 'cleaner', hue: 6, dashed: true },
+        ]}
+        caption="The active segment rolls into a closed one at segment.bytes (1 GB) or segment.ms. Only closed segments are deleted or compacted; cleanup.policy decides which."
+      />
+      <ReplicationLogRows
+        title="The same 12 records in 4 segments, under three retention settings (computed like the demo below)"
+        rows={[24, 48, 168].map(retentionRow)}
+        caption="A whole segment goes only when its newest record is older than the limit; the active segment always stays."
+      />
       <RetentionDemo />
       <Callout tone="note">
         Because only closed segments can be deleted, data may live somewhat longer than the retention setting. A small
@@ -134,6 +188,15 @@ export default function Retention() {
         rewrites old, closed segments, dropping records that have been superseded. The active segment is never compacted,
         so the latest few duplicates always remain until it rolls.
       </p>
+      <ReplicationLogRows
+        title="Compaction, record by record (computed with the same compact() as the demo below)"
+        rows={[
+          compactRow('before', KEYED_LOG),
+          compactRow('after compaction', compact(KEYED_LOG, false)),
+          compactRow('after delete.retention.ms', compact(KEYED_LOG, true)),
+        ]}
+        caption="Each key keeps only its latest record; offsets keep their numbers. user-2’s tombstone (null) stays for delete.retention.ms so consumers see the delete, then it goes too."
+      />
       <CompactionDemo />
       <p>
         Kafka itself relies on compaction: <code>__consumer_offsets</code> keeps each group’s latest offset, and Kafka

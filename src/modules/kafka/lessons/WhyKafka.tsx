@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { Button, Callout, Demo, Segmented, TermList } from '@/shared/ui'
+import { Flow } from '@/shared/figures'
 import { PartitionLog } from '../components'
+import { WhyKafkaLogFigure } from '../components/WhyKafkaLogFigure'
 import { useObservable } from '@/shared/hooks/useObservable'
 import { KafkaCluster } from '../simulation'
 import styles from './lesson.module.css'
@@ -14,9 +16,9 @@ function CouplingDiagram({ view }: { view: View }) {
   const left = 30
   const right = 470
   const ys = [40, 110, 180]
-  const node = (x: number, y: number, label: string) => (
+  const node = (x: number, y: number, label: string, slot: number) => (
     <g key={`${x}-${label}`}>
-      <rect x={x - 52} y={y - 16} width={104} height={32} rx={5} style={{ fill: 'var(--surface)', stroke: 'var(--border-strong)' }} />
+      <rect x={x - 52} y={y - 16} width={104} height={32} rx={8} style={{ fill: `color-mix(in oklab, var(--c${slot}) 15%, var(--surface))`, stroke: `var(--c${slot})`, strokeWidth: 1.5 }} />
       <text x={x} y={y + 4} textAnchor="middle" style={{ fill: 'var(--text)', fontSize: 12 }}>
         {label}
       </text>
@@ -35,17 +37,17 @@ function CouplingDiagram({ view }: { view: View }) {
                 x2={right - 22}
                 y2={y2}
                 className={styles.drawLine}
-                style={{ stroke: 'var(--danger)', strokeWidth: 1.2 }}
+                style={{ stroke: 'var(--c8)', strokeWidth: 1.4 }}
               />
             )),
           )
         : ys.flatMap((y) => [
-            <line key={`l${y}`} x1={left + 82} y1={y} x2={220} y2={110} className={styles.drawLine} style={{ stroke: 'var(--accent)' }} />,
-            <line key={`r${y}`} x1={340} y1={110} x2={right - 22} y2={y} className={styles.drawLine} style={{ stroke: 'var(--accent)' }} />,
+            <line key={`l${y}`} x1={left + 82} y1={y} x2={220} y2={110} className={styles.drawLine} style={{ stroke: 'var(--c7)', strokeWidth: 1.6 }} />,
+            <line key={`r${y}`} x1={340} y1={110} x2={right - 22} y2={y} className={styles.drawLine} style={{ stroke: 'var(--c1)', strokeWidth: 1.6 }} />,
           ])}
       {view === 'log' && (
         <g>
-          <rect x={220} y={80} width={120} height={60} rx={6} style={{ fill: 'var(--accent-soft)', stroke: 'var(--accent)' }} />
+          <rect x={220} y={80} width={120} height={60} rx={8} style={{ fill: 'color-mix(in oklab, var(--c3) 15%, var(--surface))', stroke: 'var(--c3)', strokeWidth: 1.6 }} />
           <text x={280} y={106} textAnchor="middle" style={{ fill: 'var(--text)', fontSize: 13, fontWeight: 600 }}>
             Kafka
           </text>
@@ -54,8 +56,8 @@ function CouplingDiagram({ view }: { view: View }) {
           </text>
         </g>
       )}
-      {ys.map((y, i) => node(left + 30, y, SERVICES[i]))}
-      {ys.map((y, i) => node(right + 30, y, READERS[i]))}
+      {ys.map((y, i) => node(left + 30, y, SERVICES[i], 7))}
+      {ys.map((y, i) => node(right + 30, y, READERS[i], 1))}
     </svg>
   )
 }
@@ -170,6 +172,8 @@ export default function WhyKafka() {
         read the same events at their own speed — even replay history from the beginning.
       </p>
 
+      <WhyKafkaLogFigure />
+
       <Callout tone="analogy">
         A classic queue is a mailbox: once you take the letter out, it is gone. Kafka is a newspaper archive: the
         papers stay on the shelf, and every reader keeps a note of which issue they read last.
@@ -178,13 +182,42 @@ export default function WhyKafka() {
       <IndependentReaders />
 
       <h2>What people use it for</h2>
+      <Flow
+        title="One log in the middle: sources publish once, any number of systems read"
+        cols={3}
+        rows={4}
+        rowHeight={80}
+        nodes={[
+          { id: 'checkout', label: 'checkout', sub: 'publishes “order placed”', col: 0, row: 0, hue: 7 },
+          { id: 'db', label: 'database', sub: 'changes via CDC', col: 0, row: 1, hue: 6, shape: 'store' },
+          { id: 'clicks', label: 'web clicks', sub: 'activity events', col: 0, row: 2, hue: 7 },
+          { id: 'metrics', label: 'servers', sub: 'metrics, logs', col: 0, row: 3, hue: 7 },
+          { id: 'kafka', label: 'Kafka', sub: 'topics = shared logs', col: 1, row: 1, rowSpan: 2, hue: 3, shape: 'log' },
+          { id: 'email', label: 'email service', sub: 'its own group', col: 2, row: 0, hue: 1 },
+          { id: 'search', label: 'search index', sub: 'kept up to date', col: 2, row: 1, hue: 4 },
+          { id: 'stream', label: 'stream processor', sub: 'live aggregates', col: 2, row: 2, hue: 1 },
+          { id: 'warehouse', label: 'data warehouse', sub: 'analytics', col: 2, row: 3, hue: 6, shape: 'store' },
+        ]}
+        edges={[
+          { from: 'checkout', to: 'kafka', flow: true, hue: 7 },
+          { from: 'db', to: 'kafka', flow: true, hue: 6 },
+          { from: 'clicks', to: 'kafka', flow: true, hue: 7 },
+          { from: 'metrics', to: 'kafka', flow: true, hue: 7 },
+          { from: 'kafka', to: 'email', flow: true, hue: 1 },
+          { from: 'kafka', to: 'search', flow: true, hue: 4 },
+          { from: 'kafka', to: 'stream', flow: true, hue: 1 },
+          { from: 'kafka', to: 'warehouse', flow: true, hue: 6 },
+        ]}
+        caption="Schematic. Adding a new reader on the right changes nothing on the left: the sources never learn it exists."
+      />
+
       <ul>
         <li>
           <strong>Decoupling microservices</strong> — services publish facts (“order placed”) instead of calling each
           other.
         </li>
         <li>
-          <strong>Change data capture</strong> — streaming every database change to other systems (lessons 12–13).
+          <strong>Change data capture</strong> — streaming every database change to other systems (lessons 15–16).
         </li>
         <li>
           <strong>Activity and metrics pipelines</strong> — clicks, logs and telemetry at millions of events per

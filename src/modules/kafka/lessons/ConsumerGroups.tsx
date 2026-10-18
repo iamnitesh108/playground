@@ -1,8 +1,22 @@
 import { Box, Callout, Column, Connector, LessonGoals, Predict, Recap, Row, Table, TermList, Walkthrough } from '@/shared/ui'
 import { ScenarioPlayer, StagePlayground, Terminal, type ScenarioStep } from '../components'
 import { PRACTICALS } from '../data/practicals'
+import { Flow, Timeline } from '@/shared/figures'
+import { GroupsAssignment, type AssignmentRow } from '../components/GroupsAssignment'
 
 const P2 = PRACTICALS.p2
+
+/** Members and their partitions from a recorded `--describe --members --verbose` (client id, assignment column). */
+const membersOf = (out: string): AssignmentRow['members'] =>
+  out
+    .split('\n')
+    .filter((l) => l.startsWith('billing '))
+    .map((l) => {
+      const f = l.trim().split(/\s+/)
+      const parts = f[6] === '-' ? [] : f[6].split(':')[1].split(',').map((p) => `P${p}`)
+      return { name: f[3], partitions: parts }
+    })
+    .sort((a, b) => a.name.localeCompare(b.name))
 const KEYS = ['alice', 'bob', 'carol', 'dave', 'erin', 'frank']
 
 const SCENARIO: ScenarioStep[] = [
@@ -125,6 +139,14 @@ export default function ConsumerGroups() {
         The same steps, recorded on Kafka {PRACTICALS.version} with console consumers named c1–c4 (practical 2 does this end to end). Read the{' '}
         <code>CURRENT-ASSIGNMENT</code> column:
       </p>
+      <GroupsAssignment
+        title={`Recorded on Kafka ${PRACTICALS.version}: who owned which partition of orders`}
+        rows={[
+          ...P2.stages.map((s, i) => ({ label: `${i + 1} consumer${i ? 's' : ''}`, sub: s.label, members: membersOf(s.describe.out) })),
+          { label: 'c2 stopped', sub: 'everything dealt out again', members: membersOf(P2.afterStop.describe.out) },
+        ]}
+        caption="Drawn from the CURRENT-ASSIGNMENT column of the recorded describe output below. Dashed = a member with no partition."
+      />
       <Terminal steps={[0, 1, 2, 3].map(describe)} title="recorded: kafka-consumer-groups.sh --describe --members --verbose" />
       <p>
         After c2 stopped, the partitions were dealt out again — not just c2’s: range sorts the members and hands out blocks, so c3 took c2’s
@@ -146,6 +168,29 @@ export default function ConsumerGroups() {
         internal topic <code>__consumer_offsets</code> (50 by default); the broker leading that partition is the coordinator. It tracks the members,
         runs rebalances and stores the group’s commits in that partition — so the group’s state is as durable as any topic.
       </p>
+      <Flow
+        title="The classic group protocol, request by request"
+        cols={4}
+        rows={2}
+        nodes={[
+          { id: 'c1', label: 'c1', sub: 'leader, runs assignor', col: 0, row: 0, hue: 1, shape: 'actor' },
+          { id: 'c2', label: 'c2', sub: 'member', col: 0, row: 1, hue: 1, shape: 'actor' },
+          { id: 'coord', label: 'coordinator', sub: 'a broker', col: 2, row: 0, rowSpan: 2, hue: 5 },
+          { id: 'log', label: '__consumer_offsets', sub: 'hash(group.id) % 50', col: 3, row: 0, rowSpan: 2, hue: 3, shape: 'log' },
+        ]}
+        edges={[
+          { from: 'c1', to: 'coord', label: 'Join / Sync', hue: 1, flow: true, both: true },
+          { from: 'c2', to: 'coord', label: 'Join / Sync', hue: 1, flow: true, both: true },
+          { from: 'coord', to: 'log', hue: 5 },
+        ]}
+        steps={[
+          { title: 'FindCoordinator', body: <p>Each consumer asks any broker which broker coordinates its group: the leader of the <code>__consumer_offsets</code> partition that the <code>group.id</code> hashes to.</p>, active: ['c1', 'c2', 'coord', 'log'] },
+          { title: 'JoinGroup', body: <p>Every member sends JoinGroup with the assignors it supports. The coordinator waits for all of them, picks one member as leader (c1) and sends it the member list.</p>, active: ['c1', 'c2', 'coord', 'c1>coord', 'c2>coord'] },
+          { title: 'The leader assigns', body: <p>The leader runs the assignor (range by default) over the members and the topic’s partitions. The brokers never see the logic — it runs in the client.</p>, active: ['c1'] },
+          { title: 'SyncGroup', body: <p>The leader sends the plan in its SyncGroup; every member’s SyncGroup answer carries its own partitions. A new generation starts.</p>, active: ['c1', 'c2', 'coord', 'c1>coord', 'c2>coord'] },
+          { title: 'Heartbeats and commits', body: <p>From now on members heartbeat to the coordinator and commit offsets to it; it stores both group state and commits in its <code>__consumer_offsets</code> partition.</p>, active: ['c1', 'c2', 'coord', 'log', 'coord>log'] },
+        ]}
+      />
 
       <h2>Rebalancing</h2>
       <p>
@@ -176,6 +221,51 @@ export default function ConsumerGroups() {
         possibly over two short rounds. The recorded Micronaut instances in practical 2 show the eager pattern: “Revoke previously assigned
         partitions …” followed by “Adding newly assigned partitions …” on every join.
       </p>
+      <Timeline
+        title="c3 joins a group where c1 owns P0, P1 and c2 owns P2 — eager (schematic)"
+        lanes={[
+          { id: 'c1', label: 'c1' },
+          { id: 'c2', label: 'c2' },
+          { id: 'c3', label: 'c3' },
+        ]}
+        segments={[
+          { lane: 'c1', from: 0, to: 40, label: 'P0 P1', hue: 1 },
+          { lane: 'c1', from: 40, to: 70, label: 'nothing', hue: 8, striped: true },
+          { lane: 'c1', from: 70, to: 120, label: 'P0', hue: 1 },
+          { lane: 'c2', from: 0, to: 40, label: 'P2', hue: 1 },
+          { lane: 'c2', from: 40, to: 70, label: 'nothing', hue: 8, striped: true },
+          { lane: 'c2', from: 70, to: 120, label: 'P1', hue: 1 },
+          { lane: 'c3', from: 40, to: 70, label: 'joining', hue: 5, striped: true },
+          { lane: 'c3', from: 70, to: 120, label: 'P2', hue: 1 },
+        ]}
+        events={[{ lane: 'c3', at: 40, label: 'JoinGroup', hue: 5 }, { lane: 'c1', at: 70, label: 'SyncGroup', hue: 5 }]}
+        end={120}
+        unit="ms"
+        playable
+      />
+      <Timeline
+        title="The same join — cooperative-sticky (schematic)"
+        lanes={[
+          { id: 'c1', label: 'c1' },
+          { id: 'c2', label: 'c2' },
+          { id: 'c3', label: 'c3' },
+        ]}
+        segments={[
+          { lane: 'c1', from: 0, to: 55, label: 'P0 P1', hue: 1 },
+          { lane: 'c1', from: 55, to: 120, label: 'P0 — kept throughout', hue: 1 },
+          { lane: 'c2', from: 0, to: 120, label: 'P2 — never stops', hue: 1 },
+          { lane: 'c3', from: 40, to: 85, label: 'joining', hue: 5, striped: true },
+          { lane: 'c3', from: 85, to: 120, label: 'P1', hue: 1 },
+        ]}
+        events={[{ lane: 'c1', at: 55, label: 'revokes only P1', hue: 4 }, { lane: 'c3', at: 85, label: 'second round', hue: 5 }]}
+        end={120}
+        unit="ms"
+        playable
+      />
+      <p>
+        In the eager run nobody processes anything during the rebalance, and two of the three partitions change owner. In the cooperative run only
+        P1 moves; c2 never notices.
+      </p>
 
       <h3>Assignment strategies, worked out</h3>
       <p>Three partitions, two consumers c1 and c2 (members are sorted by id):</p>
@@ -187,6 +277,16 @@ export default function ConsumerGroups() {
           ['sticky', 'even, keeps previous owners where possible', 'balanced', 'balanced', 'fewer partitions move on change'],
           ['cooperative-sticky', 'sticky, done incrementally', 'balanced', 'balanced', 'members keep unaffected partitions during a rebalance'],
         ]}
+      />
+      <GroupsAssignment
+        title="Three partitions, two consumers — then c3 joins"
+        rows={[
+          { label: 'range', sub: 'blocks, first members get the extra', members: [{ name: 'c1', partitions: ['P0', 'P1'] }, { name: 'c2', partitions: ['P2'] }] },
+          { label: 'roundrobin', sub: 'dealt like cards', members: [{ name: 'c1', partitions: ['P0', 'P2'] }, { name: 'c2', partitions: ['P1'] }] },
+          { label: 'range, c3 joins', sub: 'P1 and P2 both change owner', members: [{ name: 'c1', partitions: ['P0'] }, { name: 'c2', partitions: ['P1'] }, { name: 'c3', partitions: ['P2'] }] },
+          { label: 'sticky, c3 joins', sub: 'only P1 moves', members: [{ name: 'c1', partitions: ['P0'] }, { name: 'c2', partitions: ['P2'] }, { name: 'c3', partitions: ['P1'] }] },
+        ]}
+        caption="Sticky starts from the current owners (here range’s result) and moves the fewest partitions that keep the split even."
       />
       <p>
         The default <code>partition.assignment.strategy</code> is <code>[RangeAssignor, CooperativeStickyAssignor]</code>: the group uses range, and the

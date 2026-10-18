@@ -1,0 +1,144 @@
+.figure {
+  margin: var(--space-5) 0;
+  padding: var(--space-3) var(--space-3) var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-2) var(--space-1);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--font-sans);
+  --hue: var(--text-muted);
+  --hue-soft: var(--surface-muted);
+}
+
+.node,
+.edge {
+  transition: opacity 0.35s var(--ease);
+}
+
+.dim {
+  opacity: 0.22;
+}
+
+.shape {
+  fill: var(--hue-soft);
+  stroke: var(--hue);
+  stroke-width: 1.6;
+}
+
+.shapeBack {
+  fill: var(--surface);
+  stroke: var(--hue);
+  stroke-width: 1.2;
+  opacity: 0.6;
+}
+
+.lit .shape {
+  stroke-width: 2.4;
+}
+
+.tick {
+  stroke: var(--hue);
+  stroke-width: 1.4;
+}
+
+.label {
+  font-size: 12.5px;
+  font-weight: 600;
+  fill: var(--text);
+  text-anchor: middle;
+}
+
+.sub {
+  font-size: 10px;
+  fill: var(--text-muted);
+  text-anchor: middle;
+}
+
+.edgeLine {
+  fill: none;
+  stroke: var(--hue);
+  stroke-width: 1.8;
+}
+
+.dashed {
+  stroke-dasharray: 6 4;
+}
+
+.edgeLabelBg {
+  fill: var(--surface);
+  stroke: var(--hue);
+  stroke-width: 1;
+}
+
+.edgeLabel {
+  font-size: 10.5px;
+  fill: var(--text);
+  text-anchor: middle;
+}
+
+.packet {
+  fill: var(--hue);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+
+.steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+}
+
+.stepText {
+  flex: 1;
+  min-width: 240px;
+}
+
+.stepTitle {
+  font-weight: 600;
+  font-size: 0.88rem;
+}
+
+.counter {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-right: 4px;
+}
+
+.stepBody {
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.stepBody p {
+  margin: 0;
+}
+
+.buttons {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.caption {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  padding: var(--space-2) var(--space-1) var(--space-1);
+}

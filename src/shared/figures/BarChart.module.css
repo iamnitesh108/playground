@@ -1,0 +1,92 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.rows {
+  display: grid;
+  gap: 8px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: minmax(120px, 32%) 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.82rem;
+}
+
+.label {
+  color: var(--text);
+}
+
+.track {
+  position: relative;
+  height: 18px;
+  border-radius: 0 4px 4px 0;
+  background: var(--surface-muted);
+}
+
+.bar {
+  display: block;
+  height: 100%;
+  border-radius: 0 4px 4px 0;
+  background: var(--hue);
+  transition: width 0.5s var(--ease);
+}
+
+.value {
+  min-width: 7ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.note {
+  grid-column: 1 / -1;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--text);
+}
+
+.markerLegend {
+  margin-top: var(--space-2);
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.markerSwatch {
+  display: inline-block;
+  width: 2px;
+  height: 12px;
+  background: var(--text);
+  vertical-align: middle;
+}
+
+@media (max-width: 560px) {
+  .row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

@@ -1,11 +1,22 @@
 import { Callout, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { BarList, CliSession, EncodingExplorer } from '../components'
 import { CAPTURE } from '../data/captures'
+import { BarChart, ByteLayout, Flow, StatTiles, type ByteField } from '@/shared/figures'
 
 const T = CAPTURE.types
 const cfg = T.config
 const kb = (b: number) => `${(b / 1024).toFixed(1)} KB`
 const mb = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`
+
+/** The fields and values of the recorded HSET in the tour, in order. */
+const hsetArgs = (T.tour.find((s) => s.cmd?.startsWith('HSET user:1'))?.cmd ?? 'HSET user:1 name Ann').split(' ').slice(2)
+/** A listpack: 6-byte header, then per short entry 1 encoding byte + the data + 1 back-length byte, then 1 end byte. */
+const listpackFields: ByteField[] = [
+  { label: 'header', content: 'total · count', bytes: 6, hue: 2 },
+  ...hsetArgs.map((a, i): ByteField => ({ label: i % 2 === 0 ? 'field' : 'value', content: a, bytes: a.length + 2, hue: i % 2 === 0 ? 3 : 1 })),
+  { label: 'end', content: 'FF', bytes: 1, hue: 2 },
+]
+const listpackTotal = listpackFields.reduce((n, f) => n + f.bytes, 0)
 
 export default function Types() {
   const { atLimit, above } = T.hashJump
@@ -59,6 +70,35 @@ export default function Types() {
           { term: 'hashtable, skiplist, quicklist', definition: 'The big encodings: a real hash table; a skiplist plus a hash table (lesson 4); a linked list of listpacks.' },
         ]}
       />
+      <ByteLayout
+        title={`The recorded hash user:1 as a listpack: ${hsetArgs.length / 2} fields in one ${listpackTotal}-byte block`}
+        rows={[{ fields: listpackFields }]}
+        caption="Drawn from the listpack format: a 6-byte header (total bytes, element count), each short entry = 1 encoding byte + data + 1 back-length byte (so it can be walked backwards), and an end byte. HGET scans it from the start."
+      />
+      <Flow
+        title="The same hash once it is big: a hash table of separately allocated entries (schematic)"
+        cols={4}
+        rows={2}
+        rowHeight={78}
+        nodes={[
+          { id: 'buckets', label: 'bucket array', sub: 'one pointer per bucket', col: 0, row: 0, rowSpan: 2, hue: 3, shape: 'log' },
+          { id: 'e1', label: 'entry', sub: 'field ptr · value ptr · next', col: 1, row: 0, hue: 3 },
+          { id: 'e2', label: 'entry', sub: 'field ptr · value ptr · next', col: 1, row: 1, hue: 3 },
+          { id: 'f1', label: hsetArgs[0] ?? 'field', sub: 'field string', col: 2, row: 0, hue: 3 },
+          { id: 'v1', label: hsetArgs[1] ?? 'value', sub: 'value string', col: 3, row: 0, hue: 1 },
+          { id: 'f2', label: hsetArgs[2] ?? 'field', sub: 'field string', col: 2, row: 1, hue: 3 },
+          { id: 'v2', label: hsetArgs[3] ?? 'value', sub: 'value string', col: 3, row: 1, hue: 1 },
+        ]}
+        edges={[
+          { from: 'buckets', to: 'e1', label: 'hash(field)', hue: 3 },
+          { from: 'buckets', to: 'e2', hue: 3 },
+          { from: 'e1', to: 'f1', hue: 3 },
+          { from: 'f1', to: 'v1', hue: 1, dashed: true },
+          { from: 'e2', to: 'f2', hue: 3 },
+          { from: 'f2', to: 'v2', hue: 1, dashed: true },
+        ]}
+        caption="Every arrow is a pointer to a separate allocation. Lookups no longer scan, but each field now costs pointers, allocator overhead and a bucket — that is the memory jump below."
+      />
       <EncodingExplorer />
 
       <h2>Where the switch happens — recorded</h2>
@@ -76,12 +116,18 @@ export default function Types() {
           own server with <code>CONFIG GET *listpack*</code>.
         </p>
       </Callout>
-      <BarList
-        title="One hash, one field more"
-        bars={[
-          { label: `${atLimit.fields} fields (${atLimit.encoding})`, value: atLimit.memory, display: kb(atLimit.memory), emphasis: true },
-          { label: `${above.fields} fields (${above.encoding})`, value: above.memory, display: kb(above.memory) },
+      <StatTiles
+        title="One hash, one field more — recorded MEMORY USAGE"
+        stats={[
+          { label: `${atLimit.fields} fields, ${atLimit.encoding}`, value: kb(atLimit.memory), hue: 6, bar: { value: atLimit.memory, max: above.memory } },
+          { label: `${above.fields} fields, ${above.encoding}`, value: kb(above.memory), hue: 8, bar: { value: above.memory, max: above.memory } },
+          { label: 'for one more field', value: `${(above.memory / atLimit.memory).toFixed(1)}×`, sub: 'the whole hash is converted at once', hue: 2 },
         ]}
+      />
+      <BarChart
+        title="Each type right after its encoding changed (recorded MEMORY USAGE of the key)"
+        unit=" B"
+        bars={T.transitions.filter((t) => t.steps[1]).map((t) => ({ label: `${t.type}: ${t.steps[1].count} elements`, value: t.steps[1].memory, display: kb(t.steps[1].memory), hue: 3 as const, note: `${t.steps[0].encoding} → ${t.steps[1].encoding}` }))}
       />
       <p>
         One extra field made the same hash about <strong>{(above.memory / atLimit.memory).toFixed(1)}×</strong> bigger: every field and value is now a
@@ -110,6 +156,19 @@ export default function Types() {
         <strong>the limit depends on the key length</strong>:
       </p>
       <Table head={['Key', 'Key bytes', 'Longest embstr value']} rows={T.embstrLimit.map((e) => [<code key="k">{e.key}</code>, e.keyBytes, `${e.maxValueBytes} bytes`])} />
+      <ByteLayout
+        title="One 64-byte allocation: key + longest embstr value, from the recording; the rest is headers"
+        scale={64}
+        rows={T.embstrLimit.map((e) => ({
+          label: `key ${e.key}`,
+          fields: [
+            { label: 'object + headers', bytes: 64 - e.keyBytes - e.maxValueBytes, hue: 2 },
+            { label: 'key', content: e.key, bytes: e.keyBytes, hue: 3 },
+            { label: 'value', content: `${e.maxValueBytes} bytes`, bytes: e.maxValueBytes, hue: 1 },
+          ],
+        }))}
+        caption={`In every row key + value = ${T.embstrLimit[0].keyBytes + T.embstrLimit[0].maxValueBytes} bytes: a longer key leaves less room for the value. The header bytes are 64 minus the recorded key and value (their internal split is not shown).`}
+      />
       <p>
         Modifying a string in place turns it into <code>raw</code>: <code>APPEND</code> changed a value from <code>{T.appendTurnsRaw.before}</code> to{' '}
         <code>{T.appendTurnsRaw.after}</code>. This matters little for one key and a lot for millions of small ones.

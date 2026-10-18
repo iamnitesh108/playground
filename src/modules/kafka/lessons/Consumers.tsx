@@ -1,5 +1,7 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
+import { Flow, Timeline } from '@/shared/figures'
 import { ConsumerInternals, Terminal } from '../components'
+import { OffsetsTape } from '../components/OffsetsTape'
 import { ORDERS_APP } from '../data/ordersApp'
 import { PRACTICALS } from '../data/practicals'
 
@@ -45,6 +47,23 @@ export default function Consumers() {
         partitions this consumer is responsible for. Records are <strong>not removed</strong> by reading — the log stays as it is, and every reader
         just remembers how far it got.
       </p>
+      <Flow
+        title="One consumer inside your process: two threads, two kinds of traffic"
+        cols={4}
+        rows={2}
+        nodes={[
+          { id: 'app', label: 'your thread', sub: 'poll() → process → commit', col: 0, row: 0, span: 2, hue: 1 },
+          { id: 'hb', label: 'heartbeat thread', sub: 'started by the client', col: 0, row: 1, span: 2, hue: 1, shape: 'queue' },
+          { id: 'leader', label: 'partition leaders', sub: 'brokers with the data', col: 3, row: 0, hue: 3, shape: 'log' },
+          { id: 'coord', label: 'group coordinator', sub: 'a broker', col: 3, row: 1, hue: 5 },
+        ]}
+        edges={[
+          { from: 'app', to: 'leader', label: 'fetch records', flow: true, hue: 3, both: true },
+          { from: 'hb', to: 'coord', label: 'heartbeat every 3 s', flow: true, hue: 5 },
+          { from: 'app', to: 'coord', label: 'commit offsets', hue: 5, dashed: true },
+        ]}
+        caption="Data comes from the leaders of the partitions you own; group membership and committed offsets go through the coordinator. Slow processing blocks your thread, never the heartbeat thread."
+      />
       <CodeBlock title="the plain Java consumer loop" language="java" code={JAVA_LOOP} />
       <p>Frameworks hide the loop. In Micronaut the same consumer is an annotated method — this is the real class the practicals ran:</p>
       <CodeBlock title="OrderListener.java (Micronaut, recorded in the practicals)" language="java" code={ORDERS_APP['OrderListener.java']} />
@@ -90,6 +109,22 @@ export default function Consumers() {
           { term: 'lag', definition: 'log-end offset − committed offset: records written but not yet confirmed by the group.' },
         ]}
       />
+      <OffsetsTape
+        title="The four numbers on one partition (schematic)"
+        rows={[
+          {
+            label: 'orders-0',
+            end: 9,
+            span: { from: 5, to: 9, label: 'lag = 9 − 5 = 4', hue: 4 },
+            markers: [
+              { at: 5, label: 'committed 5', hue: 1 },
+              { at: 7, label: 'position 7', hue: 1 },
+              { at: 9, label: 'log-end 9', hue: 3, above: true },
+            ],
+          },
+        ]}
+        caption="Records 5 and 6 were handed to your code but not committed yet: after a crash they are delivered again."
+      />
       <p>
         The position runs ahead of the committed offset between commits. That gap is exactly what a crash can make you process twice — the
         animation’s last two steps.
@@ -100,6 +135,27 @@ export default function Consumers() {
         When a group has a committed offset for a partition, its consumer starts there. Only when there is <strong>none</strong> — a brand-new group,
         or offsets that expired — does <code>auto.offset.reset</code> decide:
       </p>
+      <Flow
+        title="Where a consumer starts reading a partition it was just given"
+        cols={4}
+        rows={3}
+        rowHeight={74}
+        nodes={[
+          { id: 'given', label: 'partition assigned', sub: 'after joining the group', col: 0, row: 1, hue: 1, shape: 'actor' },
+          { id: 'ask', label: 'committed offset?', sub: 'asked from the coordinator', col: 1, row: 1, hue: 5 },
+          { id: 'resume', label: 'resume there', sub: 'the normal case', col: 2, row: 0, span: 2, hue: 6 },
+          { id: 'reset', label: 'auto.offset.reset', sub: 'only now', col: 2, row: 2, hue: 4 },
+          { id: 'earliest', label: 'earliest / latest', sub: 'oldest kept · the end', col: 3, row: 1, hue: 3 },
+          { id: 'none', label: 'none', sub: 'poll() throws', col: 3, row: 2, hue: 8 },
+        ]}
+        edges={[
+          { from: 'given', to: 'ask', flow: true, hue: 1 },
+          { from: 'ask', to: 'resume', label: 'yes', flow: true, hue: 6 },
+          { from: 'ask', to: 'reset', label: 'no', hue: 4 },
+          { from: 'reset', to: 'earliest', hue: 3 },
+          { from: 'reset', to: 'none', hue: 8 },
+        ]}
+      />
       <Table
         head={['Value', 'Starts at', 'Use it when']}
         rows={[
@@ -131,6 +187,32 @@ export default function Consumers() {
           ['commit before processing', 'commit first, then process', 'a crash loses the batch: at-most-once'],
         ]}
       />
+      <Timeline
+        title="Auto-commit with the default 5 s interval, and a crash (schematic)"
+        lanes={[
+          { id: 'poll', label: 'your loop' },
+          { id: 'commit', label: 'commits' },
+          { id: 'crash', label: 'after crash' },
+        ]}
+        segments={[
+          { lane: 'poll', from: 0, to: 4.6, label: 'batches 1–4', hue: 1 },
+          { lane: 'poll', from: 5.2, to: 9.6, label: 'batches 5–8', hue: 1 },
+          { lane: 'poll', from: 10.2, to: 12.4, label: 'batches 9–10', hue: 1 },
+          { lane: 'crash', from: 10, to: 12.4, label: 'read again', hue: 8, striped: true },
+        ]}
+        events={[
+          { lane: 'commit', at: 5, label: 'commit', hue: 5 },
+          { lane: 'commit', at: 10, label: 'commit', hue: 5 },
+          { lane: 'poll', at: 12.4, label: 'crash', hue: 8 },
+        ]}
+        end={14}
+        unit="s"
+        playable
+      />
+      <p>
+        Auto-commit happens inside a later <code>poll()</code>, so it only commits records whose batch already finished — in a simple loop that is
+        at-least-once. What the crash costs is everything processed since the last commit: here the records of batches 9 and 10.
+      </p>
       <Callout tone="tip" title="The safe default">
         Commit <strong>after</strong> the work, and make the work safe to repeat (a unique key, “insert … if absent”, a status check). Then a crash costs a
         few duplicates, never lost records. Lesson 9 goes deeper.
@@ -151,6 +233,42 @@ export default function Consumers() {
         client may not set them; the broker decides instead, with <code>group.consumer.session.timeout.ms</code> (45 s) and{' '}
         <code>group.consumer.heartbeat.interval.ms</code> (5 s).
       </p>
+      <Timeline
+        title="Way 1: the process dies — heartbeats stop (defaults, classic protocol)"
+        lanes={[
+          { id: 'hb', label: 'heartbeats' },
+          { id: 'coord', label: 'coordinator' },
+        ]}
+        segments={[
+          { lane: 'hb', from: 0, to: 9, label: 'every 3 s', hue: 5 },
+          { lane: 'coord', from: 9, to: 54, label: 'waits session.timeout.ms (45 s)', hue: 4 },
+        ]}
+        events={[
+          { lane: 'hb', at: 10, label: 'process dies', hue: 8 },
+          { lane: 'coord', at: 54, label: 'member removed → rebalance', hue: 8 },
+        ]}
+        end={60}
+        unit="s"
+        playable
+      />
+      <Timeline
+        title="Way 2: the process is alive but stuck — no poll() for too long"
+        lanes={[
+          { id: 'hb', label: 'heartbeats' },
+          { id: 'app', label: 'your thread' },
+        ]}
+        segments={[
+          { lane: 'hb', from: 0, to: 300, label: 'still every 3 s — the process is alive', hue: 5 },
+          { lane: 'app', from: 0, to: 340, label: 'one batch: 500 records × 1 s', hue: 1 },
+          { lane: 'app', from: 300, to: 340, label: 'out of the group', hue: 8, striped: true },
+        ]}
+        events={[
+          { lane: 'app', at: 0, label: 'poll()', hue: 1 },
+          { lane: 'app', at: 300, label: 'max.poll.interval.ms → leaves group', hue: 8 },
+        ]}
+        end={360}
+        unit="s"
+      />
       <p>
         Heartbeats run on their own thread, so slow processing does not stop them — but it does delay the next <code>poll()</code>. If one batch takes
         longer than <code>max.poll.interval.ms</code>, the consumer is thrown out, its partitions move, and its late commit fails. Fix it by processing

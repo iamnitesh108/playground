@@ -28,6 +28,8 @@ export interface Flight {
   duration: number
   label: string
   kind: 'produce' | 'consume'
+  /** Palette slot: the key's colour when produced, the group's colour when consumed. */
+  hue: number
 }
 
 export interface StageOptions {
@@ -37,6 +39,16 @@ export interface StageOptions {
 }
 
 const FLIGHT_MS = 650
+
+/** Keys take palette slots 3–8, groups slots 1–2, so a colour never means both. */
+export function keyHue(key: string | null): number {
+  if (!key) return 8
+  let h = 0
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) | 0
+  return 3 + (Math.abs(h) % 6)
+}
+
+export const groupHue = (index: number): number => (index % 2) + 1
 const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 function build(o: StageOptions): KafkaCluster {
@@ -79,15 +91,15 @@ export function useKafkaStage(options: StageOptions) {
     const layout = layoutOf(cluster)
     const items: Omit<Flight, 'id' | 'start' | 'duration'>[] = []
     let progressed = false
-    for (const g of cluster.groups) {
+    cluster.groups.forEach((g, gi) => {
       for (const m of g.members) {
         const r = cluster.consume(g.id, m.id)
         if (!r) continue
         progressed = true
         const to = layout.consumer(m.id)
-        if (animate && to) items.push({ from: { x: layout.cellX(r.partition, r.offset) + layout.cellWidth / 2, y: layout.partitionY(r.partition) }, to, label: r.key?.[0] ?? '·', kind: 'consume' })
+        if (animate && to) items.push({ from: { x: layout.cellX(r.partition, r.offset) + layout.cellWidth / 2, y: layout.partitionY(r.partition) }, to, label: r.key?.[0] ?? '·', kind: 'consume', hue: groupHue(gi) })
       }
-    }
+    })
     if (animate) fly(items)
     return progressed
   }, [cluster, fly])
@@ -98,7 +110,7 @@ export function useKafkaStage(options: StageOptions) {
         const r = cluster.produce(action.key, action.value)
         if (animate) {
           const layout = layoutOf(cluster)
-          fly([{ from: { x: layout.producer.x + layout.producer.w, y: layout.producer.y + layout.producer.h / 2 }, to: { x: layout.cellX(r.partition, r.offset) + layout.cellWidth / 2, y: layout.partitionY(r.partition) }, label: action.key?.[0] ?? '·', kind: 'produce' }])
+          fly([{ from: { x: layout.producer.x + layout.producer.w, y: layout.producer.y + layout.producer.h / 2 }, to: { x: layout.cellX(r.partition, r.offset) + layout.cellWidth / 2, y: layout.partitionY(r.partition) }, label: action.key?.[0] ?? '·', kind: 'produce', hue: keyHue(action.key) }])
         }
         break
       }

@@ -1,0 +1,57 @@
+.figure {
+  margin: var(--space-4) 0;
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
+}
+
+.card {
+  padding: var(--space-3);
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--hue);
+}
+
+.area {
+  margin: 0 0 var(--space-2);
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.list li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.box {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-top: 3px;
+  border-radius: 3px;
+  border: 1.5px solid var(--hue);
+  background: var(--surface);
+}

@@ -1,6 +1,7 @@
 import { cx } from '@/shared/utils/cx'
 import type { KafkaCluster } from '../../simulation'
-import type { Flight } from './useKafkaStage'
+import { hue, type Hue } from '@/shared/figures'
+import { groupHue, keyHue, type Flight } from './useKafkaStage'
 import { layoutOf, STAGE_WIDTH, VISIBLE_CELLS } from './layout'
 import styles from './KafkaStage.module.css'
 
@@ -51,7 +52,7 @@ export function KafkaStage({ cluster, flights, now, producer = 'producer' }: Kaf
             <text x={L.topic.x + 12} y={y + 4} className={styles.partitionLabel}>P{p}</text>
             {from > 0 && <text x={L.cellX(p, from) - 6} y={y + 4} className={styles.more}>…</text>}
             {records.map((r) => (
-              <g key={r.offset} className={styles.cell}>
+              <g key={r.offset} className={styles.cell} style={hue(keyHue(r.key) as Hue)}>
                 <rect x={L.cellX(p, r.offset)} y={y - 12} width={L.cellWidth} height={24} rx={4} className={styles.cellBox} />
                 <text x={L.cellX(p, r.offset) + L.cellWidth / 2} y={y - 0.5} className={styles.cellKey}>{r.key?.[0] ?? '·'}</text>
                 <text x={L.cellX(p, r.offset) + L.cellWidth / 2} y={y + 8.5} className={styles.cellOffset}>{r.offset}</text>
@@ -66,7 +67,7 @@ export function KafkaStage({ cluster, flights, now, producer = 'producer' }: Kaf
               const x = L.cellX(p, committed) + L.cellWidth / 2
               const below = gi === 0
               return (
-                <g key={g.id} className={styles.caret} style={{ transform: `translateX(${x}px)` }}>
+                <g key={g.id} className={styles.caret} style={{ ...hue(groupHue(gi) as Hue), transform: `translateX(${x}px)` }}>
                   <path d={below ? 'M0,15 L-4,22 L4,22 z' : 'M0,-15 L-4,-22 L4,-22 z'} transform={`translate(0 ${y})`} className={styles.caretMark} />
                   <text x={0} y={below ? y + 31 : y - 25} className={styles.caretLabel}>{g.id}</text>
                 </g>
@@ -84,7 +85,7 @@ export function KafkaStage({ cluster, flights, now, producer = 'producer' }: Kaf
           if (!to) return null
           const y = L.partitionY(p)
           const d = `M${L.tapeEnd},${y} C${L.tapeEnd + 34},${y} ${to.x - 40},${to.y} ${to.x - 2},${to.y}`
-          return <path key={`${g.id}:${p}:${owner}:${g.generation}`} d={d} className={styles.assign} style={{ strokeDasharray: DASH[gi % DASH.length] || undefined }} />
+          return <path key={`${g.id}:${p}:${owner}:${g.generation}`} d={d} className={styles.assign} style={{ ...hue(groupHue(gi) as Hue), strokeDasharray: DASH[gi % DASH.length] || undefined }} />
         }),
       )}
 
@@ -92,7 +93,7 @@ export function KafkaStage({ cluster, flights, now, producer = 'producer' }: Kaf
       {L.groups.map((box, gi) => {
         const g = groups[gi]
         return (
-          <g key={box.id}>
+          <g key={box.id} style={hue(groupHue(gi) as Hue)}>
             <rect x={box.x} y={box.y} width={box.w} height={box.h} rx={10} className={styles.group} style={{ strokeDasharray: DASH[gi % DASH.length] || undefined }} />
             <text x={box.x + 12} y={box.y + 17} className={styles.groupName}>group: {g.id}</text>
             <text x={box.x + box.w - 10} y={box.y + 17} className={styles.topicMeta}>gen {g.generation}</text>
@@ -121,7 +122,7 @@ export function KafkaStage({ cluster, flights, now, producer = 'producer' }: Kaf
         const x = (1 - t) * (1 - t) * f.from.x + 2 * (1 - t) * t * cx1 + t * t * f.to.x
         const y = (1 - t) * (1 - t) * f.from.y + 2 * (1 - t) * t * cy1 + t * t * f.to.y
         return (
-          <g key={f.id} transform={`translate(${x} ${y})`}>
+          <g key={f.id} transform={`translate(${x} ${y})`} style={hue(f.hue as Hue)}>
             <circle r={9} className={f.kind === 'produce' ? styles.flightProduce : styles.flightConsume} />
             <text y={3.5} className={styles.flightLabel}>{f.label}</text>
           </g>

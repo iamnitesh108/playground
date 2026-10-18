@@ -1,10 +1,22 @@
 import { useObservable } from '@/shared/hooks/useObservable'
 import { Button, Callout, CodeBlock, Demo, Segmented, Table, TermList } from '@/shared/ui'
 import { cx } from '@/shared/utils/cx'
+import { BarChart, Flow, StatTiles, Timeline } from '@/shared/figures'
+import { ReplicationLogRows, type LogCell } from '../components/ReplicationLogRows'
 import { PartitionLog } from '../components'
 import { ReplicatedPartition, type Acks } from '../simulation'
 import styles from './lesson.module.css'
 import own from './Replication.module.css'
+
+/** Schematic replica logs: the leader has offsets 0–6, one follower 0–5, the other 0–3 (it fell behind). */
+const replicaRow = (label: string, upTo: number, hw: number, total = 7): { label: string; cells: LogCell[] } => ({
+  label,
+  cells: Array.from({ length: total }, (_, o) => ({
+    label: o < upTo ? (o < hw ? 'on all ISR' : 'not on all yet') : 'not fetched yet',
+    content: o < upTo ? `offset ${o}` : '·',
+    hue: o >= upTo ? 7 : o < hw ? 3 : 8,
+  })),
+})
 
 function ReplicationDemo() {
   const partition = useObservable(() => new ReplicatedPartition(3))
@@ -118,6 +130,36 @@ export default function Replication() {
         </li>
       </ul>
 
+      <Flow
+        title="One partition, three replicas"
+        cols={4}
+        rows={3}
+        rowHeight={76}
+        nodes={[
+          { id: 'producer', label: 'producer', sub: 'acks=all', col: 0, row: 1, hue: 7, shape: 'actor' },
+          { id: 'leader', label: 'broker 1 · leader', col: 1, row: 1, hue: 3, shape: 'log' },
+          { id: 'f2', label: 'broker 2 · follower', col: 2, row: 0, hue: 3, shape: 'log' },
+          { id: 'f3', label: 'broker 3 · follower', col: 2, row: 2, hue: 3, shape: 'log' },
+          { id: 'consumer', label: 'consumers', sub: 'read below the HW', col: 3, row: 1, hue: 1 },
+        ]}
+        edges={[
+          { from: 'producer', to: 'leader', label: 'write', flow: true, hue: 7 },
+          { from: 'leader', to: 'f2', label: 'fetched', flow: true, hue: 3, dashed: true },
+          { from: 'leader', to: 'f3', label: 'fetched', flow: true, hue: 3, dashed: true },
+          { from: 'leader', to: 'consumer', label: 'below HW', flow: true, hue: 1 },
+        ]}
+        steps={[
+          { title: 'The producer writes to the leader', body: <p>Every write for orders-0 goes to its leader, broker 1, which appends it to its log.</p>, active: ['producer', 'leader', 'producer>leader'] },
+          { title: 'Followers fetch, like consumers', body: <p>Brokers 2 and 3 continuously fetch new records from the leader and append them to their own copy of the log.</p>, active: ['leader', 'f2', 'f3', 'leader>f2', 'leader>f3'] },
+          { title: 'The high watermark moves', body: <p>Once every member of the ISR has a record, the leader moves the high watermark past it, and (with acks=all) answers the producer.</p>, active: ['leader', 'f2', 'f3', 'producer', 'producer>leader'] },
+          { title: 'Consumers read below the high watermark', body: <p>Consumers only get records below the high watermark — records that every in-sync replica has, so a failover cannot take them away.</p>, active: ['leader', 'consumer', 'leader>consumer'] },
+        ]}
+      />
+      <ReplicationLogRows
+        title="The high watermark, schematic: what each replica has"
+        rows={[replicaRow('broker 1 · leader', 7, 4), replicaRow('broker 2 · follower', 6, 4), replicaRow('broker 3 · follower (falling behind)', 4, 4)]}
+        caption="Offsets 0–3 are on every ISR member: below the high watermark (4), readable and safe. 4–6 are not on all ISR members yet, so consumers cannot see them. If broker 3 stays behind longer than replica.lag.time.max.ms (30 s), it leaves the ISR and the high watermark can move on without it."
+      />
       <ReplicationDemo />
 
       <h2>What you just saw</h2>
@@ -131,6 +173,53 @@ export default function Replication() {
         ]}
       />
 
+      <BarChart
+        title="Copies that exist before the producer hears “OK” (RF=3, all replicas in sync)"
+        max={3}
+        bars={[
+          { label: 'acks=0', value: 0, hue: 8, display: 'none — not even the leader is waited for', note: 'Fire and forget: the producer does not wait for any answer.' },
+          { label: 'acks=1', value: 1, hue: 4, display: '1 — the leader', note: 'If the leader dies before a follower fetched the record, the record is lost.' },
+          { label: 'acks=all', value: 3, hue: 6, display: 'every ISR member (3)', note: 'With min.insync.replicas=2 the write is refused when fewer than 2 replicas are in sync.' },
+        ]}
+      />
+      <Timeline
+        title="A leader fails, schematic (RF=3, acks=all)"
+        lanes={[
+          { id: 'b1', label: 'broker 1' },
+          { id: 'b2', label: 'broker 2' },
+          { id: 'b3', label: 'broker 3' },
+          { id: 'producer', label: 'producer' },
+        ]}
+        segments={[
+          { lane: 'b1', from: 0, to: 4, label: 'leader', hue: 3 },
+          { lane: 'b1', from: 4, to: 7, label: 'down', hue: 8, striped: true },
+          { lane: 'b1', from: 7, to: 8, label: 'catching up', hue: 4 },
+          { lane: 'b1', from: 8, to: 10, label: 'follower, in ISR', hue: 3 },
+          { lane: 'b2', from: 0, to: 4.6, label: 'follower', hue: 3 },
+          { lane: 'b2', from: 4.6, to: 10, label: 'leader', hue: 3 },
+          { lane: 'b3', from: 0, to: 10, label: 'follower', hue: 3 },
+          { lane: 'producer', from: 0, to: 4, label: 'writes', hue: 7 },
+          { lane: 'producer', from: 4, to: 4.6, label: 'retry', hue: 8, striped: true },
+          { lane: 'producer', from: 4.6, to: 10, label: 'writes to broker 2', hue: 7 },
+        ]}
+        events={[
+          { lane: 'b1', at: 4, label: 'crash', hue: 8 },
+          { lane: 'b2', at: 4.6, label: 'elected from the ISR', hue: 5 },
+          { lane: 'b1', at: 8, label: 'back in ISR', hue: 6 },
+        ]}
+        end={10}
+        unit="s"
+        playable
+      />
+      <StatTiles
+        title="The durable default"
+        stats={[
+          { label: 'replication.factor', value: 3, sub: 'three copies of every partition', hue: 3 },
+          { label: 'min.insync.replicas', value: 2, sub: 'writes need two in-sync copies', hue: 5 },
+          { label: 'producer acks', value: 'all', sub: 'OK only after every ISR member has it', hue: 7 },
+          { label: 'brokers you can lose', value: 1, sub: 'with no data loss and no downtime', hue: 6 },
+        ]}
+      />
       <Callout tone="tip" title="The durable default">
         <code>replication.factor=3</code>, <code>min.insync.replicas=2</code>, producer <code>acks=all</code>. You can
         lose any one broker with no data loss and no downtime.

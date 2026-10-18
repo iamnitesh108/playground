@@ -1,7 +1,9 @@
 import { useState } from 'react'
 import { useObservable } from '@/shared/hooks/useObservable'
 import { Button, Callout, CodeBlock, Demo, Segmented, TermList } from '@/shared/ui'
+import { Flow } from '@/shared/figures'
 import { PartitionLog } from '../components'
+import { TopicsPartitionsSegments } from '../components/TopicsPartitionsSegments'
 import { KafkaCluster } from '../simulation'
 import styles from './lesson.module.css'
 
@@ -87,6 +89,31 @@ export default function TopicsPartitions() {
         </li>
       </ul>
 
+      <Flow
+        title="One topic, three partitions, three brokers — each partition is its own log"
+        cols={5}
+        rows={3}
+        rowHeight={90}
+        nodes={[
+          { id: 'prod', label: 'producer', sub: 'key → partition', col: 0, row: 1, hue: 7, shape: 'actor' },
+          { id: 'p0', label: 'orders-0', sub: 'leader on broker 1', col: 2, row: 0, hue: 3, shape: 'log' },
+          { id: 'p1', label: 'orders-1', sub: 'leader on broker 2', col: 2, row: 1, hue: 3, shape: 'log' },
+          { id: 'p2', label: 'orders-2', sub: 'leader on broker 3', col: 2, row: 2, hue: 3, shape: 'log' },
+          { id: 'c1', label: 'consumer 1', sub: 'reads orders-0', col: 4, row: 0, hue: 1 },
+          { id: 'c2', label: 'consumer 2', sub: 'reads orders-1', col: 4, row: 1, hue: 1 },
+          { id: 'c3', label: 'consumer 3', sub: 'reads orders-2', col: 4, row: 2, hue: 1 },
+        ]}
+        edges={[
+          { from: 'prod', to: 'p0', flow: true, hue: 7 },
+          { from: 'prod', to: 'p1', flow: true, hue: 7 },
+          { from: 'prod', to: 'p2', flow: true, hue: 7 },
+          { from: 'p0', to: 'c1', flow: true, hue: 1 },
+          { from: 'p1', to: 'c2', flow: true, hue: 1 },
+          { from: 'p2', to: 'c3', flow: true, hue: 1 },
+        ]}
+        caption="Schematic. Writes and storage are spread over three machines, three consumers of one group read in parallel, and each partition keeps its own order and its own offsets starting at 0."
+      />
+
       <PartitionPlayground />
 
       <Callout tone="analogy">
@@ -99,7 +126,7 @@ export default function TopicsPartitions() {
       <ul>
         <li>
           The number of partitions is the <strong>maximum number of consumers in a group</strong> that can work in
-          parallel (lesson 7; true for classic consumer groups). Plan for your peak throughput.
+          parallel (lesson 8; true for classic consumer groups). Plan for your peak throughput.
         </li>
         <li>
           You can <strong>add</strong> partitions later but never remove them. Existing records stay where they are,
@@ -130,6 +157,7 @@ export default function TopicsPartitions() {
         whole file at a time. Each segment has a <code>.log</code> file with the records and small{' '}
         <code>.index</code>/<code>.timeindex</code> files to find an offset or timestamp quickly.
       </p>
+      <TopicsPartitionsSegments />
       <CodeBlock
         title="/var/lib/kafka/orders-0/"
         code={`00000000000000000000.log        # records with offsets 0 … 41 230

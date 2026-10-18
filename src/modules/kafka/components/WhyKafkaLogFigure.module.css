@@ -1,0 +1,112 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  font-family: var(--font-sans);
+}
+
+.label,
+.small {
+  font-size: 10.5px;
+  fill: var(--text-muted);
+}
+
+.small {
+  text-anchor: middle;
+}
+
+.note {
+  font-size: 10.5px;
+  fill: var(--text-muted);
+}
+
+.cell {
+  fill: var(--hue-soft);
+  stroke: var(--hue);
+  stroke-width: 1.5;
+}
+
+.cellNew {
+  fill: var(--hue-soft);
+  stroke: var(--hue);
+  stroke-width: 2;
+  stroke-dasharray: 4 3;
+}
+
+.cellText {
+  font-size: 10px;
+  fill: var(--text);
+  text-anchor: middle;
+}
+
+.offset {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--text);
+  text-anchor: middle;
+}
+
+.arriving {
+  animation: append 3.2s var(--ease) infinite;
+}
+
+@keyframes append {
+  0% {
+    opacity: 0;
+    transform: translateX(150px);
+  }
+  35%,
+  80% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(0);
+  }
+}
+
+.producer {
+  fill: var(--hue-soft);
+  stroke: var(--hue);
+  stroke-width: 1.6;
+}
+
+.producerText {
+  font-size: 12px;
+  font-weight: 600;
+  fill: var(--text);
+  text-anchor: middle;
+}
+
+.marker {
+  fill: var(--hue);
+}
+
+.readerText {
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--text);
+  text-anchor: middle;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arriving {
+    animation: none;
+  }
+}

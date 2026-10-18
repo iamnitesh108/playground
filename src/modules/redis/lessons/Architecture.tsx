@@ -1,4 +1,5 @@
 import { Callout, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
+import { BarChart, Flow, StatTiles, Timeline } from '@/shared/figures'
 import { BarList, CliSession, EventLoopPlayground } from '../components'
 import { CAPTURE, REDIS_VERSION } from '../data/captures'
 
@@ -51,6 +52,30 @@ export default function Architecture() {
         The recorded server reported <code>multiplexing_api:{A.server.multiplexing_api}</code>: its event loop is built on epoll. These are the
         threads of an idle server, read from the operating system:
       </p>
+      <Flow
+        title={`The ${A.threads.length} threads of the recorded server — only one runs commands`}
+        cols={4}
+        rows={3}
+        rowHeight={80}
+        nodes={[
+          { id: 'clients', label: 'clients', sub: 'many sockets', col: 0, row: 0, hue: 1, shape: 'actor' },
+          { id: 'main', label: 'redis-server', sub: 'main thread: event loop + every command', col: 1, row: 0, span: 2, hue: 2 },
+          { id: 'keyspace', label: 'keyspace', sub: 'all data, in RAM', col: 3, row: 0, hue: 3, shape: 'store' },
+          { id: 'aof', label: 'bio_aof', sub: 'fsync the AOF', col: 0, row: 2, hue: 4 },
+          { id: 'close', label: 'bio_close_file', sub: 'close old files', col: 1, row: 2, hue: 4 },
+          { id: 'free', label: 'bio_lazy_free', sub: 'free big values', col: 2, row: 2, hue: 3 },
+          { id: 'jemalloc', label: `jemalloc_bg_thd ×${A.threads.filter((t) => t === 'jemalloc_bg_thd').length}`, sub: 'return pages to the OS', col: 3, row: 2, hue: 7 },
+        ]}
+        edges={[
+          { from: 'clients', to: 'main', flow: true, hue: 1, both: true },
+          { from: 'main', to: 'keyspace', flow: true, hue: 3 },
+          { from: 'main', to: 'aof', label: 'jobs', hue: 4, dashed: true },
+          { from: 'main', to: 'close', hue: 4, dashed: true },
+          { from: 'main', to: 'free', hue: 3, dashed: true },
+          { from: 'keyspace', to: 'jemalloc', hue: 7, dashed: true },
+        ]}
+        caption="Solid arrows: requests and replies, and every read and write of the keyspace — all on the main thread. Dashed: slow jobs handed to a helper so the main thread never waits for the disk or for freeing memory."
+      />
       <Table head={['Thread', 'Count', 'What it does']} rows={threadRows} />
       <p>
         Only <code>redis-server</code> executes commands. The others do slow work that would otherwise stall it: flushing to disk, closing files,
@@ -67,15 +92,40 @@ export default function Architecture() {
       </Callout>
 
       <h2>The path of one command</h2>
-      <ol>
-        <li>The client writes the command bytes to its TCP connection (lesson 2 shows the exact bytes).</li>
-        <li>epoll reports the socket as readable; the event loop reads the bytes into that client’s query buffer.</li>
-        <li>The main thread parses a complete command, looks up the key in the keyspace (a hash table, lesson 5) and executes the command.</li>
-        <li>
-          The reply is appended to the client’s output buffer. Before the loop sleeps again, pending replies are written to the sockets — after the
-          AOF buffer has been written to the append-only file if persistence is on (and fsync'd first with <code>appendfsync always</code>; lesson 10).
-        </li>
-      </ol>
+      <Flow
+        title="One SET, from the client's socket to the reply"
+        cols={5}
+        rows={2}
+        nodes={[
+          { id: 'client', label: 'client', sub: 'your app', col: 0, row: 0, hue: 1, shape: 'actor' },
+          { id: 'socket', label: 'kernel socket', sub: 'TCP buffer', col: 1, row: 0, hue: 7 },
+          { id: 'loop', label: 'event loop', sub: `${A.server.multiplexing_api} wakes it`, col: 2, row: 0, hue: 2 },
+          { id: 'exec', label: 'execute', sub: 'parse argv, run SET', col: 3, row: 0, hue: 2 },
+          { id: 'keyspace', label: 'keyspace', sub: 'hash table in RAM', col: 4, row: 0, hue: 3, shape: 'store' },
+          { id: 'aof', label: 'AOF buffer', sub: 'written before replies', col: 3, row: 1, hue: 4, shape: 'log' },
+          { id: 'reply', label: 'output buffer', sub: '+OK\\r\\n, per client', col: 2, row: 1, hue: 1, shape: 'queue' },
+        ]}
+        edges={[
+          { from: 'client', to: 'socket', label: 'bytes', flow: true, hue: 1 },
+          { from: 'socket', to: 'loop', label: 'readable', flow: true, hue: 7 },
+          { from: 'loop', to: 'exec', flow: true, hue: 2 },
+          { from: 'exec', to: 'keyspace', label: 'set key', flow: true, hue: 3 },
+          { from: 'exec', to: 'aof', label: 'if appendonly', hue: 4, dashed: true },
+          { from: 'aof', to: 'reply', hue: 4, dashed: true },
+          { from: 'reply', to: 'client', label: '+OK', flow: true, hue: 1 },
+        ]}
+        steps={[
+          { title: 'The client writes bytes', body: <p>The command travels as RESP bytes (lesson 2) into the server's TCP receive buffer in the kernel.</p>, active: ['client', 'socket', 'client>socket'] },
+          { title: 'The event loop wakes up', body: <p>{A.server.multiplexing_api} reports the socket as readable; the single main thread reads the bytes into that client's query buffer.</p>, active: ['socket', 'loop', 'socket>loop'] },
+          { title: 'Parse and execute', body: <p>Once a complete command is buffered, the thread parses it into arguments, looks the key up in the keyspace and runs the command — nothing else runs meanwhile, so it is atomic.</p>, active: ['loop', 'exec', 'keyspace', 'loop>exec', 'exec>keyspace'] },
+          { title: 'Persist before replying', body: <p>With the append-only file on, the command is appended to the AOF buffer, which is written to the file before any reply leaves (lesson 10).</p>, active: ['exec', 'aof', 'exec>aof', 'aof>reply', 'reply'] },
+          { title: 'The reply goes out', body: <p>The reply waits in the client's output buffer; before the loop sleeps again it is written to the socket. Median round trip here: {A.pingBaselineMs.p50} ms.</p>, active: ['reply', 'client', 'reply>client'] },
+        ]}
+      />
+      <p>
+        Step through it with <strong>Next</strong>. The keyspace is a hash table (lesson 5); with <code>appendfsync always</code> the AOF is also
+        fsync&apos;d before the reply leaves (lesson 10).
+      </p>
       <p>
         On the recorded server, with the client on the same machine, a <code>PING</code> round trip took a median of{' '}
         <strong>{A.pingBaselineMs.p50} ms</strong> (99th percentile {A.pingBaselineMs.p99} ms). That is the cost when nothing else is happening.
@@ -97,8 +147,38 @@ export default function Architecture() {
           </>
         }
       />
+      <Timeline
+        title="The recorded run, on one time axis"
+        playable
+        end={Math.ceil((A.blockedDefault.slowMs + 60) / 50) * 50}
+        lanes={[
+          { id: 'main', label: 'main thread' },
+          { id: 'a', label: 'client A' },
+          { id: 'b', label: 'client B' },
+        ]}
+        segments={[
+          { lane: 'main', from: 0, to: A.blockedDefault.slowMs, label: 'runs the Lua script — nothing else', hue: 2 },
+          { lane: 'main', from: A.blockedDefault.slowMs, to: A.blockedDefault.slowMs + 8, label: '', hue: 1 },
+          { lane: 'a', from: 0, to: A.blockedDefault.slowMs, label: 'waits for its script', hue: 1 },
+          { lane: 'b', from: 30, to: 30 + A.blockedDefault.pingMs, label: `PING waits ${A.blockedDefault.pingMs} ms`, hue: 8, striped: true },
+        ]}
+        events={[
+          { lane: 'b', at: 30, label: 'PING sent', hue: 1 },
+          { lane: 'b', at: 30 + A.blockedDefault.pingMs, label: 'PONG', hue: 6 },
+          { lane: 'a', at: A.blockedDefault.slowMs, label: 'script done', hue: 6 },
+        ]}
+      />
 
       <h2>What one slow command does to everybody</h2>
+      <StatTiles
+        title="Recorded on the server, one thread doing everything"
+        stats={[
+          { label: 'PING, nothing else running', value: `${A.pingBaselineMs.p50} ms`, sub: 'median round trip', hue: 6 },
+          { label: 'PING during a 600 ms script', value: `${A.blockedDefault.pingMs} ms`, sub: 'waited for the script', hue: 8, bar: { value: A.blockedDefault.pingMs, max: A.blockedDefault.slowMs } },
+          { label: `KEYS on ${A.keyspace.toLocaleString()} keys`, value: `${A.keysMs} ms`, sub: 'everyone else paused', hue: 8 },
+          { label: 'SCAN over the same keys', value: `${A.scanFull.calls.toLocaleString()} calls`, sub: `${A.scanFull.totalMs} ms in total, others ran between`, hue: 2 },
+        ]}
+      />
       <EventLoopPlayground />
       <p>
         In each recording below a second client sent a PING during the slow command. The baseline and the script ran on an almost empty server; the KEYS
@@ -125,6 +205,14 @@ export default function Architecture() {
         <code>{A.scanFirst.cursor}</code> and {A.scanFirst.returned} keys). Other clients’ commands run between the calls, so nobody waits more than one
         small step. Lesson 5 explains how the cursor works.
       </p>
+      <BarChart
+        title="Longest stretch other clients had to wait, recorded"
+        unit=" ms"
+        bars={[
+          { label: 'KEYS nomatch* (one command)', value: A.keysMs, display: `${A.keysMs} ms`, hue: 8 },
+          { label: 'one SCAN … COUNT 1000 (average)', value: +(A.scanFull.totalMs / A.scanFull.calls).toFixed(2), display: `${(A.scanFull.totalMs / A.scanFull.calls).toFixed(2)} ms`, hue: 6, note: `${A.scanFull.calls.toLocaleString()} such calls covered the same ${A.keyspace.toLocaleString()} keys (average includes the round trip)` },
+        ]}
+      />
 
       <h3>Scripts that run too long</h3>
       <p>

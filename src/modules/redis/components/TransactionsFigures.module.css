@@ -1,0 +1,128 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.grid {
+  display: grid;
+  gap: 4px;
+  min-width: 620px;
+}
+
+.row {
+  display: contents;
+}
+
+.head {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 2px 4px;
+}
+
+.tool {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 6px 4px;
+  align-self: center;
+}
+
+.cell {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--hue-soft);
+  border-left: 3px solid var(--hue);
+  font-size: 0.74rem;
+  color: var(--text);
+}
+
+.mark {
+  font-weight: 700;
+  color: var(--hue);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin-top: var(--space-3);
+  font-size: 0.74rem;
+  color: var(--text);
+}
+
+.legend i {
+  display: inline-block;
+  width: 11px;
+  height: 11px;
+  margin-right: 5px;
+  border-radius: 3px;
+  background: var(--hue);
+  vertical-align: -1px;
+}
+
+.queue {
+  display: grid;
+  gap: 6px;
+  max-width: 560px;
+}
+
+.exec {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.command {
+  display: grid;
+  grid-template-columns: 26px 1fr auto;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--hue-soft);
+  border-left: 4px solid var(--hue);
+}
+
+.index {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.cmd {
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.reply {
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--text);
+}
+
+.after {
+  margin-top: 4px;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1.5px dashed var(--hue);
+  font-size: 0.8rem;
+  color: var(--text);
+}

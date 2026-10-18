@@ -1,0 +1,114 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.grid {
+  display: grid;
+  gap: 12px;
+}
+
+.lane {
+  display: grid;
+  grid-template-columns: minmax(80px, 18%) 1fr;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.laneLabel {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.track {
+  position: relative;
+  height: 34px;
+  border-bottom: 1px solid var(--border);
+}
+
+.segment,
+.striped {
+  position: absolute;
+  top: 4px;
+  height: 18px;
+  border-radius: 4px;
+  overflow: hidden;
+  transition: width 0.08s linear;
+}
+
+.segment {
+  background: var(--hue-soft);
+  border: 1.5px solid var(--hue);
+}
+
+.striped {
+  background: repeating-linear-gradient(135deg, var(--hue) 0 3px, transparent 3px 7px);
+  border: 1.5px solid var(--hue);
+}
+
+.segLabel {
+  display: block;
+  padding: 0 5px;
+  font-size: 0.68rem;
+  line-height: 16px;
+  white-space: nowrap;
+  color: var(--text);
+}
+
+.event {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+}
+
+.dot {
+  position: absolute;
+  top: 8px;
+  left: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--hue);
+  border: 2px solid var(--surface);
+}
+
+.eventLabel {
+  position: absolute;
+  top: 22px;
+  left: -4px;
+  font-size: 0.66rem;
+  white-space: nowrap;
+  color: var(--text-muted);
+}
+
+.playhead {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  background: var(--text);
+}
+
+.axis {
+  display: flex;
+  justify-content: space-between;
+  margin-left: calc(18% + var(--space-2));
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}

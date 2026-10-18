@@ -1,0 +1,58 @@
+.figure {
+  margin: var(--space-4) 0;
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--space-3);
+}
+
+.tile {
+  --hue: var(--accent);
+  --hue-soft: var(--accent-soft);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4);
+  border-radius: var(--radius);
+  background: var(--hue-soft);
+  border-left: 4px solid var(--hue);
+}
+
+.value {
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--text);
+}
+
+.label {
+  font-size: 0.8rem;
+  color: var(--text);
+  margin-top: 2px;
+}
+
+.sub {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.bar {
+  height: 6px;
+  margin-top: 8px;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--hue) 20%, var(--surface));
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--hue);
+}

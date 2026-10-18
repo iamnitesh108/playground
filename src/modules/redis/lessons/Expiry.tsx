@@ -1,5 +1,7 @@
-import { Callout, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
+import { Callout, LessonGoals, Predict, Recap, TermList } from '@/shared/ui'
+import { Flow, Proportion, StatTiles } from '@/shared/figures'
 import { CliSession, ExpiryPlayground, LineChart } from '../components'
+import { ExpiryTtlFigure } from '../components/ExpiryFigures'
 import { CAPTURE } from '../data/captures'
 
 const E = CAPTURE.expiry
@@ -42,18 +44,19 @@ export default function Expiry() {
         ]}
       />
       <CliSession steps={E.rules} title="recorded: TTL rules" />
-      <Table
-        head={['Command on a key with a TTL', 'TTL afterwards']}
-        rows={[
-          ['SET (plain)', 'removed — the most common TTL bug'],
-          ['SET … KEEPTTL', 'kept'],
-          ['INCR, APPEND, LPUSH, HSET… (changing the value in place)', 'kept'],
-          ['RENAME', 'moves with the key'],
-          ['PERSIST', 'removed'],
-          ['EXPIRE with GT', 'only changed if the new deadline is later'],
-          ['EXPIRE on a missing key', 'nothing happens; returns 0'],
+      <ExpiryTtlFigure
+        keeps={[
+          { command: 'SET … KEEPTTL', note: 'replaces the value, keeps the deadline' },
+          { command: 'INCR, APPEND, LPUSH, HSET…', note: 'change the value in place' },
+          { command: 'RENAME', note: 'the TTL moves with the key' },
+          { command: 'EXPIRE … GT', note: 'changed only if the new deadline is later' },
+        ]}
+        drops={[
+          { command: 'SET (plain)', note: 'the most common TTL bug' },
+          { command: 'PERSIST', note: 'on purpose: the key lives forever again' },
         ]}
       />
+      <p>And <code>EXPIRE</code> on a key that does not exist does nothing and returns 0 — it does not create the key.</p>
       <Predict
         question={<p>A session is stored with <code>SET session:42 … EX 1800</code>. On every request the app rewrites it with <code>SET session:42 &lt;new json&gt;</code>. What happens to the session?</p>}
         options={['It expires 30 minutes after it was created', 'It never expires', 'It expires 30 minutes after the last request']}
@@ -70,6 +73,35 @@ export default function Expiry() {
 
       <h2>How a key actually disappears</h2>
       <p>Redis does not run a timer per key. Expired keys are removed in two ways.</p>
+      <Flow
+        title="Two ways out: lazily when touched, actively by a cursor"
+        cols={5}
+        rows={2}
+        nodes={[
+          { id: 'client', label: 'a command', sub: 'GET session:42', col: 0, row: 0, hue: 1, shape: 'actor' },
+          { id: 'check', label: 'deadline?', sub: 'looked up first', col: 1, row: 0, hue: 2 },
+          { id: 'lazy', label: 'delete now', sub: 'then act as missing', col: 2, row: 0, hue: 8 },
+          { id: 'cron', label: 'cron tick', sub: 'hz times a second', col: 0, row: 1, hue: 4 },
+          { id: 'round', label: 'next 20 keys', sub: 'cursor continues', col: 1, row: 1, hue: 3 },
+          { id: 'active', label: 'delete expired', sub: 'of those 20', col: 2, row: 1, hue: 8 },
+          { id: 'more', label: '> 10% expired?', sub: 'yes: another round', col: 3, row: 1, hue: 4 },
+          { id: 'expires', label: 'expires dict', sub: 'key → deadline', col: 4, row: 0, rowSpan: 2, hue: 3, shape: 'store' },
+        ]}
+        edges={[
+          { from: 'client', to: 'check', flow: true, hue: 1 },
+          { from: 'check', to: 'lazy', label: 'passed', flow: true, hue: 8 },
+          { from: 'cron', to: 'round', flow: true, hue: 4 },
+          { from: 'round', to: 'active', flow: true, hue: 3 },
+          { from: 'active', to: 'more', hue: 4 },
+          { from: 'more', to: 'expires', label: 'walks', dashed: true, hue: 3 },
+        ]}
+        steps={[
+          { title: 'Lazy: a command touches the key', body: <p>Every lookup checks the key’s deadline first. If it has passed, the key is deleted right there and the command sees no key.</p>, active: ['client', 'check', 'lazy', 'client>check', 'check>lazy'] },
+          { title: 'Active: the cron wakes up', body: <p>{CAPTURE.operations.defaults.hz} times a second (<code>hz</code>) the server runs the active expire cycle for each database.</p>, active: ['cron', 'round', 'cron>round'] },
+          { title: 'A round looks at 20 keys with a TTL', body: <p>A cursor walks the expires dict; each round looks at the next 20 keys there and deletes the ones whose deadline passed.</p>, active: ['round', 'active', 'expires', 'round>active', 'more>expires'] },
+          { title: 'Another round only if it paid off', body: <p>More than 10% of the round expired? Then more probably have — do another round, until the time budget runs out. Otherwise stop; the cursor remembers where it was for the next tick.</p>, active: ['active', 'more', 'active>more', 'more>expires'] },
+        ]}
+      />
       <h3>1. Lazily, when touched</h3>
       <p>
         Every command that looks up a key first checks its deadline; if it has passed, the key is deleted right then and the command behaves as if it
@@ -77,6 +109,14 @@ export default function Expiry() {
         {lazy.afterExpiry.dbsize.toLocaleString()} expired keys still counted by <code>DBSIZE</code>, and {lazy.afterExpiry.expired} expirations so far.
         One <code>GET</code> of one of them: <code>DBSIZE</code> {lazy.afterOneGet.dbsize.toLocaleString()}, expirations {lazy.afterOneGet.expired}.
       </p>
+      <StatTiles
+        title="Recorded with the active cycle switched off"
+        stats={[
+          { label: 'expired keys still counted', value: lazy.afterExpiry.dbsize, sub: 'DBSIZE after every deadline passed', hue: 8 },
+          { label: 'expirations recorded', value: lazy.afterExpiry.expired, sub: 'nobody touched them', hue: 4 },
+          { label: 'after one GET', value: lazy.afterOneGet.dbsize, sub: `DBSIZE; expirations ${lazy.afterOneGet.expired}`, hue: 6 },
+        ]}
+      />
       <h3>2. Actively, by a cursor</h3>
       <p>
         Keys nobody reads again would stay forever with lazy expiry alone. So <code>hz</code> times per second (default 10) the server runs the
@@ -92,9 +132,11 @@ export default function Expiry() {
         yLabel="keys"
         height={220}
       />
-      <Table
-        head={['hz', 'first key removed', 'all removed', 'CPU spent in expire cycles']}
-        rows={drain.map((d) => [d.hz, `${d.start} ms`, `${d.end} ms`, `${d.cycleCpuMs} ms`])}
+      <StatTiles
+        stats={drain.flatMap((d) => [
+          { label: `hz ${d.hz}: all ${d.total.toLocaleString()} removed`, value: `${d.end} ms`, sub: `first removal at ${d.start} ms`, hue: (d.hz === 10 ? 1 : 2) as 1 | 2, bar: { value: d.end, max: Math.max(...drain.map((x) => x.end)) } },
+          { label: `hz ${d.hz}: CPU in expire cycles`, value: `${d.cycleCpuMs} ms`, sub: 'for the whole drain', hue: 4 as const },
+        ])}
       />
       <p>
         When almost everything expired, every round is full of expired keys and the cycle keeps going: {drain[0].total.toLocaleString()} keys were gone
@@ -108,6 +150,13 @@ export default function Expiry() {
         been removed; <code>DBSIZE</code> still said {mixed.after3s.dbsize.toLocaleString()}. INFO’s <code>expired_stale_perc</code> (the server’s estimate of
         expired-but-present keys) was {mixed.after3s.expiredStalePerc}%.
       </p>
+      <Proportion
+        title={`The ${mixed.shortLived.toLocaleString()} keys that had expired, 3 seconds later`}
+        parts={[
+          { label: 'removed by the cycle', value: mixed.after3s.expired, hue: 6 },
+          { label: 'expired, still in memory', value: mixed.shortLived - mixed.after3s.expired, hue: 8 },
+        ]}
+      />
       <p>
         That is the rule working as designed: a round of 20 keys contains about 2 expired ones — not more than 10% — so each cycle does one round and
         stops. At {CAPTURE.operations.defaults.hz} cycles a second that is about {20 * Number(CAPTURE.operations.defaults.hz)} keys looked at per second (plus

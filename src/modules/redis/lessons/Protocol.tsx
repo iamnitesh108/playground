@@ -1,10 +1,31 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
 import { BarList, CliSession, PipelinePlayground, WireView } from '../components'
 import { CAPTURE } from '../data/captures'
+import { StatTiles, Timeline, type ByteField, type Hue } from '@/shared/figures'
+import { ProtocolFrames } from '../components/ProtocolFrames'
 
 const P = CAPTURE.protocol
 const rps = (line: string) => Number(line.match(/: ([\d.]+) requests per second/)?.[1] ?? 0)
 const p50 = (line: string) => line.match(/p50=([\d.]+ msec)/)?.[1] ?? ''
+
+/** Splits recorded RESP bytes into its frames; every frame is followed by \r\n (2 bytes). */
+function frames(raw: string): ByteField[] {
+  return raw.split('\\r\\n').filter((t) => t !== '').map((t) => {
+    const kind: [string, string, Hue] =
+      t.startsWith('*') ? ['array', t, 7]
+      : t === '$-1' ? ['nil', t, 8]
+      : t.startsWith('$') ? ['length', t, 5]
+      : t.startsWith('+') ? ['status', t, 6]
+      : t.startsWith('-') ? ['error', t, 8]
+      : t.startsWith(':') ? ['integer', t, 3]
+      : ['data', t, 1]
+    return { label: kind[0], content: kind[1], bytes: t.length + 2, hue: kind[2] }
+  })
+}
+
+/** Recorded averages: one round trip per command vs one write for a whole pipeline (microseconds). */
+const RTT_US = (P.incr.sequentialMs * 1000) / P.incr.n
+const PIPED_US = (P.incr.pipelinedMs * 1000) / P.incr.n
 
 export default function Protocol() {
   const bench = [
@@ -30,6 +51,14 @@ export default function Protocol() {
         <code>\r\n</code>. Because every string carries its length, values can contain any bytes — spaces, newlines, binary — and the server never has to
         search for the end of a value.
       </p>
+      <ProtocolFrames
+        title="A recorded request and five recorded replies, all on one byte scale"
+        rows={[
+          { label: `client → server: ${P.wire[0].cmd}`, fields: frames(P.wire[0].sent) },
+          ...P.wire.slice(0, 5).map((w) => ({ label: `server → client: reply to ${w.cmd}`, fields: frames(w.received) })),
+        ]}
+        caption="Each block is one line of the protocol, sized in bytes including its \r\n. The first byte names the type: * array, $ a length (the data follows on the next line), + status, : integer, - error; $-1 is nil."
+      />
       <p>These are the exact bytes recorded for a few commands (prefix characters highlighted):</p>
       <WireView rows={P.wire} />
       <Table
@@ -65,6 +94,23 @@ export default function Protocol() {
         one pays a full round trip for every command. The recording: {P.incr.n.toLocaleString()} <code>INCR</code>s against a server on the same
         machine.
       </p>
+      <Timeline
+        title={`Four INCRs at the recorded averages: ${RTT_US.toFixed(1)} µs per round trip, ${PIPED_US.toFixed(1)} µs per pipelined command`}
+        unit="µs"
+        end={Math.ceil((4 * RTT_US) / 10) * 10}
+        lanes={[
+          { id: 'one', label: 'one at a time' },
+          { id: 'pipe', label: 'pipelined' },
+        ]}
+        segments={[
+          ...[0, 1, 2, 3].map((i) => ({ lane: 'one', from: i * RTT_US, to: (i + 1) * RTT_US - 0.6, label: `INCR ${i + 1}`, hue: 1 as const })),
+          { lane: 'pipe', from: 0, to: RTT_US + 4 * PIPED_US, label: '4 INCRs, one write', hue: 6 },
+        ]}
+        events={[
+          ...[0, 1, 2, 3].map((i) => ({ lane: 'one', at: (i + 1) * RTT_US - 0.6, label: 'reply', hue: 6 as const })),
+          { lane: 'pipe', at: RTT_US + 4 * PIPED_US, label: '4 replies', hue: 6 },
+        ]}
+      />
       <BarList
         title={`${P.incr.n.toLocaleString()} INCR commands, client and server on one machine`}
         bars={[
@@ -88,9 +134,15 @@ export default function Protocol() {
 
       <h2>What redis-benchmark measured</h2>
       <p>The bundled <code>redis-benchmark</code> tool, 200,000 SETs on the recorded server:</p>
-      <BarList
-        title="SET requests per second"
-        bars={bench.map((b, i) => ({ label: b.label, value: rps(b.line), display: `${Math.round(rps(b.line)).toLocaleString()} /s`, emphasis: i === 2, note: `p50 ${p50(b.line)}` }))}
+      <StatTiles
+        title="SET requests per second, recorded"
+        stats={bench.map((b, i) => ({
+          label: b.label,
+          value: `${Math.round(rps(b.line)).toLocaleString()}/s`,
+          sub: `median latency ${p50(b.line)}`,
+          hue: ([1, 2, 6] as const)[i],
+          bar: { value: rps(b.line), max: Math.max(...bench.map((x) => rps(x.line))) },
+        }))}
       />
       <CodeBlock title="recorded output" language="text" code={[...P.benchmark.oneClient.map((l) => `-c 1        ${l}`), ...P.benchmark.plain.map((l) => `-c 50       ${l}`), ...P.benchmark.pipeline16.map((l) => `-c 50 -P 16 ${l}`)].join('\n')} />
       <p>
@@ -103,6 +155,25 @@ export default function Protocol() {
         A pipeline is only a way of using the network: the commands still execute one by one, and <strong>another client’s commands can run between
         them</strong>. If the commands must run together, with nothing in between, use a transaction or a script (lesson 8):
       </p>
+      <Timeline
+        title="Schematic: what the server thread runs when client A pipelines three commands and client B sends one"
+        unit="steps"
+        end={5}
+        lanes={[
+          { id: 'server', label: 'server thread' },
+          { id: 'a', label: 'client A (pipeline)' },
+          { id: 'b', label: 'client B' },
+        ]}
+        segments={[
+          { lane: 'a', from: 0, to: 0.5, label: 'A1 A2 A3 sent', hue: 1 },
+          { lane: 'b', from: 1.2, to: 1.6, label: 'B1', hue: 7 },
+          { lane: 'server', from: 0.6, to: 1.5, label: 'A1', hue: 2 },
+          { lane: 'server', from: 1.6, to: 2.5, label: 'A2', hue: 2 },
+          { lane: 'server', from: 2.6, to: 3.5, label: 'B1', hue: 8 },
+          { lane: 'server', from: 3.6, to: 4.5, label: 'A3', hue: 2 },
+        ]}
+        events={[{ lane: 'server', at: 2.6, label: 'B runs between A2 and A3', hue: 8 }]}
+      />
       <CliSession title="recorded: MULTI queues commands and EXEC runs them together" steps={P.multi} />
       <Table
         head={['', 'Round trips', 'Atomic (nothing in between)', 'Can use a result to decide the next step']}

@@ -1,5 +1,8 @@
 import { Callout, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
-import { BarList, CliSession } from '../components'
+import { BarChart, Flow, StatTiles } from '@/shared/figures'
+import { CliSession } from '../components'
+import { PatternsBitmap } from '../components/PatternsBitmap'
+import { PatternsGeoMap } from '../components/PatternsGeoMap'
 import { CAPTURE } from '../data/captures'
 import styles from './lesson.module.css'
 
@@ -11,6 +14,24 @@ const mb = (b: number) => `${(b / 1024 / 1024).toFixed(1)} MB`
 const perKey = Math.round(B.asKeysBytes / B.objects)
 const perField = Math.round(B.asHashesBytes / B.objects)
 const fragmentation = CAPTURE.operations.infoMemory.match(/mem_fragmentation_ratio:(\S+)/)?.[1]
+
+/** Quoted strings of a recorded reply, in order. */
+const quoted = (out: string) => [...out.matchAll(/"([^"]*)"/g)].map((m) => m[1])
+const stepOf = (steps: readonly { readonly cmd?: string; readonly out?: string }[], prefix: string) => steps.find((s) => s.cmd?.startsWith(prefix))
+// geo: the places as added, the search point and radius, and the distances the search returned
+const geoAdd = stepOf(P.geo, 'GEOADD')!.cmd!.split(' ').slice(2)
+const geoSearch = stepOf(P.geo, 'GEOSEARCH')!
+const searchArgs = geoSearch.cmd!.split(' ')
+const found = quoted(geoSearch.out!)
+const distOf = new Map(found.flatMap((v, i) => (i % 2 === 0 ? [[v, Number(found[i + 1])] as const] : [])))
+const PLACES = Array.from({ length: geoAdd.length / 3 }, (_, i) => ({ name: geoAdd[i * 3 + 2], lon: Number(geoAdd[i * 3]), lat: Number(geoAdd[i * 3 + 1]), dist: distOf.get(geoAdd[i * 3 + 2]) }))
+// leaderboard: the top three as ZREVRANGE … WITHSCORES returned them
+const top = quoted(stepOf(P.leaderboard, 'ZREVRANGE')!.out!)
+const TOP = Array.from({ length: top.length / 2 }, (_, i) => ({ member: top[i * 2], score: Number(top[i * 2 + 1]) }))
+// a bitmap schematic: users 0–23 on two days, and their AND
+const DAY1 = [1, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 1, 0, 0] as const
+const DAY2 = [1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1, 1, 0] as const
+const BOTH = DAY1.map((b, i) => (b && DAY2[i] ? 1 : 0) as 0 | 1)
 
 export default function Patterns() {
   return (
@@ -42,6 +63,30 @@ export default function Patterns() {
 
       <h2>Sessions</h2>
       <p>One hash per session, one TTL on the whole key; every request refreshes the TTL (sliding expiration), logout deletes it.</p>
+      <Flow
+        title="A session's life: created, refreshed on every request, gone on logout or idle timeout"
+        cols={4}
+        rows={2}
+        rowHeight={80}
+        nodes={[
+          { id: 'browser', label: 'browser', sub: 'cookie: 9f3e2a', col: 0, row: 0, rowSpan: 2, hue: 1, shape: 'actor' },
+          { id: 'app', label: 'application', sub: 'any instance', col: 1, row: 0, rowSpan: 2, hue: 1 },
+          { id: 'hash', label: 'session:9f3e2a', sub: 'hash: user_id, role, csrf', col: 2, row: 0, span: 2, hue: 3, shape: 'store' },
+          { id: 'ttl', label: 'TTL 1800 s', sub: 'idle timeout', col: 2, row: 1, hue: 4 },
+          { id: 'gone', label: 'deleted', sub: 'DEL or expired', col: 3, row: 1, hue: 8 },
+        ]}
+        edges={[
+          { from: 'browser', to: 'app', label: 'request', flow: true, hue: 1 },
+          { from: 'app', to: 'hash', label: 'HGET', flow: true, hue: 3 },
+          { from: 'app', to: 'ttl', label: 'EXPIRE', hue: 4 },
+          { from: 'ttl', to: 'gone', label: 'runs out', hue: 8, dashed: true },
+        ]}
+        steps={[
+          { title: 'Login: HSET + EXPIRE', body: <p>One hash holds the session fields; the key gets a 30-minute TTL. Any application instance can read it — the session is not tied to one server.</p>, active: ['app', 'hash', 'ttl', 'app>hash', 'app>ttl'] },
+          { title: 'Every request: read it and refresh the TTL', body: <p>The cookie names the key; <code>HGET</code> reads the user, <code>EXPIRE … 1800</code> restarts the clock (sliding expiration).</p>, active: ['browser', 'app', 'hash', 'ttl', 'browser>app', 'app>hash', 'app>ttl'] },
+          { title: 'Logout or 30 idle minutes', body: <p><code>DEL</code> ends it at once; otherwise the TTL runs out and Redis removes the key (lesson 6).</p>, active: ['ttl', 'gone', 'ttl>gone'] },
+        ]}
+      />
       <CliSession title="recorded: a session" steps={P.session} />
       <p className={styles.note}>
         Use <code>HSET</code> + <code>EXPIRE</code> together in a pipeline or <code>MULTI</code>. Field-level TTLs (<code>HEXPIRE</code>, lesson 6)
@@ -53,6 +98,25 @@ export default function Patterns() {
         <code>INCR</code> and <code>HINCRBY</code> are atomic: thousands of clients can count without locks or lost updates. One hash per day
         groups a day’s counters and gets one TTL.
       </p>
+      <Flow
+        title="Why INCR needs no lock: one thread applies every increment in turn"
+        cols={4}
+        rows={3}
+        rowHeight={60}
+        nodes={[
+          { id: 'c1', label: 'client 1', sub: 'INCR views', col: 0, row: 0, hue: 1, shape: 'actor' },
+          { id: 'c2', label: 'client 2', sub: 'INCR views', col: 0, row: 1, hue: 1, shape: 'actor' },
+          { id: 'c3', label: 'client 3', sub: 'INCR views', col: 0, row: 2, hue: 1, shape: 'actor' },
+          { id: 'thread', label: 'main thread', sub: 'one command at a time', col: 1, row: 0, rowSpan: 3, span: 2, hue: 2 },
+          { id: 'counter', label: 'views', sub: '+1, +1, +1', col: 3, row: 1, hue: 3, shape: 'store' },
+        ]}
+        edges={[
+          { from: 'c1', to: 'thread', flow: true, hue: 1 },
+          { from: 'c2', to: 'thread', flow: true, hue: 1 },
+          { from: 'c3', to: 'thread', flow: true, hue: 1 },
+          { from: 'thread', to: 'counter', label: 'read+add+write', flow: true, hue: 2 },
+        ]}
+      />
       <CliSession title="recorded: counters" steps={P.counters} />
 
       <h2>Membership and de-duplication</h2>
@@ -65,15 +129,28 @@ export default function Patterns() {
         Counting distinct visitors with a set stores every visitor. A HyperLogLog stores a sketch: it cannot list the visitors, but it estimates
         how many there were with a standard error of 0.81%, in a fixed sketch of 12 KB of registers ({kb(hllMillion.bytes)} reported by <code>MEMORY USAGE</code>, with overhead). Recorded, adding up to a million distinct ids:
       </p>
+      <StatTiles
+        stats={[
+          { label: 'distinct ids added', value: hllMillion.distinct, hue: 1 },
+          { label: 'PFCOUNT estimate', value: hllMillion.estimate, sub: `${hllMillion.errorPercent}% off`, hue: 3 },
+          { label: 'HyperLogLog memory', value: kb(hllMillion.bytes), sub: 'fixed, however many ids', hue: 6 },
+          { label: 'the same ids as a set', value: mb(P.setOfMillion.bytes), sub: `${Math.round(P.setOfMillion.bytes / hllMillion.bytes).toLocaleString()}× more`, hue: 8 },
+        ]}
+      />
       <Table
         head={['distinct added', 'PFCOUNT estimate', 'error', 'memory']}
         rows={P.hll.map((h) => [h.distinct.toLocaleString(), h.estimate.toLocaleString(), `${h.errorPercent}%`, kb(h.bytes)])}
       />
-      <BarList
-        title={`Memory to count ${P.setOfMillion.members.toLocaleString()} distinct visitors`}
+      <BarChart
+        title="Estimate error as distinct ids grow (recorded) — the standard error is 0.81%"
+        bars={P.hll.map((h) => ({ label: `${h.distinct.toLocaleString()} ids`, value: h.errorPercent, display: `${h.errorPercent}%`, hue: 3 }))}
+        marker={{ value: 0.81, label: 'standard error 0.81%' }}
+      />
+      <BarChart
+        title={`Memory to count ${P.setOfMillion.members.toLocaleString()} distinct visitors (recorded)`}
         bars={[
-          { label: 'set', value: P.setOfMillion.bytes, display: mb(P.setOfMillion.bytes) },
-          { label: 'HyperLogLog', value: hllMillion.bytes, display: kb(hllMillion.bytes), emphasis: true },
+          { label: 'set', value: P.setOfMillion.bytes, display: mb(P.setOfMillion.bytes), hue: 8 },
+          { label: 'HyperLogLog', value: hllMillion.bytes, display: kb(hllMillion.bytes), hue: 6, note: 'the bar is there — it is just 0.03% as long' },
         ]}
       />
       <p>
@@ -94,6 +171,15 @@ export default function Patterns() {
         With numeric user ids, a day of activity is one bit per user. A million users fit in 125,000 bytes; the recorded key covers ids up to
         999,999:
       </p>
+      <PatternsBitmap
+        title="Schematic: users 0–23 on two days, and BITOP AND of them"
+        rows={[
+          { label: 'active:day-1', bits: DAY1 },
+          { label: 'active:day-2', bits: DAY2 },
+          { label: 'BITOP AND', bits: BOTH, result: true },
+        ]}
+        caption="SETBIT active:day user-id 1 sets one bit; GETBIT asks about one user; BITCOUNT counts a day; BITOP AND/OR combines days."
+      />
       <CliSession title="recorded: daily active users" steps={P.bitmaps} />
       <p className={styles.note}>
         Why does <code>MEMORY USAGE</code> report more than 125,000 bytes? The string grew bit by bit through <code>SETBIT</code>, and Redis
@@ -106,6 +192,12 @@ export default function Patterns() {
       </p>
 
       <h2>Geo: nearest places</h2>
+      <PatternsGeoMap
+        title={`The recorded stores at their real coordinates; GEOSEARCH within ${searchArgs[6]} ${searchArgs[7]}`}
+        center={{ lon: Number(searchArgs[3]), lat: Number(searchArgs[4]) }}
+        radiusKm={Number(searchArgs[6])}
+        places={PLACES}
+      />
       <CliSession title="recorded: stores near a point" steps={P.geo} />
       <p>
         <code>TYPE stores</code> answers <code>zset</code>: a geo set is a sorted set whose score is a 52-bit geohash of the position, so
@@ -115,6 +207,10 @@ export default function Patterns() {
 
       <h2>Leaderboards, queues, locks and rate limits</h2>
       <CliSession title="recorded: a leaderboard" steps={P.leaderboard} />
+      <BarChart
+        title="The top three after ZINCRBY, as ZREVRANGE … WITHSCORES returned them"
+        bars={TOP.map((t, i) => ({ label: `#${i + 1} ${t.member}`, value: t.score, hue: 3 }))}
+      />
       <p>
         Sorted sets keep members ordered by score with O(log n) updates and rank queries — lesson 4 shows the skiplist underneath. Queues and
         event streams are lesson 13; locks, rate limits and idempotency keys are lesson 9.
@@ -131,6 +227,13 @@ export default function Patterns() {
 
       <h2>Estimate memory before you build</h2>
       <p>Measure a sample, multiply, and leave room. From the recordings in lesson 3:</p>
+      <BarChart
+        title={`Memory per value, 100,000 small values (recorded)`}
+        bars={[
+          { label: 'separate string keys', value: perKey, display: `${perKey} B`, hue: 8 },
+          { label: 'fields of small hashes', value: perField, display: `${perField} B`, hue: 6, note: `${B.hashEncoding} encoding: ${(B.asKeysBytes / B.asHashesBytes).toFixed(1)}× less memory` },
+        ]}
+      />
       <Table
         head={['Storing 100,000 small values as…', 'measured', 'per value']}
         rows={[

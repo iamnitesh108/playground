@@ -4,6 +4,24 @@ import { Button, Callout, CodeBlock, Demo, Segmented, TermList } from '@/shared/
 import { PartitionLog } from '../components'
 import { KafkaCluster, type OffsetReset } from '../simulation'
 import styles from './lesson.module.css'
+import { Flow } from '@/shared/figures'
+import { OffsetsTape } from '../components/OffsetsTape'
+import { PRACTICALS } from '../data/practicals'
+
+/** Rows of a recorded kafka-consumer-groups --describe: partition, committed (CURRENT-OFFSET), log-end, lag. */
+const describeRows = (out: string, group: string) =>
+  out
+    .split('\n')
+    .filter((l) => l.startsWith(group + ' '))
+    .map((l) => {
+      const f = l.trim().split(/\s+/)
+      return { partition: Number(f[2]), committed: Number(f[3]), end: Number(f[4]), lag: Number(f[5]) }
+    })
+    .sort((a, b) => a.partition - b.partition)
+
+const P3 = PRACTICALS.p3
+const AWAY = describeRows(P3.whileAway.describe.out, 'analytics')
+const CAUGHT_UP = describeRows(P3.caughtUp.describe.out, 'analytics')
 
 const GROUP = 'billing'
 
@@ -183,6 +201,26 @@ export default function Offsets() {
         </li>
       </ul>
 
+      <OffsetsTape
+        title="One partition, every pointer at once (schematic)"
+        rows={[
+          {
+            label: 'orders-0',
+            end: 12,
+            start: 2,
+            span: { from: 6, to: 12, label: 'lag = 12 − 6 = 6', hue: 4 },
+            markers: [
+              { at: 2, label: 'log-start 2', hue: 8 },
+              { at: 6, label: 'committed 6 (in Kafka)', hue: 1 },
+              { at: 8, label: 'position 8 (in memory)', hue: 1 },
+              { at: 10, label: 'high watermark 10', hue: 5, above: true },
+              { at: 12, label: 'log-end 12', hue: 3, above: true },
+            ],
+          },
+        ]}
+        caption="Dashed cells 0–1 were deleted by retention. The consumer has fetched up to 7 but saved progress only up to 6. Records 10 and 11 are written but not yet on every in-sync replica, so no consumer can read them yet. The dashed box on the right is where the next record goes."
+      />
+
       <OffsetDemo />
 
       <Callout tone="note" title="Committed offset = next to read">
@@ -196,6 +234,44 @@ export default function Offsets() {
         <code>__consumer_offsets</code>, keyed by <code>(group, topic, partition)</code>. That is why a group can
         resume on a different machine: its progress lives in the cluster, not in the consumer.
       </p>
+      <Flow
+        title="A commit, and a restart that finds it again"
+        cols={5}
+        rows={2}
+        nodes={[
+          { id: 'c', label: 'consumer', sub: 'group billing', col: 0, row: 0, hue: 1, shape: 'actor' },
+          { id: 'coord', label: 'coordinator', sub: 'a broker', col: 2, row: 0, hue: 5 },
+          { id: 'log', label: '__consumer_offsets', sub: 'billing\'s partition', col: 3, row: 0, span: 2, hue: 3, shape: 'log' },
+          { id: 'c2', label: 'new consumer', sub: 'after a restart', col: 0, row: 1, hue: 1, shape: 'actor' },
+          { id: 'out', label: 'resumes at 7', sub: 'orders-0', col: 2, row: 1, hue: 6 },
+        ]}
+        edges={[
+          { from: 'c', to: 'coord', label: 'commit 7', flow: true, hue: 1 },
+          { from: 'coord', to: 'log', label: 'append', flow: true, hue: 5 },
+          { from: 'c2', to: 'coord', label: 'OffsetFetch', hue: 1, dashed: true },
+          { from: 'coord', to: 'out', label: '7', hue: 6 },
+        ]}
+        steps={[
+          { title: 'Commit', body: <p>Having processed offset 6 of <code>orders-0</code>, the consumer commits 7 to its group’s coordinator.</p>, active: ['c', 'coord', 'c>coord'] },
+          { title: 'Stored like any record', body: <p>The coordinator appends a record keyed <code>(billing, orders, 0)</code> with value 7 to the group’s <code>__consumer_offsets</code> partition — replicated like any topic. Compaction keeps only the newest value per key.</p>, active: ['coord', 'log', 'coord>log'] },
+          { title: 'Crash and restart elsewhere', body: <p>The process dies. A new consumer joins billing, gets <code>orders-0</code>, and asks the coordinator for the committed offset.</p>, active: ['c2', 'coord', 'c2>coord', 'log'] },
+          { title: 'Resume from 7', body: <p>It starts reading at 7. Anything the old consumer processed after its last commit is read again — never anything before it.</p>, active: ['coord', 'out', 'coord>out', 'c2'] },
+        ]}
+      />
+      <p>
+        The recording of practical 3 shows those stored offsets doing their job. Group <code>analytics</code> was stopped while three more payments
+        were written; its committed offsets stayed where they were, and the lag is exactly the records written meanwhile:
+      </p>
+      <OffsetsTape
+        title={`Recorded: group analytics while it was stopped (Kafka ${PRACTICALS.version}, topic payments)`}
+        rows={AWAY.map((r) => ({
+          label: `payments-${r.partition}`,
+          end: r.end,
+          span: r.lag > 0 ? { from: r.committed, to: r.end, label: `lag ${r.lag}`, hue: 4 as const } : undefined,
+          markers: [{ at: r.committed, label: `committed ${r.committed}`, hue: 1 as const }],
+        }))}
+        caption={`When analytics started again it read exactly those ${AWAY.reduce((n, r) => n + r.lag, 0)} records and its committed offsets moved to ${CAUGHT_UP.map((r) => r.committed).join(', ')}: lag 0.`}
+      />
 
       <h2>A group with no history</h2>
       <ResetDemo />
@@ -224,6 +300,19 @@ export default function Offsets() {
 
 # other targets: --to-latest, --to-offset 42, --shift-by -100,
 #                --to-datetime 2024-01-01T00:00:00.000`}
+      />
+      <OffsetsTape
+        title="Recorded in practical 3: analytics reset to the earliest offset"
+        rows={CAUGHT_UP.map((r) => ({
+          label: `payments-${r.partition}`,
+          end: r.end,
+          span: r.end > 0 ? { from: 0, to: r.end, label: `read again: ${r.end}`, hue: 4 as const } : undefined,
+          markers: [
+            { at: r.committed, label: `before ${r.committed}`, hue: 1 as const },
+            { at: 0, label: 'after reset 0', hue: 2 as const, above: true },
+          ],
+        }))}
+        caption={`The reset moved only the committed offsets; the records never left the log. The replay printed all ${PRACTICALS.p3.replay.out.length} payments again.`}
       />
 
       <h2>Words from this lesson</h2>

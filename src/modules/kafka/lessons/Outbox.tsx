@@ -1,5 +1,6 @@
-import { useMemo, useState, type ReactNode } from 'react'
-import { Box, Callout, CodeBlock, Column, Connector, Demo, Row, Segmented, TermList, Walkthrough } from '@/shared/ui'
+import { useMemo, useState } from 'react'
+import { ByteLayout, Flow, Timeline, type ByteField, type FlowStep } from '@/shared/figures'
+import { Callout, CodeBlock, Demo, Segmented, TermList } from '@/shared/ui'
 import { TransformTrace } from '../components'
 import {
   ConditionalTransform,
@@ -10,135 +11,111 @@ import {
   TransformChain,
   type ConnectRecord,
 } from '../simulation'
-import own from './Outbox.module.css'
 
-const DUAL_WRITE_STEPS = [
-  { title: 'Save the order', body: <p>The service commits the order to its database.</p> },
-  { title: 'Publish the event', body: <p>Then it calls <code>producer.send("order-created", …)</code>.</p> },
-  { title: 'The broker is unreachable', body: <p>A network blip, a deploy, a timeout. The send fails after the database already committed.</p> },
-  { title: 'Inconsistent forever', body: <p>The order exists, but nobody downstream will ever hear about it. Reversing the order of the two writes just flips the problem: an event for an order that was never saved.</p> },
+const DUAL_WRITE_STEPS: FlowStep[] = [
+  { title: 'Save the order', body: <p>The service commits the order to its database.</p>, active: ['svc', 'db', 'svc>db'] },
+  { title: 'Publish the event', body: <p>Then it calls <code>producer.send("order-created", …)</code>.</p>, active: ['svc', 'kafka', 'svc>kafka'] },
+  { title: 'The broker is unreachable', body: <p>A network blip, a deploy, a timeout. The send fails after the database already committed.</p>, active: ['svc', 'svc>kafka'] },
+  { title: 'Inconsistent forever', body: <p>The order exists, but nobody downstream will ever hear about it. Reversing the order of the two writes just flips the problem: an event for an order that was never saved.</p>, active: ['db', 'downstream'] },
 ]
 
 function DualWrite() {
   return (
-    <Walkthrough title="The dual-write problem" steps={DUAL_WRITE_STEPS}>
-      {(step) => (
-        <Row align="center">
-          <Box title="Order service" active={step <= 1} />
-          <Column gap={14}>
-            <Row align="center">
-              <div style={{ width: 120, display: 'flex' }}>
-                <Connector active={step === 0} label="1. COMMIT" />
-              </div>
-              <Box title="Database" caption={step >= 0 ? 'order saved ✓' : ''} active={step === 0} />
-            </Row>
-            <Row align="center">
-              <div style={{ width: 120, display: 'flex' }}>
-                <Connector active={step === 1} dashed={step >= 2} label={step >= 2 ? '2. send ✕' : '2. send'} />
-              </div>
-              <Box title="Kafka" caption={step >= 2 ? 'never received' : ''} dimmed={step >= 2} active={step === 1} />
-            </Row>
-          </Column>
-        </Row>
-      )}
-    </Walkthrough>
+    <>
+      <Flow
+        title="The dual-write problem"
+        cols={3}
+        rows={2}
+        nodes={[
+          { id: 'svc', label: 'order service', sub: 'handles a request', col: 0, row: 0, rowSpan: 2, hue: 7 },
+          { id: 'db', label: 'database', sub: '1. COMMIT order ✓', col: 1, row: 0, hue: 6, shape: 'store' },
+          { id: 'kafka', label: 'Kafka', sub: '2. send — may fail', col: 1, row: 1, hue: 3, shape: 'log' },
+          { id: 'downstream', label: 'downstream', sub: 'never hears of it', col: 2, row: 1, hue: 8 },
+        ]}
+        edges={[
+          { from: 'svc', to: 'db', label: 'COMMIT', hue: 6, flow: true },
+          { from: 'svc', to: 'kafka', label: 'send', hue: 8, dashed: true },
+          { from: 'kafka', to: 'downstream', hue: 8, dashed: true },
+        ]}
+        steps={DUAL_WRITE_STEPS}
+      />
+      <Timeline
+        title="One request, two writes, no shared transaction (schematic)"
+        lanes={[
+          { id: 'svc', label: 'service' },
+          { id: 'db', label: 'database' },
+          { id: 'kafka', label: 'Kafka' },
+        ]}
+        segments={[
+          { lane: 'svc', from: 0, to: 70, label: 'handle the request', hue: 7 },
+          { lane: 'db', from: 10, to: 30, label: 'INSERT + COMMIT', hue: 6 },
+          { lane: 'kafka', from: 40, to: 70, label: 'send times out', hue: 8, striped: true },
+          { lane: 'db', from: 30, to: 100, label: 'order exists', hue: 6 },
+        ]}
+        events={[
+          { lane: 'db', at: 30, label: 'committed', hue: 6 },
+          { lane: 'kafka', at: 70, label: 'no event, ever', hue: 8 },
+        ]}
+        end={100}
+        unit="ms"
+        playable
+      />
+    </>
   )
 }
 
-type Node = 'service' | 'db' | 'wal' | 'debezium' | 'smt' | 'topic' | 'consumer' | 'retry'
-
-const PIPELINE_STEPS: { title: string; body: ReactNode; active: Node[]; edge?: string }[] = [
-  {
-    title: 'One local transaction',
-    body: <p>The service writes the business row <em>and</em> an outbox row describing the event, in the same database transaction. Both commit or neither does. No Kafka call in the request path.</p>,
-    active: ['service', 'db'],
-    edge: 'service-db',
-  },
-  {
-    title: 'The insert reaches the WAL',
-    body: <p>The committed outbox insert is in the write-ahead log. The replication slot retains it until Debezium confirms it.</p>,
-    active: ['db', 'wal'],
-    edge: 'db-wal',
-  },
-  {
-    title: 'Debezium captures inserts only',
-    body: <p>The connector watches only the outbox table and skips updates, deletes and truncates (<code>skipped.operations=u,d,t</code>). Old outbox rows can be purged without emitting anything.</p>,
-    active: ['wal', 'debezium'],
-    edge: 'wal-debezium',
-  },
-  {
-    title: 'Transforms route and reshape',
-    body: <p><strong>Reroute</strong> sends the record to the topic named in the row’s <code>event_type</code> column, <strong>unwrap</strong> strips the Debezium envelope, <strong>ExtractField</strong> makes the business <code>id</code> the key, so every event for one entity lands in the same partition, in order.</p>,
-    active: ['debezium', 'smt'],
-    edge: 'debezium-smt',
-  },
-  {
-    title: 'An ordinary event in a topic',
-    body: <p>Downstream sees a clean record on e.g. <code>ledger-entries</code>: key = the business ID from the <code>id</code> column, value = the outbox row as JSON.</p>,
-    active: ['smt', 'topic'],
-    edge: 'smt-topic',
-  },
-  {
-    title: 'A consumer group processes it',
-    body: <p>Consumers with manual acknowledgement, <code>auto.offset.reset=earliest</code>. They apply the event in their own database and only then ack.</p>,
-    active: ['topic', 'consumer'],
-    edge: 'topic-consumer',
-  },
-  {
-    title: 'Duplicates and failures',
-    body: <p>A duplicate hits a unique constraint → it was already done → ack. A real failure → write a new outbox row (with the error as remarks) → ack. The retry rides the same pipeline later, and the partition never blocks.</p>,
-    active: ['consumer', 'retry', 'db'],
-    edge: 'retry',
-  },
+const PIPELINE_STEPS: FlowStep[] = [
+  { title: 'One local transaction', body: <p>The service writes the business row <em>and</em> an outbox row describing the event, in the same database transaction. Both commit or neither does. No Kafka call in the request path.</p>, active: ['service', 'db', 'service>db'] },
+  { title: 'The insert reaches the WAL', body: <p>The committed outbox insert is in the write-ahead log. The replication slot retains it until Debezium confirms it.</p>, active: ['db', 'wal', 'db>wal'] },
+  { title: 'Debezium captures inserts only', body: <p>The connector watches only the outbox table and skips updates, deletes and truncates (<code>skipped.operations=u,d,t</code>). Old outbox rows can be purged without emitting anything.</p>, active: ['wal', 'debezium', 'wal>debezium'] },
+  { title: 'Transforms route and reshape', body: <p><strong>Reroute</strong> sends the record to the topic named in the row’s <code>event_type</code> column, <strong>unwrap</strong> strips the Debezium envelope, <strong>ExtractField</strong> makes the business <code>id</code> the key, so every event for one entity lands in the same partition, in order.</p>, active: ['debezium', 'smt', 'debezium>smt'] },
+  { title: 'An ordinary event in a topic', body: <p>Downstream sees a clean record on e.g. <code>INVOICE-ISSUED</code>: key = the business ID from the <code>id</code> column, value = the outbox row as JSON.</p>, active: ['smt', 'topic', 'smt>topic'] },
+  { title: 'A consumer group processes it', body: <p>Consumers with manual acknowledgement, <code>auto.offset.reset=earliest</code>. They apply the event in their own database and only then ack.</p>, active: ['topic', 'consumer', 'topic>consumer'] },
+  { title: 'Duplicates and failures', body: <p>A duplicate hits a unique constraint → it was already done → ack. A real failure → write a new outbox row (with the error as remarks) → ack. The retry rides the same pipeline later, and the partition never blocks.</p>, active: ['consumer', 'retry', 'db', 'consumer>retry', 'retry>db'] },
 ]
 
 function OutboxPipeline() {
   return (
-    <Walkthrough title="The outbox pipeline end to end" steps={PIPELINE_STEPS} intervalMs={2600}>
-      {(step) => {
-        const { active, edge } = PIPELINE_STEPS[step]
-        const on = (node: Node) => active.includes(node)
-        return (
-          <div className={own.pipeline}>
-            <Row align="center">
-              <Box title="Service A" caption="handles a request" active={on('service')} />
-              <div className={own.edge}>
-                <Connector active={edge === 'service-db'} label="1 tx" />
-              </div>
-              <Box title="Postgres" caption="orders + outbox" active={on('db')} />
-              <div className={own.edge}>
-                <Connector active={edge === 'db-wal'} />
-              </div>
-              <Box title="WAL + slot" caption="pgoutput" active={on('wal')} />
-              <div className={own.edge}>
-                <Connector active={edge === 'wal-debezium'} />
-              </div>
-              <Box title="Debezium" caption="Kafka Connect" active={on('debezium')} className={own.anchor} />
-            </Row>
-            <div className={own.down}>
-              <Connector direction="down" active={edge === 'debezium-smt'} />
-            </div>
-            <Row align="center">
-              <Box title="Retry" caption="new outbox row" active={on('retry')} dimmed={!on('retry')} />
-              <div className={own.edge}>
-                <Connector direction="left" active={edge === 'retry'} label="on failure" dashed={edge !== 'retry'} />
-              </div>
-              <Box title="Service B" caption="consumer group" active={on('consumer')} />
-              <div className={own.edge}>
-                <Connector direction="left" active={edge === 'topic-consumer'} />
-              </div>
-              <Box title="Topic" caption="ledger-entries" active={on('topic')} />
-              <div className={own.edge}>
-                <Connector direction="left" active={edge === 'smt-topic'} />
-              </div>
-              <Box title="SMTs" caption="reroute · unwrap · key" active={on('smt')} className={own.anchor} />
-            </Row>
-          </div>
-        )
-      }}
-    </Walkthrough>
+    <Flow
+      title="The outbox pipeline end to end"
+      cols={4}
+      rows={2}
+      nodes={[
+        { id: 'service', label: 'service A', sub: 'handles a request', col: 0, row: 0, hue: 7 },
+        { id: 'db', label: 'Postgres', sub: 'orders + outbox', col: 1, row: 0, hue: 6, shape: 'store' },
+        { id: 'wal', label: 'WAL + slot', sub: 'pgoutput', col: 2, row: 0, hue: 6, shape: 'log' },
+        { id: 'debezium', label: 'Debezium', sub: 'Kafka Connect', col: 3, row: 0, hue: 4 },
+        { id: 'smt', label: 'SMTs', sub: 'reroute · unwrap · key', col: 3, row: 1, hue: 4 },
+        { id: 'topic', label: 'topic', sub: 'INVOICE-ISSUED', col: 2, row: 1, hue: 3, shape: 'log' },
+        { id: 'consumer', label: 'service B', sub: 'consumer group', col: 1, row: 1, hue: 1 },
+        { id: 'retry', label: 'retry', sub: 'new outbox row', col: 0, row: 1, hue: 8 },
+      ]}
+      edges={[
+        { from: 'service', to: 'db', label: '1 tx', hue: 6, flow: true },
+        { from: 'db', to: 'wal', hue: 6, flow: true },
+        { from: 'wal', to: 'debezium', hue: 4, flow: true },
+        { from: 'debezium', to: 'smt', hue: 4, flow: true },
+        { from: 'smt', to: 'topic', hue: 3, flow: true },
+        { from: 'topic', to: 'consumer', hue: 1, flow: true },
+        { from: 'consumer', to: 'retry', label: 'on failure', hue: 8, dashed: true },
+        { from: 'retry', to: 'db', hue: 8, dashed: true },
+      ]}
+      steps={PIPELINE_STEPS}
+    />
   )
 }
+
+/* The outbox row from the example INSERT below, column by column. */
+const OUTBOX_ROW: ByteField[] = [
+  { label: 'event_id (uuid)', bytes: 16, hue: 5, content: 'c51e…' },
+  { label: 'id → Kafka key', bytes: '981'.length, hue: 3, content: '981' },
+  { label: 'source', bytes: 'payments'.length, hue: 7, content: 'payments' },
+  { label: 'type', bytes: 'TRANSACTION'.length, hue: 4, content: 'TRANSACTION' },
+  { label: 'event_type → topic', bytes: 'INVOICE-ISSUED'.length, hue: 3, content: 'INVOICE-ISSUED' },
+  { label: 'tenant_id', bytes: 'acme'.length, hue: 2, content: 'acme' },
+  { label: 'payload (json)', bytes: '{"transactionId":981}'.length, hue: 6, content: '{"transactionId":981}' },
+  { label: 'created_at', bytes: 8, hue: 5, content: 'now()' },
+]
 
 /** The transform chain from the connector config below, built from the simulation's SMTs. */
 const OUTBOX_CHAIN = new TransformChain([
@@ -147,7 +124,7 @@ const OUTBOX_CHAIN = new TransformChain([
   new ConditionalTransform(new ExtractKeyField('ExtractField', 'id'), new TopicNameMatches('(.*)heartbeat(.*)'), true),
 ])
 
-type Input = 'LEDGER-ENTRIES' | 'ORDER-CREATED' | 'none' | 'heartbeat'
+type Input = 'INVOICE-ISSUED' | 'ORDER-CREATED' | 'none' | 'heartbeat'
 
 function sourceRecord(input: Input): ConnectRecord {
   if (input === 'heartbeat') {
@@ -171,7 +148,7 @@ function sourceRecord(input: Input): ConnectRecord {
 }
 
 function OutboxTransforms() {
-  const [input, setInput] = useState<Input>('LEDGER-ENTRIES')
+  const [input, setInput] = useState<Input>('INVOICE-ISSUED')
   const stages = useMemo(() => OUTBOX_CHAIN.trace(sourceRecord(input)), [input])
 
   return (
@@ -184,7 +161,7 @@ function OutboxTransforms() {
           value={input}
           onChange={setInput}
           options={[
-            { value: 'LEDGER-ENTRIES', label: 'event_type=LEDGER-ENTRIES' },
+            { value: 'INVOICE-ISSUED', label: 'event_type=INVOICE-ISSUED' },
             { value: 'ORDER-CREATED', label: 'ORDER-CREATED' },
             { value: 'none', label: 'event_type null' },
             { value: 'heartbeat', label: 'heartbeat' },
@@ -226,7 +203,7 @@ CREATE TABLE outbox (
     id          text NOT NULL,             -- business ID; becomes the Kafka key
     source      text NOT NULL,             -- which service/domain produced it
     type        text NOT NULL,             -- entity type, e.g. TRANSACTION
-    event_type  text NOT NULL,             -- destination topic, e.g. LEDGER-ENTRIES
+    event_type  text NOT NULL,             -- destination topic, e.g. INVOICE-ISSUED
     tenant_id   text,                      -- for multi-tenant consumers
     payload     jsonb,                     -- optional event body
     remarks     text,                      -- error details when re-queued for retry
@@ -240,9 +217,15 @@ CREATE TABLE outbox (
 BEGIN;
 INSERT INTO transactions (id, amount, status) VALUES (981, 120.50, 'SETTLED');
 INSERT INTO outbox (id, source, type, event_type, tenant_id, payload)
-VALUES ('981', 'payments', 'TRANSACTION', 'LEDGER-ENTRIES', 'acme', '{"transactionId":981}');
+VALUES ('981', 'payments', 'TRANSACTION', 'INVOICE-ISSUED', 'acme', '{"transactionId":981}');
 COMMIT;
 `}
+      />
+
+      <ByteLayout
+        title="The outbox row of that transaction, column by column (value sizes)"
+        rows={[{ fields: OUTBOX_ROW }]}
+        caption="Text columns are shown by length, uuid 16 B, timestamptz 8 B. Two columns steer Kafka: id becomes the record key, event_type picks the topic."
       />
 
       <h2>The connector</h2>
@@ -343,10 +326,34 @@ COMMIT;
 
       <h2>The consumer side</h2>
       <p>Consumers complete the guarantees. Each topic is read by its own consumer group:</p>
+      <Flow
+        title="One event, three possible outcomes — and the consumer always acks"
+        cols={4}
+        rows={2}
+        nodes={[
+          { id: 'topic', label: 'topic', sub: 'event key = id', col: 0, row: 0, hue: 3, shape: 'log' },
+          { id: 'consumer', label: 'consumer', sub: 'group, manual ack', col: 1, row: 0, hue: 1 },
+          { id: 'db', label: 'own database', sub: 'unique event id', col: 2, row: 0, hue: 6, shape: 'store' },
+          { id: 'ack', label: 'ack / commit', sub: '__consumer_offsets', col: 3, row: 0, hue: 5 },
+          { id: 'outbox', label: 'new outbox row', sub: 'error in remarks', col: 2, row: 1, hue: 8, shape: 'store' },
+        ]}
+        edges={[
+          { from: 'topic', to: 'consumer', hue: 3, flow: true },
+          { from: 'consumer', to: 'db', label: 'apply', hue: 6, flow: true },
+          { from: 'db', to: 'ack', label: 'ok', hue: 5, flow: true },
+          { from: 'consumer', to: 'outbox', label: 'real failure', hue: 8, dashed: true },
+          { from: 'outbox', to: 'ack', label: 'then ack', hue: 5, dashed: true },
+        ]}
+        steps={[
+          { title: 'Normal case', body: <p>The consumer applies the event in its own database, then acks. The committed offset moves past it.</p>, active: ['topic', 'consumer', 'db', 'ack', 'topic>consumer', 'consumer>db', 'db>ack'] },
+          { title: 'A duplicate', body: <p>A redelivered event violates the unique constraint on its id: it was already applied, so the consumer just acks.</p>, active: ['consumer', 'db', 'ack', 'consumer>db', 'db>ack'] },
+          { title: 'A real failure', body: <p>Anything else: write a new outbox row (same id, error in remarks) and ack. The retry travels the pipeline again later; the partition never blocks.</p>, active: ['consumer', 'outbox', 'ack', 'consumer>outbox', 'outbox>ack'] },
+        ]}
+      />
       <CodeBlock
         title="consumer settings"
         code={`
-group.id=ledger-entries-group
+group.id=billing-group
 # a new group processes everything still retained
 auto.offset.reset=earliest
 # ack manually, after the work is done

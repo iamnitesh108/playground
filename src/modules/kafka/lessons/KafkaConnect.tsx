@@ -1,47 +1,73 @@
 import { useMemo, useState } from 'react'
-import { Box, Button, Callout, CodeBlock, Connector, Demo, Row, Segmented, Table, Tabs, TermList, Walkthrough } from '@/shared/ui'
+import { BarChart, ByteLayout, Flow, type FlowStep } from '@/shared/figures'
+import { Box, Button, Callout, CodeBlock, Demo, Row, Segmented, Table, Tabs, TermList } from '@/shared/ui'
 import { TransformTrace } from '../components'
 import { ExtractKeyField, RegexRouter, TransformChain, type Transform } from '../simulation'
 import styles from './lesson.module.css'
 
-const FLOW = [
-  { title: 'Source system', caption: 'database, API, files' },
-  { title: 'Source task', caption: 'reads changes' },
-  { title: 'Transforms', caption: 'SMTs, optional' },
-  { title: 'Converter', caption: 'object → bytes' },
-  { title: 'Kafka topic', caption: '' },
-  { title: 'Sink task', caption: 'bytes → object → write' },
-  { title: 'Target system', caption: 'warehouse, search, S3' },
-]
-
-const FLOW_STEPS = [
-  { title: 'Something changes at the source', body: <p>A row is inserted, a file appears, an API returns new data.</p> },
-  { title: 'A source task picks it up', body: <p>The connector’s task polls the source and produces a <em>source record</em>: topic, key, value, plus a <strong>source offset</strong> (“how far I have read”, e.g. a log position).</p> },
-  { title: 'Transforms reshape it', body: <p>Single Message Transforms can rename the topic, pick fields, drop records — one record at a time, no code.</p> },
-  { title: 'A converter serializes it', body: <p>The configured <code>key.converter</code>/<code>value.converter</code> turns the record into bytes, e.g. JSON.</p> },
-  { title: 'It lands in Kafka', body: <p>The worker’s internal producer writes it. Periodically the worker saves the source offset to the offsets topic, so a restart resumes in the right place.</p> },
-  { title: 'A sink task consumes it', body: <p>On the other side, a sink connector is just a managed consumer group (named <code>connect-&lt;connector name&gt;</code>). Its tasks deserialize records with their converter…</p> },
-  { title: '…and writes it to the target', body: <p>…and write batches to the destination. Committed consumer offsets track sink progress.</p> },
+const FLOW_STEPS: FlowStep[] = [
+  { title: 'Something changes at the source', body: <p>A row is inserted, a file appears, an API returns new data.</p>, active: ['src'] },
+  { title: 'A source task picks it up', body: <p>The connector’s task polls the source and produces a <em>source record</em>: topic, key, value, plus a <strong>source offset</strong> (“how far I have read”, e.g. a log position).</p>, active: ['src', 'stask', 'src>stask'] },
+  { title: 'Transforms reshape it', body: <p>Single Message Transforms can rename the topic, pick fields, drop records — one record at a time, no code.</p>, active: ['stask', 'smt', 'stask>smt'] },
+  { title: 'A converter serializes it', body: <p>The configured <code>key.converter</code>/<code>value.converter</code> turns the record into bytes, e.g. JSON.</p>, active: ['smt', 'conv', 'smt>conv'] },
+  { title: 'It lands in Kafka', body: <p>The worker’s internal producer writes it. Periodically the worker saves the source offset to the offsets topic, so a restart resumes in the right place.</p>, active: ['conv', 'topic', 'offsets', 'conv>topic', 'topic>offsets'] },
+  { title: 'A sink task consumes it', body: <p>On the other side, a sink connector is just a managed consumer group (named <code>connect-&lt;connector name&gt;</code>). Its tasks deserialize records with their converter…</p>, active: ['topic', 'ktask', 'topic>ktask'] },
+  { title: '…and writes it to the target', body: <p>…and write batches to the destination. Committed consumer offsets track sink progress.</p>, active: ['ktask', 'target', 'ktask>target'] },
 ]
 
 function ConnectFlow() {
   return (
-    <Walkthrough title="Data flowing through Kafka Connect" steps={FLOW_STEPS}>
-      {(step) => (
-        <Row>
-          {FLOW.map((node, i) => (
-            <Row key={node.title}>
-              {i > 0 && (
-                <div style={{ width: 28, display: 'flex' }}>
-                  <Connector active={i === step} />
-                </div>
-              )}
-              <Box title={node.title} caption={node.caption || undefined} active={i === step} dimmed={i > step} />
-            </Row>
-          ))}
-        </Row>
-      )}
-    </Walkthrough>
+    <Flow
+      title="Data flowing through Kafka Connect"
+      cols={4}
+      rows={3}
+      rowHeight={80}
+      nodes={[
+        { id: 'src', label: 'source system', sub: 'database, API, files', col: 0, row: 0, hue: 6, shape: 'store' },
+        { id: 'stask', label: 'source task', sub: 'reads changes', col: 1, row: 0, hue: 4 },
+        { id: 'smt', label: 'transforms', sub: 'SMTs, optional', col: 2, row: 0, hue: 4 },
+        { id: 'conv', label: 'converter', sub: 'object → bytes', col: 3, row: 0, hue: 4 },
+        { id: 'topic', label: 'Kafka topic', sub: 'records as bytes', col: 3, row: 1, hue: 3, shape: 'log' },
+        { id: 'ktask', label: 'sink task', sub: 'bytes → object → write', col: 1, row: 1, hue: 4 },
+        { id: 'target', label: 'target system', sub: 'warehouse, search, S3', col: 0, row: 1, hue: 4, shape: 'store' },
+        { id: 'offsets', label: '_connect-offsets', sub: 'source positions', col: 2, row: 2, hue: 5, shape: 'log' },
+      ]}
+      edges={[
+        { from: 'src', to: 'stask', label: 'poll', hue: 6, flow: true },
+        { from: 'stask', to: 'smt', hue: 4, flow: true },
+        { from: 'smt', to: 'conv', hue: 4, flow: true },
+        { from: 'conv', to: 'topic', label: 'produce', hue: 3, flow: true },
+        { from: 'topic', to: 'offsets', label: 'then save offset', hue: 5, dashed: true },
+        { from: 'topic', to: 'ktask', label: 'consume (group connect-…)', hue: 3, flow: true },
+        { from: 'ktask', to: 'target', label: 'write batch', hue: 4, flow: true },
+      ]}
+      steps={FLOW_STEPS}
+    />
+  )
+}
+
+/** Where a distributed Connect cluster keeps its state: three compacted internal topics. */
+function ConnectState() {
+  return (
+    <Flow
+      title="A distributed Connect cluster keeps all its state in Kafka"
+      cols={3}
+      rows={2}
+      nodes={[
+        { id: 'you', label: 'you (curl)', sub: 'PUT config over REST :8083', col: 0, row: 0, shape: 'actor' },
+        { id: 'cluster', label: 'Connect workers', sub: 'same group.id = one cluster', col: 1, row: 0, hue: 4, shape: 'queue' },
+        { id: 'configs', label: '_connect-configs', sub: 'connector + task configs', col: 0, row: 1, hue: 5, shape: 'log' },
+        { id: 'offsets', label: '_connect-offsets', sub: 'source positions', col: 1, row: 1, hue: 5, shape: 'log' },
+        { id: 'status', label: '_connect-status', sub: 'RUNNING / FAILED', col: 2, row: 1, hue: 5, shape: 'log' },
+      ]}
+      edges={[
+        { from: 'you', to: 'cluster', flow: true },
+        { from: 'cluster', to: 'configs', hue: 5 },
+        { from: 'cluster', to: 'offsets', hue: 5, flow: true },
+        { from: 'cluster', to: 'status', hue: 5 },
+      ]}
+      caption="Any worker can take a REST call; the configs topic carries it to all workers. A restarted or replaced worker rebuilds everything it needs from these three topics."
+    />
   )
 }
 
@@ -85,21 +111,22 @@ function WorkerCluster() {
   )
 }
 
+const SAMPLE_VALUE = { id: 7, status: 'PAID' }
+const SAMPLE_SCHEMA = {
+  type: 'struct',
+  fields: [
+    { field: 'id', type: 'int64' },
+    { field: 'status', type: 'string' },
+  ],
+}
+const PLAIN_BYTES = JSON.stringify(SAMPLE_VALUE).length
+const SCHEMA_BYTES = JSON.stringify(SAMPLE_SCHEMA).length
+const WRAPPED_BYTES = JSON.stringify({ schema: SAMPLE_SCHEMA, payload: SAMPLE_VALUE }).length
+
 function ConverterDemo() {
   const [schemas, setSchemas] = useState(false)
-  const value = { id: 7, status: 'PAID' }
-  const output = schemas
-    ? {
-        schema: {
-          type: 'struct',
-          fields: [
-            { field: 'id', type: 'int64' },
-            { field: 'status', type: 'string' },
-          ],
-        },
-        payload: value,
-      }
-    : value
+  const value = SAMPLE_VALUE
+  const output = schemas ? { schema: SAMPLE_SCHEMA, payload: value } : value
 
   return (
     <Demo
@@ -192,6 +219,7 @@ export default function KafkaConnect() {
         workers form a cluster, store all state in Kafka, and are managed through a REST API.
       </p>
       <WorkerCluster />
+      <ConnectState />
 
       <p>A distributed worker keeps everything it knows in three compacted internal topics:</p>
       <Table
@@ -236,6 +264,26 @@ config.providers.file.class=org.apache.kafka.common.config.provider.FileConfigPr
         <code>ByteArrayConverter</code>, or Avro/Protobuf converters backed by a Schema Registry.
       </p>
       <ConverterDemo />
+      <BarChart
+        title="Bytes per record value on the wire (JSON)"
+        bars={[
+          { label: 'schemas.enable=false', value: PLAIN_BYTES, hue: 3, display: `${PLAIN_BYTES} B` },
+          { label: 'schemas.enable=true', value: WRAPPED_BYTES, hue: 5, display: `${WRAPPED_BYTES} B` },
+        ]}
+      />
+      <ByteLayout
+        title="Where the bytes go with schemas.enable=true"
+        rows={[
+          {
+            fields: [
+              { label: 'schema, repeated in every record', bytes: SCHEMA_BYTES, hue: 5, content: '{"type":"struct",…}' },
+              { label: 'the value', bytes: PLAIN_BYTES, hue: 3, content: '"payload":{…}' },
+              { label: 'wrapper', bytes: WRAPPED_BYTES - SCHEMA_BYTES - PLAIN_BYTES, hue: 4, content: '{"schema":…}' },
+            ],
+          },
+        ]}
+        caption={`${WRAPPED_BYTES} bytes instead of ${PLAIN_BYTES}: ${(WRAPPED_BYTES / PLAIN_BYTES).toFixed(1)}× larger for this small record. A Schema Registry stores the schema once and puts only a schema id in each record.`}
+      />
 
       <h2>Single Message Transforms (SMTs)</h2>
       <p>
@@ -250,6 +298,27 @@ config.providers.file.class=org.apache.kafka.common.config.provider.FileConfigPr
       </Callout>
 
       <h2>Error handling</h2>
+      <Flow
+        title="Where a bad record ends up (sink connector)"
+        cols={4}
+        rows={2}
+        nodes={[
+          { id: 'topic', label: 'topic', sub: 'a record arrives', col: 0, row: 0, hue: 3, shape: 'log' },
+          { id: 'conv', label: 'converter', sub: 'bytes → object', col: 1, row: 0, hue: 4 },
+          { id: 'smt', label: 'transforms', sub: 'SMT chain', col: 2, row: 0, hue: 4 },
+          { id: 'put', label: 'connector', sub: 'writes the target', col: 3, row: 0, hue: 4 },
+          { id: 'dlq', label: 'dead letter queue', sub: 'errors.tolerance=all', col: 1, row: 1, span: 2, hue: 8, shape: 'log' },
+          { id: 'failed', label: 'task FAILED', sub: 'not covered by tolerance', col: 3, row: 1, hue: 8 },
+        ]}
+        edges={[
+          { from: 'topic', to: 'conv', hue: 3, flow: true },
+          { from: 'conv', to: 'smt', hue: 4, flow: true },
+          { from: 'smt', to: 'put', hue: 4, flow: true },
+          { from: 'conv', to: 'dlq', label: 'cannot parse', hue: 8, dashed: true },
+          { from: 'smt', to: 'dlq', label: 'transform throws', hue: 8, dashed: true },
+          { from: 'put', to: 'failed', label: 'write fails', hue: 8, dashed: true },
+        ]}
+      />
       <CodeBlock
         title="connector config — tolerate bad records (sink connector)"
         code={`

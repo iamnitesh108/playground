@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Callout, CodeBlock, Demo, Segmented, Table, TermList, Walkthrough, type WalkthroughStep } from '@/shared/ui'
 import { cx } from '@/shared/utils/cx'
+import { Flow, Timeline } from '@/shared/figures'
 import { PartitionLog } from '../components'
 import styles from './lesson.module.css'
 
@@ -122,6 +123,50 @@ export default function Delivery() {
 
       <CommitOrderDemo />
 
+      <Timeline
+        title="Commit, then process: the crash lands after the commit (at-most-once)"
+        lanes={[
+          { id: 'consumer', label: 'consumer' },
+          { id: 'kafka', label: 'committed' },
+          { id: 'db', label: 'database' },
+        ]}
+        segments={[
+          { lane: 'consumer', from: 0, to: 10, label: 'poll #2', hue: 1 },
+          { lane: 'consumer', from: 20, to: 45, label: 'processing #2', hue: 1 },
+          { lane: 'kafka', from: 0, to: 12, label: '2', hue: 5 },
+          { lane: 'kafka', from: 12, to: 100, label: '3 — “#2 is done”', hue: 5 },
+          { lane: 'db', from: 45, to: 100, label: 'payment #2 never written', hue: 8, striped: true },
+          { lane: 'consumer', from: 70, to: 100, label: 'restart: reads #3', hue: 1 },
+        ]}
+        events={[{ lane: 'kafka', at: 12, label: 'commit 3', hue: 5 }, { lane: 'consumer', at: 45, label: 'crash', hue: 8 }]}
+        end={100}
+        unit="ms"
+        playable
+      />
+      <Timeline
+        title="Process, then commit: the crash lands before the commit (at-least-once)"
+        lanes={[
+          { id: 'consumer', label: 'consumer' },
+          { id: 'kafka', label: 'committed' },
+          { id: 'db', label: 'database' },
+        ]}
+        segments={[
+          { lane: 'consumer', from: 0, to: 10, label: 'poll #2', hue: 1 },
+          { lane: 'consumer', from: 12, to: 35, label: 'processing #2', hue: 1 },
+          { lane: 'kafka', from: 0, to: 100, label: '2 — never moved', hue: 5 },
+          { lane: 'db', from: 35, to: 100, label: 'payment #2 written', hue: 6 },
+          { lane: 'consumer', from: 70, to: 95, label: 'restart: #2 again', hue: 4 },
+        ]}
+        events={[{ lane: 'consumer', at: 40, label: 'crash', hue: 8 }, { lane: 'db', at: 90, label: 'written twice?', hue: 8 }]}
+        end={100}
+        unit="ms"
+        playable
+      />
+      <p>
+        The only difference is the order of two calls. Commit first and a crash loses the record; process first and a crash repeats it — which an
+        idempotent handler turns into “already done”.
+      </p>
+
       <h2>The three guarantees</h2>
       <Table
         head={['Guarantee', 'How', 'After a crash']}
@@ -137,6 +182,34 @@ export default function Delivery() {
         <code>isolation.level=read_committed</code>. Once a side effect leaves Kafka — a database row, an email, an
         HTTP call — Kafka can no longer make it atomic. The practical recipe is:
       </p>
+      <Flow
+        title="Exactly-once inside Kafka: read, process, write — in one transaction"
+        cols={3}
+        rows={3}
+        rowHeight={80}
+        nodes={[
+          { id: 'in', label: 'payments', sub: 'input topic', col: 0, row: 0, hue: 3, shape: 'log' },
+          { id: 'app', label: 'read-process-write', sub: 'consumer + transactional producer', col: 1, row: 0, hue: 1 },
+          { id: 'out', label: 'balances', sub: 'output topic', col: 2, row: 0, hue: 3, shape: 'log' },
+          { id: 'off', label: '__consumer_offsets', sub: 'offsets inside the txn', col: 0, row: 2, hue: 3, shape: 'log' },
+          { id: 'tx', label: 'transaction coordinator', sub: 'a broker', col: 1, row: 2, hue: 5 },
+          { id: 'down', label: 'downstream consumer', sub: 'isolation.level=read_committed', col: 2, row: 2, hue: 2, shape: 'actor' },
+        ]}
+        edges={[
+          { from: 'in', to: 'app', label: 'poll', flow: true, hue: 3 },
+          { from: 'app', to: 'out', label: 'send', flow: true, hue: 1 },
+          { from: 'app', to: 'tx', label: 'begin / commit', hue: 5 },
+          { from: 'app', to: 'off', label: 'offsets', hue: 5, dashed: true },
+          { from: 'out', to: 'down', label: 'only committed', flow: true, hue: 2 },
+        ]}
+        steps={[
+          { title: 'Begin', body: <p>The app polls a batch from <code>payments</code> and begins a transaction with its <code>transactional.id</code>.</p>, active: ['in', 'app', 'tx', 'in>app', 'app>tx'] },
+          { title: 'Write output', body: <p>Results go to <code>balances</code> — written to the log but marked as part of an open transaction.</p>, active: ['app', 'out', 'app>out'] },
+          { title: 'Offsets join the transaction', body: <p>The consumed offsets are sent to the same transaction instead of a normal commit, so “processed” and “output written” become one fact.</p>, active: ['app', 'off', 'app>off'] },
+          { title: 'Commit — or abort', body: <p>The coordinator writes commit markers to every partition involved. On a crash the transaction aborts: output and offsets disappear together, and the batch is processed again.</p>, active: ['tx', 'out', 'off', 'app>tx'] },
+          { title: 'Readers see only committed data', body: <p>Downstream consumers with <code>isolation.level=read_committed</code> skip aborted records, so each payment is applied to the balances exactly once.</p>, active: ['out', 'down', 'out>down'] },
+        ]}
+      />
       <Callout tone="tip" title="At-least-once + idempotent consumer">
         Commit after processing, and make processing safe to repeat. Typical tricks: a unique constraint on a business
         ID (a duplicate insert fails and you treat that as “already done”), an “processed events” table, or upserts
@@ -162,12 +235,34 @@ export default function Delivery() {
           outbox (lesson 13) will send again later.
         </li>
       </ul>
+      <Flow
+        title="Retry topics and a dead letter queue: the partition keeps moving"
+        cols={4}
+        rows={3}
+        nodes={[
+          { id: 'orders', label: 'orders', sub: 'main topic', col: 0, row: 0, hue: 3, shape: 'log' },
+          { id: 'main', label: 'consumer', sub: 'group billing', col: 1, row: 0, hue: 1 },
+          { id: 'db', label: 'database', sub: 'success', col: 3, row: 0, hue: 6, shape: 'store' },
+          { id: 'r1', label: 'orders.retry.1m', sub: 'after a delay', col: 1, row: 1, hue: 4, shape: 'log' },
+          { id: 'retry', label: 'retry consumer', sub: 'waits, then tries', col: 3, row: 1, hue: 1 },
+          { id: 'dlq', label: 'orders.dlq', sub: 'for a human', col: 3, row: 2, hue: 8, shape: 'log' },
+        ]}
+        edges={[
+          { from: 'orders', to: 'main', flow: true, hue: 3 },
+          { from: 'main', to: 'db', label: 'ok → commit', flow: true, hue: 6 },
+          { from: 'main', to: 'r1', label: 'fails', hue: 4 },
+          { from: 'r1', to: 'retry', flow: true, hue: 4 },
+          { from: 'retry', to: 'db', label: 'ok', hue: 6 },
+          { from: 'retry', to: 'dlq', label: 'still failing', hue: 8 },
+        ]}
+        caption="Every failing record is copied somewhere else and its offset committed, so one bad record never stalls the records behind it."
+      />
       <CodeBlock
         title="a manual-ack listener that never blocks its partition"
         code={`
 void onMessage(ConsumerRecord<String, byte[]> record, Acknowledgement ack) {
     try {
-        ledger.apply(record.key(), parse(record.value()));  // one DB transaction
+        balances.apply(record.key(), parse(record.value()));  // one DB transaction
         ack.ack();
     } catch (DuplicateKeyException alreadyDone) {
         ack.ack();                                          // idempotency: seen it before

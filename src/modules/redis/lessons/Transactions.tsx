@@ -1,9 +1,52 @@
-import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
+import { Callout, CodeBlock, LessonGoals, Predict, Recap, TermList } from '@/shared/ui'
+import { Flow, Timeline, type TimelineEvent, type TimelineSegment } from '@/shared/figures'
 import { CliSession } from '../components'
+import { TransactionsMatrix, TransactionsNoRollback } from '../components/TransactionsFigures'
 import { CAPTURE } from '../data/captures'
 
 const T = CAPTURE.transactions
 const busy = CAPTURE.architecture.blockedBusyError
+
+/** The recorded EXEC with a failing command: what was queued, what each reply was, what stayed. */
+const rt = T.runtimeError.filter((st) => 'cmd' in st)
+const queued = rt.filter((st) => st.out === 'QUEUED').map((st) => st.cmd)
+const execReplies = (rt.find((st) => st.cmd === 'EXEC')?.out ?? '').split('\n').map((l) => l.replace(/^\d+\) /, ''))
+const counterAfter = rt.find((st) => st.cmd === 'GET counter')?.out ?? ''
+
+/** The recorded WATCH session as a timeline: one step per command, the key's value on its own lane. */
+const watchSteps = T.watch.filter((st): st is Extract<(typeof T.watch)[number], { cmd: string }> => 'cmd' in st)
+const shortStep = (cmd: string, out: string) => {
+  const verb = cmd.split(' ')[0]
+  if (verb === 'GET') return `GET ${out.replaceAll('"', '')}`
+  if (verb === 'EXEC') return out === '(nil)' ? 'EXEC nil' : 'EXEC OK'
+  if (verb === 'INCRBY') return `INCRBY → ${out.replace('(integer) ', '')}`
+  if (verb === 'SET') return `SET ${cmd.split(' ')[2]}`
+  return verb
+}
+/** Client A's reads and its transaction go on separate lanes so neighbouring labels do not collide. */
+const watchLane = (who: string, cmd: string) => (who === 'B' ? 'B' : /^(WATCH|GET)/.test(cmd) ? 'Aread' : 'Atx')
+const watchHue = (st: (typeof watchSteps)[number]) => {
+  if (st.cmd === 'EXEC') return st.out === '(nil)' ? 8 : 6
+  return st.who === 'A' ? 1 : 2
+}
+const watchEvents: TimelineEvent[] = watchSteps.map((st, i) => ({ lane: watchLane(st.who, st.cmd), at: i, label: shortStep(st.cmd, st.out), hue: watchHue(st) }))
+const watchValue = (() => {
+  const segs: TimelineSegment[] = []
+  let value = watchSteps.find((st) => st.cmd.startsWith('GET'))?.out.replaceAll('"', '') ?? ''
+  let from = 0
+  watchSteps.forEach((st, i) => {
+    let next: string | null = null
+    if (st.who === 'B') next = st.out.replace('(integer) ', '')
+    if (st.cmd === 'EXEC' && st.out !== '(nil)') next = [...watchSteps.slice(0, i)].reverse().find((x) => x.cmd.startsWith('SET'))?.cmd.split(' ')[2] ?? null
+    if (next !== null) {
+      segs.push({ lane: 'key', from, to: i, label: `= ${value}`, hue: 3 })
+      value = next
+      from = i
+    }
+  })
+  segs.push({ lane: 'key', from, to: watchSteps.length + 1, label: `= ${value}`, hue: 6 })
+  return segs
+})()
 
 const prettyLua = (src: string) => src.replace(/ (local|if|end|return|redis\.call)/g, '\n$1').replace(/\nend\nreturn/g, '\nend\nreturn').trim()
 
@@ -26,6 +69,31 @@ export default function Transactions() {
         queue at once. Because one thread runs everything (lesson 1), no other client’s command can land in the middle: the transaction is{' '}
         <strong>isolated</strong>.
       </p>
+      <Flow
+        title="MULTI queues, EXEC runs the queue — another client cannot get in between"
+        cols={4}
+        rows={2}
+        nodes={[
+          { id: 'a', label: 'client A', sub: 'MULTI … EXEC', col: 0, row: 0, hue: 1, shape: 'actor' },
+          { id: 'queue', label: 'queue of A', sub: 'DECRBY, RPUSH', col: 1, row: 0, hue: 2, shape: 'queue' },
+          { id: 'exec', label: 'EXEC', sub: 'runs all, one go', col: 2, row: 0, hue: 2 },
+          { id: 'keyspace', label: 'keyspace', sub: 'stock:42, orders:42', col: 3, row: 0, rowSpan: 2, hue: 3, shape: 'store' },
+          { id: 'b', label: 'client B', sub: 'any command', col: 0, row: 1, hue: 1, shape: 'actor' },
+          { id: 'wait', label: 'before or after', sub: 'never in the middle', col: 2, row: 1, hue: 8 },
+        ]}
+        edges={[
+          { from: 'a', to: 'queue', flow: true, hue: 1 },
+          { from: 'queue', to: 'exec', hue: 2 },
+          { from: 'exec', to: 'keyspace', flow: true, hue: 2 },
+          { from: 'b', to: 'wait', flow: true, hue: 1 },
+          { from: 'wait', to: 'keyspace', dashed: true, hue: 8 },
+        ]}
+        steps={[
+          { title: 'MULTI: start queuing', body: <p>After MULTI every command gets the reply QUEUED and is kept in this connection’s queue — nothing runs yet.</p>, active: ['a', 'queue', 'a>queue'] },
+          { title: 'Meanwhile, client B', body: <p>Other clients keep running commands while A is still queuing — A has not locked anything.</p>, active: ['b', 'wait', 'keyspace', 'b>wait', 'wait>keyspace'] },
+          { title: 'EXEC: the whole queue in one go', body: <p>EXEC runs every queued command back to back on the one thread. B’s next command runs before or after — never in the middle.</p>, active: ['queue', 'exec', 'keyspace', 'queue>exec', 'exec>keyspace'] },
+        ]}
+      />
       <CliSession steps={T.basic} title="recorded: MULTI / EXEC" />
       <TermList
         items={[
@@ -42,6 +110,11 @@ export default function Transactions() {
         value that is not a number — fails that one command; the others still run, and whatever they changed stays changed:
       </p>
       <CliSession steps={T.runtimeError} title="recorded: an error during EXEC" />
+      <TransactionsNoRollback
+        title="The same EXEC, command by command"
+        commands={queued.map((cmd, i) => ({ cmd, reply: execReplies[i] ?? '' }))}
+        after={`counter = ${counterAfter}`}
+      />
       <p>
         An error <strong>while queuing</strong> — an unknown command, wrong number of arguments — makes Redis refuse the whole transaction at EXEC:
       </p>
@@ -60,6 +133,21 @@ export default function Transactions() {
         WATCH, EXEC returns nil and nothing runs; you read again and retry.
       </p>
       <CliSession steps={T.watch} title="recorded: two clients, A retries" />
+      <Timeline
+        title="The same session over time: B’s write makes A’s first EXEC fail; the retry wins"
+        start={0}
+        end={watchSteps.length + 1}
+        unit="step"
+        lanes={[
+          { id: 'Aread', label: 'A: watch, read' },
+          { id: 'Atx', label: 'A: MULTI / EXEC' },
+          { id: 'B', label: 'client B' },
+          { id: 'key', label: 'balance:7' },
+        ]}
+        segments={watchValue}
+        events={watchEvents}
+        playable
+      />
       <Predict
         question={<p>Ten clients run the WATCH–GET–MULTI–SET–EXEC loop on the same counter at the same moment. What happens?</p>}
         options={['All ten succeed in parallel', 'One succeeds per round; the others get nil and retry', 'They deadlock']}
@@ -102,14 +190,15 @@ export default function Transactions() {
       </Callout>
 
       <h2>Which tool when</h2>
-      <Table
-        head={['', 'Fewer round trips', 'Nothing in between', 'Read, decide, write', 'Rollback on error']}
+      <TransactionsMatrix
+        title="Which tool gives what"
+        columns={['Fewer round trips', 'Nothing in between', 'Read, decide, write', 'Rollback on error']}
         rows={[
-          ['Pipeline', 'yes', 'no', 'no', 'no'],
-          ['MULTI / EXEC', 'yes (with pipelining)', 'yes', 'no', 'no'],
-          ['WATCH + MULTI / EXEC', 'no — read, then write', 'yes, or EXEC fails', 'yes, with retries', 'no (nothing runs if aborted)'],
-          ['EVAL (Lua script)', 'yes', 'yes', 'yes, on the server', 'no'],
-          ['FCALL (function)', 'yes', 'yes', 'yes, on the server', 'no'],
+          { tool: 'Pipeline', cells: [{ verdict: 'yes', text: 'yes' }, { verdict: 'no', text: 'no' }, { verdict: 'no', text: 'no' }, { verdict: 'no', text: 'no' }] },
+          { tool: 'MULTI / EXEC', cells: [{ verdict: 'yes', text: 'yes, with pipelining' }, { verdict: 'yes', text: 'yes' }, { verdict: 'no', text: 'no' }, { verdict: 'no', text: 'no' }] },
+          { tool: 'WATCH + MULTI / EXEC', cells: [{ verdict: 'no', text: 'no — read, then write' }, { verdict: 'partly', text: 'yes, or EXEC fails' }, { verdict: 'partly', text: 'yes, with retries' }, { verdict: 'no', text: 'no (nothing runs if aborted)' }] },
+          { tool: 'EVAL (Lua script)', cells: [{ verdict: 'yes', text: 'yes' }, { verdict: 'yes', text: 'yes' }, { verdict: 'yes', text: 'yes, on the server' }, { verdict: 'no', text: 'no' }] },
+          { tool: 'FCALL (function)', cells: [{ verdict: 'yes', text: 'yes' }, { verdict: 'yes', text: 'yes' }, { verdict: 'yes', text: 'yes, on the server' }, { verdict: 'no', text: 'no' }] },
         ]}
       />
 

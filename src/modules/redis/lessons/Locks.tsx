@@ -1,11 +1,20 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
-import { CliSession, LockPlayground, RateLimitPlayground } from '../components'
+import { Flow, Timeline } from '@/shared/figures'
+import { CliSession, LineChart, LockPlayground, RateLimitPlayground } from '../components'
 import { CAPTURE } from '../data/captures'
+import own from './lesson.module.css'
 
 const L = CAPTURE.locks
 
 /** Puts the long Lua source of an EVAL on separate lines so it reads as code. */
 const script = (src: string) => src.replace(/(?<!return|=|if|local) (?=(local |if |else |end\b|return |redis\.call|tokens = |ok = ))/g, '\n')
+
+/** TTL and pause of the recorded race, read from the recording itself. */
+type Step = { cmd?: string; note?: string }
+const STALE_REPLY = (L.fencing as readonly { out?: string }[]).find((s) => s.out?.includes('STALE'))?.out?.replace('(error) ', '') ?? ''
+const NAIVE = L.naive as readonly Step[]
+const TTL = Number(NAIVE.find((s) => s.cmd?.includes(' PX '))?.cmd?.match(/PX (\d+)/)?.[1] ?? 500)
+const PAUSE = Number(NAIVE.find((s) => s.note)?.note?.match(/(\d+) ms/)?.[1] ?? 800)
 
 const RENEW = `-- KEYS[1] = lock key, ARGV[1] = my token, ARGV[2] = new TTL in ms
 if redis.call('GET', KEYS[1]) == ARGV[1] then
@@ -15,6 +24,9 @@ else
 end`
 
 export default function Locks() {
+  const atOf = (id: string) => L.sliding.find((r) => r.request === id)?.atMs ?? 0
+  /** Requests already accepted in the 1000 ms before a given request. */
+  const inside = (id: string) => L.sliding.filter((r) => r.allowed && r.atMs > atOf(id) - 1000 && r.atMs < atOf(id)).length
   const limited = L.fixedWindow.filter((s) => s.cmd?.startsWith('INCR')).map((s) => Number(s.out?.replace('(integer) ', '')))
   return (
     <>
@@ -53,6 +65,24 @@ export default function Locks() {
         then stalls for 800 ms — a long garbage-collection pause, a slow call to another service, a laptop going to sleep. Recorded:
       </p>
       <CliSession title="plain DEL after the lock expired (recorded)" steps={L.naive} />
+      <Timeline
+        title={`The same race on a time axis: TTL ${TTL} ms, A paused ${PAUSE} ms`}
+        lanes={[{ id: 'a', label: 'client A' }, { id: 'b', label: 'client B' }, { id: 'c', label: 'client C' }]}
+        segments={[
+          { lane: 'a', from: 0, to: TTL, label: 'holds the lock', hue: 6 },
+          { lane: 'a', from: TTL, to: PAUSE, label: 'paused, lock expired', hue: 8, striped: true },
+          { lane: 'b', from: PAUSE, to: PAUSE + 400, label: 'holds the lock', hue: 6 },
+          { lane: 'c', from: PAUSE + 40, to: PAUSE + 400, label: 'also believes it holds it', hue: 8, striped: true },
+        ]}
+        events={[
+          { lane: 'a', at: 0, label: 'SET NX → OK', hue: 1 },
+          { lane: 'a', at: PAUSE + 20, label: 'DEL → 1', hue: 8 },
+          { lane: 'b', at: PAUSE, label: 'SET NX → OK', hue: 1 },
+          { lane: 'c', at: PAUSE + 40, label: 'SET NX → OK', hue: 8 },
+        ]}
+        end={PAUSE + 400}
+        playable
+      />
       <p>
         A’s DEL returned <code>1</code>: it deleted <em>B’s</em> lock. C then got it too, while B was still working. A check-then-delete in
         application code (<code>GET</code>, compare, <code>DEL</code>) has the same hole between its two commands. The release has to compare and
@@ -60,6 +90,23 @@ export default function Locks() {
       </p>
       <CodeBlock title="release: delete the key only if it still holds my token" language="lua" code={script(L.releaseScript)} />
       <CliSession title="the same race, released with the script (recorded)" steps={L.safe} />
+      <Timeline
+        title="With compare-and-delete: A’s release finds B’s token and deletes nothing"
+        lanes={[{ id: 'a', label: 'client A' }, { id: 'b', label: 'client B' }, { id: 'c', label: 'client C' }]}
+        segments={[
+          { lane: 'a', from: 0, to: TTL, label: 'holds the lock', hue: 6 },
+          { lane: 'a', from: TTL, to: PAUSE, label: 'paused, lock expired', hue: 8, striped: true },
+          { lane: 'b', from: PAUSE, to: PAUSE + 400, label: 'holds the lock, undisturbed', hue: 6 },
+        ]}
+        events={[
+          { lane: 'a', at: 0, label: 'SET NX → OK', hue: 1 },
+          { lane: 'a', at: PAUSE + 20, label: 'release → 0', hue: 6 },
+          { lane: 'b', at: PAUSE, label: 'SET NX → OK', hue: 1 },
+          { lane: 'c', at: PAUSE + 40, label: 'SET NX → (nil)', hue: 6 },
+        ]}
+        end={PAUSE + 400}
+      />
+      <p className={own.note}>Times on both axes are the experiment’s settings; the last three steps happened within a few milliseconds of each other, in the order shown.</p>
 
       <Predict
         question={
@@ -82,6 +129,29 @@ export default function Locks() {
         granted, the holder also gets a number that only grows (<code>INCR</code> on a counter). The resource remembers the highest number it has
         accepted and refuses anything older.
       </p>
+      <Flow
+        title="Fencing: the resource remembers the highest token it accepted"
+        cols={4}
+        rows={2}
+        nodes={[
+          { id: 'a', label: 'client A', sub: 'token 1, then paused', col: 1, row: 0, hue: 1, shape: 'actor' },
+          { id: 'b', label: 'client B', sub: 'token 2', col: 1, row: 1, hue: 1, shape: 'actor' },
+          { id: 'redis', label: 'Redis', sub: 'INCR fence:report', col: 0, row: 0, rowSpan: 2, hue: 2 },
+          { id: 'store', label: 'the resource', sub: 'last token: 2', col: 3, row: 0, rowSpan: 2, hue: 3, shape: 'store' },
+        ]}
+        edges={[
+          { from: 'redis', to: 'a', label: '1', hue: 2 },
+          { from: 'redis', to: 'b', label: '2', hue: 2 },
+          { from: 'b', to: 'store', label: 'token 2 → OK', hue: 6, flow: true },
+          { from: 'a', to: 'store', label: 'token 1 → STALE', hue: 8, dashed: true },
+        ]}
+        steps={[
+          { title: 'A gets the lock and token 1', body: <p>Every grant also increments a counter: A gets 1.</p>, active: ['a', 'redis', 'redis>a'] },
+          { title: 'A stalls, its lock expires, B gets token 2', body: <p>The counter only grows, so B’s token is larger.</p>, active: ['b', 'redis', 'redis>b'] },
+          { title: 'B writes first', body: <p>The resource accepts token 2 and remembers it.</p>, active: ['b', 'store', 'b>store'] },
+          { title: 'A wakes up and writes with token 1', body: <p>1 is not greater than 2: the write is refused (recorded: <code>{STALE_REPLY}</code>). A’s late work cannot overwrite B’s.</p>, active: ['a', 'store', 'a>store'] },
+        ]}
+      />
       <CliSession title="a fencing token rejects the stale writer (recorded)" steps={L.fencing} />
       <CodeBlock title="the storage side: accept a write only with a newer token" language="lua" code={script(L.fencedWriteScript)} />
       <p>
@@ -141,11 +211,35 @@ export default function Locks() {
         commands, one round trip each — cheap. The flaw: a client can send 5 at the end of one window and 5 at the start of the next, 10 within
         a second.
       </p>
+      <Timeline
+        title="The fixed window’s weak spot (schematic, limit 5 per window)"
+        lanes={[{ id: 'w', label: 'counter key' }, { id: 'r', label: 'requests' }, { id: 's', label: 'any 1 s span' }]}
+        segments={[
+          { lane: 'w', from: 500, to: 1000, label: 'window 1: count reaches 5', hue: 3 },
+          { lane: 'w', from: 1000, to: 1500, label: 'window 2: count back at 0', hue: 3 },
+          { lane: 'r', from: 800, to: 1000, label: '5 allowed', hue: 6 },
+          { lane: 'r', from: 1000, to: 1200, label: '5 allowed', hue: 6 },
+          { lane: 's', from: 800, to: 1200, label: '10 in 400 ms', hue: 8 },
+        ]}
+        start={500}
+        end={1500}
+      />
       <h3>Sliding log: a sorted set of request times</h3>
       <CodeBlock title="sliding window: remove old entries, count, maybe add — one script" language="lua" code={script(L.slidingScript)} />
       <Table
         head={['at (ms)', 'request', 'allowed', 'in the last 1000 ms']}
         rows={L.sliding.map((r) => [r.atMs, r.request, r.allowed ? 'yes' : 'no', r.inWindow])}
+      />
+      <Timeline
+        title="The same requests on a time axis, with the 1000 ms window at r4 and at r5 (recorded decisions)"
+        lanes={[{ id: 'ok', label: 'allowed' }, { id: 'no', label: 'refused' }, { id: 'w4', label: 'window at r4' }, { id: 'w5', label: 'window at r5' }]}
+        segments={[
+          { lane: 'w4', from: atOf('r4') - 1000, to: atOf('r4'), label: `${inside('r4')} inside: refuse`, hue: 8 },
+          { lane: 'w5', from: atOf('r5') - 1000, to: atOf('r5'), label: `${inside('r5')} inside: allow`, hue: 6 },
+        ]}
+        events={L.sliding.map((r) => ({ lane: r.allowed ? 'ok' : 'no', at: r.atMs, label: r.request, hue: r.allowed ? 6 : 8 }))}
+        start={0}
+        end={2600}
       />
       <p>
         Exact, and no burst at an edge: r4 at 1500 ms is refused because r1–r3 all fall within (500, 1500]; r5 at 2050 ms is allowed because r1 has left
@@ -154,6 +248,15 @@ export default function Locks() {
       <h3>Token bucket: a level that refills</h3>
       <CodeBlock title="token bucket: capacity 3, 2 tokens per second" language="lua" code={script(L.bucketScript)} />
       <Table head={['at (ms)', 'allowed', 'tokens left']} rows={L.bucket.map((r) => [r.atMs, r.allowed ? 'yes' : 'no', r.tokensLeft])} />
+      <LineChart
+        title="Tokens left after each request (recorded): bursts drain the bucket, time refills it"
+        series={[{ label: 'tokens left', points: L.bucket.map((r) => [r.atMs, r.tokensLeft] as const), emphasis: true }]}
+        xLabel="ms"
+        yLabel="tokens"
+        formatY={(v) => v.toFixed(1)}
+        step
+        height={190}
+      />
       <p>
         Two numbers per client (tokens and the time of the last update), and it allows short bursts up to the capacity while holding the average
         rate. The script takes the time as an argument so it is deterministic; in production pass the application’s clock or read{' '}
@@ -178,6 +281,29 @@ export default function Locks() {
         records it with <code>SET … NX</code> before doing the work, and stores the result when done. Recorded with two attempts of the same
         request:
       </p>
+      <Flow
+        title="Two attempts of the same payment, one idempotency key"
+        cols={4}
+        rows={2}
+        nodes={[
+          { id: 'a', label: 'attempt 1', sub: 'key idem:pay:7f3e', col: 0, row: 0, hue: 1, shape: 'actor' },
+          { id: 'b', label: 'retry', sub: 'same key', col: 0, row: 1, hue: 1, shape: 'actor' },
+          { id: 'redis', label: 'Redis', sub: 'idem:pay:7f3e', col: 2, row: 0, rowSpan: 2, hue: 2 },
+          { id: 'work', label: 'charge once', sub: 'only the claimant', col: 3, row: 0, hue: 3 },
+          { id: 'db', label: 'database', sub: 'durable copy', col: 3, row: 1, hue: 4, shape: 'store' },
+        ]}
+        edges={[
+          { from: 'a', to: 'redis', label: 'SET NX → OK', hue: 6, flow: true },
+          { from: 'redis', to: 'work', hue: 2 },
+          { from: 'work', to: 'db', hue: 4 },
+          { from: 'b', to: 'redis', label: 'SET NX → (nil)', hue: 8, dashed: true },
+        ]}
+        steps={[
+          { title: 'The first attempt claims the key', body: <p><code>SET idem:pay:7f3e processing NX EX 86400</code> → OK: nobody has seen this key, so this attempt does the work.</p>, active: ['a', 'redis', 'a>redis'] },
+          { title: 'It does the work once', body: <p>The payment is made and recorded durably; then the result is stored in the key with <code>XX KEEPTTL</code>.</p>, active: ['redis', 'work', 'db', 'redis>work', 'work>db'] },
+          { title: 'The retry finds the key', body: <p>Its <code>SET … NX</code> returns (nil). Instead of paying again it reads the key: <code>processing</code> while the first attempt runs, the stored result afterwards.</p>, active: ['b', 'redis', 'b>redis'] },
+        ]}
+      />
       <CliSession title="the first attempt wins, the retry gets the stored result (recorded)" steps={L.idempotency} />
       <p>
         <code>XX KEEPTTL</code> updates the existing key without resetting its 24-hour lifetime. If the process dies while the key says{' '}

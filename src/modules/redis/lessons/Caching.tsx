@@ -1,10 +1,16 @@
 import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList } from '@/shared/ui'
+import { BarChart, Flow, Proportion, Timeline } from '@/shared/figures'
 import { CachePlayground } from '../components'
 import { CAPTURE } from '../data/captures'
+import { simulateCache, type Strategy } from '../simulation/cache'
 
 const stat = (k: string) => Number(CAPTURE.operations.infoStats.match(new RegExp(`^${k}:(\\d+)`, 'm'))?.[1] ?? 0)
 const hits = stat('keyspace_hits')
 const misses = stat('keyspace_misses')
+
+/** The playground's model with its default load: 2,000 reads/s of one key, TTL 5 s, a 300 ms rebuild, 12 s. */
+const STAMPEDE = (['none', 'lock', 'early-refresh', 'stale-while-revalidate'] as Strategy[]).map((strategy) => ({ strategy, ...simulateCache({ strategy, requestsPerSecond: 2000, ttlSeconds: 5, rebuildMs: 300, durationSeconds: 12, beta: 1 }) }))
+const STRATEGY_LABEL: Record<Strategy, string> = { none: 'plain cache-aside', lock: 'rebuild lock', 'early-refresh': 'early refresh', 'stale-while-revalidate': 'serve stale' }
 
 export default function Caching() {
   return (
@@ -34,6 +40,29 @@ export default function Caching() {
           { term: 'stampede', definition: 'Many requests miss the same key at once and all rebuild it from the source.' },
         ]}
       />
+      <Flow
+        title="Cache-aside read: the fast path and the slow path"
+        cols={4}
+        rows={2}
+        rowHeight={80}
+        nodes={[
+          { id: 'app', label: 'application', sub: 'getProduct(42)', col: 0, row: 0, rowSpan: 2, hue: 1, shape: 'actor' },
+          { id: 'redis', label: 'Redis', sub: 'product:42:v3', col: 2, row: 0, hue: 3, shape: 'store' },
+          { id: 'db', label: 'database', sub: 'source of truth', col: 2, row: 1, hue: 4, shape: 'store' },
+          { id: 'reply', label: 'response', sub: 'to the user', col: 3, row: 0, rowSpan: 2, hue: 6 },
+        ]}
+        edges={[
+          { from: 'app', to: 'redis', label: 'GET', flow: true, hue: 1 },
+          { from: 'app', to: 'db', label: 'SELECT', flow: true, hue: 4 },
+          { from: 'db', to: 'redis', label: 'SET … EX', hue: 3, dashed: true },
+          { from: 'redis', to: 'reply', flow: true, hue: 6 },
+        ]}
+        steps={[
+          { title: 'Hit: one round trip', body: <p>The key is there: <code>GET</code> returns the copy and the database is never asked. This is the path most reads should take.</p>, active: ['app', 'redis', 'reply', 'app>redis', 'redis>reply'] },
+          { title: 'Miss: ask the source of truth', body: <p><code>GET</code> returned nil, so the application reads the row from the database — the slow path.</p>, active: ['app', 'redis', 'db', 'app>redis', 'app>db'] },
+          { title: 'Fill the cache with a TTL', body: <p>It stores the result with <code>SET … EX</code> (plus jitter) and answers. The next reader hits; the TTL bounds how stale the copy can get.</p>, active: ['db', 'redis', 'reply', 'db>redis', 'redis>reply'] },
+        ]}
+      />
 
       <h2>The five patterns</h2>
       <Table
@@ -44,6 +73,30 @@ export default function Caching() {
           ['write-through', 'read Redis', 'write the DB and Redis in the same request', 'small; a failed second write leaves a gap', 'writes must handle the failure'],
           ['write-behind', 'read Redis', 'write Redis; flush to the DB later in batches', 'the DB is behind', 'unflushed writes can be lost'],
           ['refresh-ahead', 'read Redis', 'a job rewrites hot keys before they expire', 'up to the refresh interval', 'reads go to the DB'],
+        ]}
+      />
+      <Flow
+        title="Who writes where: the write paths of four patterns"
+        cols={4}
+        rows={2}
+        rowHeight={80}
+        nodes={[
+          { id: 'app', label: 'application', sub: 'a write request', col: 0, row: 0, rowSpan: 2, hue: 1, shape: 'actor' },
+          { id: 'redis', label: 'Redis', sub: 'the copy', col: 2, row: 0, hue: 3, shape: 'store' },
+          { id: 'db', label: 'database', sub: 'source of truth', col: 2, row: 1, hue: 4, shape: 'store' },
+          { id: 'job', label: 'background job', sub: 'flusher / refresher', col: 3, row: 0, rowSpan: 2, hue: 5 },
+        ]}
+        edges={[
+          { from: 'app', to: 'db', label: 'UPDATE', flow: true, hue: 4 },
+          { from: 'app', to: 'redis', label: 'DEL / SET', flow: true, hue: 3 },
+          { from: 'redis', to: 'job', label: 'later', hue: 5, dashed: true },
+          { from: 'job', to: 'db', label: 'batch', hue: 5, dashed: true },
+        ]}
+        steps={[
+          { title: 'Cache-aside: database first, then DEL', body: <p>The write goes to the database; the copy is deleted, and the next read reloads it. Redis down = slower, still correct.</p>, active: ['app', 'db', 'redis', 'app>db', 'app>redis'] },
+          { title: 'Write-through: both in the same request', body: <p>The application writes the database and sets the new value in Redis. If the second write fails, the copy is wrong until its TTL.</p>, active: ['app', 'db', 'redis', 'app>db', 'app>redis'] },
+          { title: 'Write-behind: Redis now, the database later', body: <p>The write lands in Redis only; a job flushes changes to the database in batches. Fast — and unflushed writes are lost if Redis loses them.</p>, active: ['app', 'redis', 'job', 'db', 'app>redis', 'redis>job', 'job>db'] },
+          { title: 'Refresh-ahead: a job keeps hot keys warm', body: <p>A scheduler reads the database and rewrites known hot keys before they expire, so readers never miss them.</p>, active: ['job', 'db', 'redis', 'job>db'] },
         ]}
       />
       <p>
@@ -74,6 +127,50 @@ async function renameProduct(id: string, name: string) {
         updates it to 2, B sets the cache to 2, A (delayed) sets the cache to 1 — the cache now says 1 until the TTL, the DB says 2. With
         delete, the next reader loads whatever the DB holds.
       </p>
+      <Timeline
+        title="Update-on-write race (schematic): the older value is written last"
+        lanes={[
+          { id: 'a', label: 'request A' },
+          { id: 'b', label: 'request B' },
+          { id: 'db', label: 'database' },
+          { id: 'cache', label: 'Redis copy' },
+        ]}
+        segments={[
+          { lane: 'a', from: 0, to: 10, label: 'UPDATE → 1', hue: 1 },
+          { lane: 'a', from: 10, to: 60, label: 'delayed (GC, network)', hue: 8, striped: true },
+          { lane: 'b', from: 15, to: 25, label: 'UPDATE → 2', hue: 1 },
+          { lane: 'b', from: 25, to: 35, label: 'SET 2', hue: 3 },
+          { lane: 'db', from: 0, to: 15, label: '1', hue: 4 },
+          { lane: 'db', from: 15, to: 100, label: '2', hue: 4 },
+          { lane: 'cache', from: 35, to: 60, label: '2', hue: 6 },
+          { lane: 'cache', from: 60, to: 100, label: '1 — stale until the TTL', hue: 8 },
+        ]}
+        events={[{ lane: 'a', at: 60, label: 'SET 1 arrives last', hue: 8 }]}
+        end={100}
+        unit="ms"
+      />
+      <Timeline
+        title="Delete-on-write still has a smaller race (schematic): a slow reader writes the old row back"
+        lanes={[
+          { id: 'reader', label: 'reader' },
+          { id: 'writer', label: 'writer' },
+          { id: 'cache', label: 'Redis copy' },
+        ]}
+        segments={[
+          { lane: 'reader', from: 0, to: 10, label: 'miss, reads old row', hue: 1 },
+          { lane: 'reader', from: 10, to: 55, label: 'paused', hue: 8, striped: true },
+          { lane: 'writer', from: 20, to: 30, label: 'UPDATE', hue: 4 },
+          { lane: 'writer', from: 30, to: 38, label: 'DEL', hue: 3 },
+          { lane: 'cache', from: 38, to: 55, label: 'empty', hue: 6 },
+          { lane: 'cache', from: 55, to: 100, label: 'old value — heals at TTL', hue: 8 },
+        ]}
+        events={[
+          { lane: 'reader', at: 55, label: 'SET old', hue: 8 },
+          { lane: 'writer', at: 80, label: 'delayed 2nd DEL fixes it', hue: 6 },
+        ]}
+        end={100}
+        unit="ms"
+      />
       <Callout tone="warn" title="Delete is not perfectly safe either">
         A reader can miss, read the old row, be paused, and write the old value <em>after</em> the writer’s DEL. Three things shrink that window:
         a TTL (so the error heals), deleting a second time a moment later (“delayed double delete”), and versioned keys
@@ -92,6 +189,15 @@ async function renameProduct(id: string, name: string) {
         a spike exactly when it can least afford it. Try the strategies:
       </p>
       <CachePlayground />
+      <BarChart
+        title="Database queries in 12 s for one hot key — the playground's model at its default load (2,000 reads/s, TTL 5 s, 300 ms rebuild)"
+        bars={STAMPEDE.map((r) => ({
+          label: STRATEGY_LABEL[r.strategy],
+          value: r.dbQueries,
+          hue: r.strategy === 'none' ? 8 : 6,
+          note: `${r.waited.toLocaleString()} requests waited for the database, ${r.servedStale.toLocaleString()} got a stale copy`,
+        }))}
+      />
       <Table
         head={['Strategy', 'How', 'Trade-off']}
         rows={[
@@ -132,6 +238,13 @@ async function renameProduct(id: string, name: string) {
 
       <h2>Is it working? Measure the hit ratio</h2>
       <p>Redis counts hits and misses for every read of a key. From the recorded server in lesson 16:</p>
+      <Proportion
+        title="Reads of a key on the recorded server: hits and misses"
+        parts={[
+          { label: 'keyspace_hits', value: hits, hue: 6 },
+          { label: 'keyspace_misses', value: misses, hue: 8 },
+        ]}
+      />
       <CodeBlock title="INFO stats (excerpt)" language="text" code={CAPTURE.operations.infoStats.split('\n').filter((l) => /keyspace_|evicted|expired/.test(l)).join('\n')} />
       <p>
         Hit ratio = {hits.toLocaleString()} ÷ ({hits.toLocaleString()} + {misses.toLocaleString()}) ={' '}

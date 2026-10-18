@@ -1,0 +1,76 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  max-width: 620px;
+  height: auto;
+  margin: 0 auto;
+  font-family: var(--font-sans);
+}
+
+.grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.radius {
+  fill: color-mix(in oklab, var(--c3) 12%, var(--surface));
+  stroke: var(--c3);
+  stroke-width: 1.6;
+  stroke-dasharray: 6 4;
+}
+
+.radiusLabel,
+.scaleLabel {
+  font-size: 10px;
+  fill: var(--text-muted);
+  text-anchor: middle;
+}
+
+.scale {
+  stroke: var(--text-muted);
+  stroke-width: 2;
+}
+
+.center {
+  fill: var(--c1);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.inside circle {
+  fill: var(--c6);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.outside circle {
+  fill: var(--surface);
+  stroke: var(--c8);
+  stroke-width: 2;
+}
+
+.label {
+  font-size: 10.5px;
+  fill: var(--text);
+}
+
+.leader {
+  fill: none;
+  stroke: var(--text-muted);
+  stroke-width: 0.8;
+  opacity: 0.7;
+}

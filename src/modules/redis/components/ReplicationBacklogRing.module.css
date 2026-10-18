@@ -1,0 +1,88 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-4);
+}
+
+.case {
+  text-align: center;
+}
+
+.svg {
+  width: 150px;
+  height: 150px;
+}
+
+.track {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 18;
+}
+
+.arc,
+.arcOver {
+  fill: none;
+  stroke: var(--hue);
+  stroke-width: 18;
+  stroke-linecap: butt;
+  transition: stroke-dasharray 0.6s var(--ease);
+}
+
+.arcOver {
+  stroke-dasharray: none;
+}
+
+.big {
+  font-size: 22px;
+  font-weight: 700;
+  fill: var(--text);
+  text-anchor: middle;
+  font-family: var(--font-sans);
+}
+
+.small {
+  font-size: 10px;
+  fill: var(--text-muted);
+  text-anchor: middle;
+  font-family: var(--font-sans);
+}
+
+.caseTitle {
+  font-weight: 600;
+  font-size: 0.86rem;
+}
+
+.line {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ok,
+.bad {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.ok {
+  color: var(--c6);
+}
+
+.bad {
+  color: var(--c8);
+}
