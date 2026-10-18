@@ -1,0 +1,9 @@
+{
+  "name": "local-cache-runtime-ts",
+  "private": true,
+  "type": "module",
+  "scripts": { "start": "node main.ts" },
+  "dependencies": {
+    "lru-cache": "11.2.2"
+  }
+}

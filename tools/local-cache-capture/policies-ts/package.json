@@ -1,0 +1,8 @@
+{
+  "name": "local-cache-policies-ts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "lru-cache": "11.5.3"
+  }
+}

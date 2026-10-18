@@ -81,7 +81,7 @@ export default function TieredCaching() {
           'keep every instance’s L1 correct with Pub/Sub invalidation and a short TTL',
           'stop stampedes with single-flight, and read the hit ratios and latencies that tell you it works',
         ]}
-        before="Caching patterns (cache-aside, invalidation); Messaging (Pub/Sub); Clients"
+        before={<>Caching patterns (cache-aside, invalidation); Messaging (Pub/Sub); Clients — and, new to Caffeine, lru-cache or moka? the <a href="#/local-cache/why">In-process caching</a> module</>}
       />
 
       <h2>Three levels, one read</h2>

@@ -1,0 +1,9 @@
+{
+  "name": "local-cache-basics-ts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "ioredis": "5.11.1",
+    "lru-cache": "11.5.3"
+  }
+}

@@ -1,0 +1,36 @@
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--space-4);
+  margin: calc(-1 * var(--space-2)) 0 var(--space-3);
+  padding: 0;
+  list-style: none;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--hue);
+}
+
+.bar,
+.striped {
+  width: 18px;
+  height: 10px;
+  border: 1.5px solid var(--hue);
+  border-radius: 3px;
+  background: var(--hue-soft);
+}
+
+.striped {
+  background: repeating-linear-gradient(135deg, var(--hue) 0 3px, transparent 3px 7px);
+}

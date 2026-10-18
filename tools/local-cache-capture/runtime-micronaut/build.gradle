@@ -1,0 +1,34 @@
+plugins {
+    id("io.micronaut.application") version "4.4.0"
+}
+
+version = "0.1"
+group = "demo.cached"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    annotationProcessor("io.micronaut:micronaut-inject-java")
+    implementation("io.micronaut.cache:micronaut-cache-caffeine")
+    runtimeOnly("ch.qos.logback:logback-classic")
+    runtimeOnly("org.yaml:snakeyaml")
+}
+
+application {
+    mainClass = "demo.cached.Application"
+}
+
+java {
+    sourceCompatibility = JavaVersion.toVersion("17")
+}
+
+micronaut {
+    version("4.5.0")
+    runtime("none")
+    processing {
+        incremental(true)
+        annotations("demo.cached.*")
+    }
+}

@@ -1,0 +1,120 @@
+.chart {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  min-width: 480px;
+}
+
+.grid {
+  stroke: var(--border);
+}
+
+.tickY,
+.tickX,
+.axisLabel,
+.axisLabelY,
+.directLabel {
+  fill: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-sans);
+}
+
+.tickY {
+  text-anchor: end;
+  dominant-baseline: middle;
+}
+
+.tickX,
+.axisLabel {
+  text-anchor: middle;
+}
+
+.axisLabelY {
+  dominant-baseline: hanging;
+}
+
+.directLabel {
+  dominant-baseline: middle;
+  fill: var(--text);
+  font-size: 11.5px;
+}
+
+.line,
+.dashed {
+  fill: none;
+  stroke: var(--hue);
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.dashed {
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+}
+
+.dot {
+  fill: var(--hue);
+  stroke: var(--surface);
+  stroke-width: 1.5;
+}
+
+.crosshair {
+  stroke: var(--border-strong);
+}
+
+.readout {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  min-height: 1.4em;
+  margin-top: var(--space-1);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.readout strong {
+  color: var(--text);
+}
+
+.readItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--hue);
+}
+
+.hint {
+  color: var(--text-faint);
+}
+
+.caption {
+  margin-top: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

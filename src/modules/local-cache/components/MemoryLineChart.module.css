@@ -1,0 +1,119 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.yTick,
+.xTick,
+.axisLabel {
+  font-size: 12.5px;
+  fill: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.yTick {
+  text-anchor: end;
+}
+
+.xTick,
+.axisLabel {
+  text-anchor: middle;
+}
+
+.line {
+  fill: none;
+  stroke: var(--hue);
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+}
+
+.dashed {
+  stroke-dasharray: 6 4;
+}
+
+.dot {
+  fill: var(--surface);
+  stroke: var(--hue);
+  stroke-width: 2;
+}
+
+.band {
+  fill: var(--hue-soft);
+}
+
+.bandLabel {
+  font-size: 12px;
+  fill: var(--hue);
+  text-anchor: middle;
+  font-weight: 600;
+}
+
+.marker {
+  stroke: var(--hue);
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.markerLabel,
+.markerLabelEnd {
+  font-size: 12.5px;
+  fill: var(--hue);
+  font-weight: 600;
+}
+
+.markerLabelEnd {
+  text-anchor: end;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+  list-style: none;
+  margin: var(--space-2) 0 0;
+  padding: 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 18px;
+  height: 0;
+  border-top: 3px solid var(--hue);
+}
+
+.swatchDashed {
+  border-top-style: dashed;
+}
+
+.caption {
+  margin-top: var(--space-2);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

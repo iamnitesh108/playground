@@ -6,6 +6,7 @@ import { nodejsModule } from './nodejs'
 import { reactModule } from './react'
 import { gitModule } from './git'
 import { redisModule } from './redis'
+import { localCacheModule } from './local-cache'
 
 /** Register new modules here — nothing else in the app needs to change. */
-export const registry = new ModuleRegistry([kafkaModule, kafkaSetupModule, postgresModule, nodejsModule, reactModule, gitModule, redisModule])
+export const registry = new ModuleRegistry([kafkaModule, kafkaSetupModule, postgresModule, nodejsModule, reactModule, gitModule, redisModule, localCacheModule])

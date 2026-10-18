@@ -1,0 +1,141 @@
+.note {
+  margin: 0 0 var(--space-2);
+  font-size: 0.84rem;
+  color: var(--text-muted);
+}
+
+.stepper {
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.stepHead {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px var(--space-3);
+  align-items: baseline;
+  font-size: 0.9rem;
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: var(--space-2) 0;
+}
+
+.status {
+  min-height: 2.6em;
+  margin: var(--space-2) 0;
+  font-size: 0.84rem;
+}
+
+.regions {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--space-2);
+}
+
+@media (max-width: 640px) {
+  .regions {
+    grid-template-columns: 1fr;
+  }
+}
+
+.region {
+  padding: var(--space-2);
+  border: 1.5px solid var(--hue);
+  border-radius: var(--radius);
+  background: color-mix(in oklab, var(--hue) 6%, var(--surface));
+}
+
+.regionHead {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  margin-bottom: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.regionHead small {
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  min-height: 40px;
+}
+
+.chip {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 42px;
+  padding: 4px 6px 2px;
+  border: 1.5px solid var(--hue, var(--border-strong));
+  border-radius: 6px;
+  background: var(--hue-soft, var(--surface));
+  transition: background 0.2s var(--ease);
+}
+
+.key {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.freq {
+  font-size: 0.62rem;
+  color: var(--text-muted);
+}
+
+.lruMark {
+  position: absolute;
+  top: -8px;
+  left: 2px;
+  padding: 0 3px;
+  font-size: 0.52rem;
+  font-weight: 700;
+  background: var(--surface);
+  color: var(--text-muted);
+}
+
+.duel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+  font-size: 0.82rem;
+}
+
+.fighter {
+  display: inline-flex;
+  gap: 6px;
+  padding: 3px 8px;
+  border: 1.5px solid var(--hue);
+  border-radius: var(--radius);
+  background: var(--hue-soft);
+  font-family: var(--font-mono);
+}
+
+.vs {
+  font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chip {
+    transition: none;
+  }
+}

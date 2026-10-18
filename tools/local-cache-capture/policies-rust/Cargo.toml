@@ -1,0 +1,8 @@
+[package]
+name = "policies"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+moka = { version = "0.12", features = ["sync"] }
+serde_json = "1"

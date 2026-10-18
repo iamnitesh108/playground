@@ -1,0 +1,12 @@
+[package]
+name = "local-cache-runtime"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lru = "0.12"
+moka = { version = "0.12", features = ["sync", "future"] }
+tokio = { version = "1", features = ["full"] }
+
+[profile.release]
+debug = false

@@ -1,0 +1,6 @@
+micronaut:
+  caches:
+    products:
+      maximum-size: 1000
+      expire-after-write: 10m
+      record-stats: true
