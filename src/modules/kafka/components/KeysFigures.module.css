@@ -1,0 +1,273 @@
+/* Figures and simulators of the "Record keys and partitioning" lesson. */
+
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  min-width: 0;
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.caption {
+  margin-top: var(--space-2);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+/* ---- sticky runs strip ---- */
+.strip {
+  display: flex;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.run {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2px;
+  background: color-mix(in oklab, var(--c3) 16%, var(--surface));
+  border-right: 2px solid var(--surface);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.run:nth-child(even) {
+  background: color-mix(in oklab, var(--c3) 34%, var(--surface));
+}
+
+.run:last-child {
+  border-right: 0;
+}
+
+.runLegend {
+  margin-top: var(--space-2);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+/* ---- key → partition chips ---- */
+.moves {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px;
+}
+
+.move {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  min-width: 0;
+}
+
+.moved {
+  border-color: var(--c8);
+  background: color-mix(in oklab, var(--c8) 10%, var(--surface));
+}
+
+.moveKey {
+  font-family: var(--font-mono);
+  flex: 1 0 100%;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid var(--c3);
+  background: color-mix(in oklab, var(--c3) 14%, var(--surface));
+  white-space: nowrap;
+}
+
+.chipMoved {
+  border-color: var(--c8);
+  background: color-mix(in oklab, var(--c8) 16%, var(--surface));
+}
+
+.tag {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+/* ---- explorer ---- */
+.keysInput {
+  width: 100%;
+  min-height: 92px;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.slider {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.slider input {
+  width: 120px;
+  accent-color: var(--c3);
+}
+
+.slider output {
+  font-family: var(--font-mono);
+  color: var(--text);
+  min-width: 2ch;
+}
+
+.more {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  margin-top: var(--space-2);
+}
+
+.label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  margin: var(--space-3) 0 var(--space-1);
+}
+
+/* ---- sticky simulator ---- */
+.partitions {
+  display: grid;
+  gap: 6px;
+}
+
+.prow {
+  display: grid;
+  grid-template-columns: 74px minmax(0, 1fr) 90px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+}
+
+.pname {
+  font-family: var(--font-mono);
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.stickyTag {
+  font-size: 0.66rem;
+  color: var(--c7);
+  font-weight: 600;
+}
+
+.lane {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.batch {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--c3);
+  border-radius: 4px;
+}
+
+.slot {
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--surface-muted);
+}
+
+.slotFull {
+  background: var(--c7);
+}
+
+.queue {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  padding: 1px 6px;
+  border-radius: 4px;
+  border: 1px dashed var(--c3);
+  white-space: nowrap;
+}
+
+.queueSlow {
+  border-color: var(--c8);
+  color: var(--c8);
+}
+
+.ptotal {
+  font-family: var(--font-mono);
+  text-align: right;
+}
+
+.history {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.cell {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--c3) 16%, var(--surface));
+  border: 1px solid color-mix(in oklab, var(--c3) 50%, var(--surface));
+}
+
+.cellAlt {
+  background: color-mix(in oklab, var(--c3) 36%, var(--surface));
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .slotFull {
+    transition: background 0.2s var(--ease);
+  }
+}
+
+.scroll {
+  overflow-x: auto;
+  min-width: 0;
+}

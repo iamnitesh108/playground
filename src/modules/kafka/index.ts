@@ -46,6 +46,12 @@ export const kafkaModule: LearningModule = {
           load: () => import('./lessons/Producers'),
         },
         {
+          slug: 'keys',
+          title: 'Record keys and partitioning',
+          summary: 'What a key decides — partition, order, compaction, joins — when to leave it null and let Kafka spread records, when to set it, how to choose one, and what goes wrong (hot keys, adding partitions).',
+          load: () => import('./lessons/Keys'),
+        },
+        {
           slug: 'offsets',
           title: 'Offsets',
           summary: 'The bookmark in the log: log-end offset, consumer position, committed offset and lag.',

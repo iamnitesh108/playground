@@ -163,3 +163,49 @@ Which share consumer gets which record, and the exact timings, differ between ru
 behaviour does not. In these runs `kafka-share-groups.sh --describe --offsets` kept showing a
 START-OFFSET one below the last acknowledged record even after the consumers had stopped, with
 LAG 0, so the script waits for LAG 0 rather than for a particular start offset.
+
+## capture-keys.mjs — record keys and partitioning
+
+Records the "Record keys and partitioning" lesson into `src/modules/kafka/data/keys.ts`. It runs
+its own broker container, `kafka-keys`, on ports 19492/19493 (same settings as the practicals),
+so it never collides with the other scripts; only `sleep` and the image name come from
+`lib/lab.mjs`. It imports the lesson's TypeScript murmur2 partitioner
+(`src/modules/kafka/simulation/murmur2.ts`, Node 22.6+ strips the types) and fails if a keyed
+record recorded on the broker landed anywhere else than that partitioner predicts.
+
+- `keys-app/` — plain Java on `kafka-clients` 4.3.1, one small program per experiment:
+  - `SendKeyed` (keyed records, the partition computed by hand with `Utils.murmur2`, and one
+    record with an explicit partition);
+  - `Spread` (records without a usable key: `null`, empty `""`, keys with
+    `partitioner.ignore.keys=true`, and `RoundRobinPartitioner`; prints runs of consecutive
+    records per partition);
+  - `KeyFormats` (the id 42 as String, Integer, Long and two JSON spellings);
+  - `TenantPartitioner` + `SendTenants` (a custom partitioner hashing the tenant part of a
+    `tenant:order` key);
+  - `SendStatuses` (3,000 events keyed by status or by order id) and `SlowWorker` (a group member
+    taking 5 ms per record), for skew and consumer lag.
+- The CLI parts: console producer with `parse.key` / `key.separator` / `null.marker`, console
+  consumer with `print.partition` / `print.key` / `print.offset`, `kafka-dump-log.sh` for the
+  stored key sizes, `kafka-topics.sh --alter --partitions` to move keys, and a compacted topic
+  (`segment.ms=100`, `min.cleanable.dirty.ratio=0.01`) for the rejected key-less record and a
+  compaction before/after.
+
+What the recording changes: ports are shown as 9092/9093; Kafka's 22-character ids are cut to 6
+characters; stack-trace lines and the KIP-848 banner are removed; the console producer's error
+keeps its first two lines without the log timestamp; `kafka-dump-log.sh` keeps offset, key and
+value sizes; `kafka-consumer-groups.sh --describe` drops the CONSUMER-ID and HOST columns and is
+sorted by partition; the remapped topic's records are sorted by customer. The run fails if the
+output contains the user name, the home directory or the capture port.
+
+```sh
+cd tools/kafka-capture/keys-app
+gradle installDist                      # build/install/keys-app/lib/*.jar
+
+cd ..
+node capture-keys.mjs ../../src/modules/kafka/data/keys.ts      # ~2 minutes
+```
+
+Which partitions the sticky partitioner picks is random and differs between runs; the run
+lengths (all records on one partition with the default `batch.size`, 16-record runs with
+`batch.size=1024`) and everything keyed do not. librdkafka's default `consistent_random`
+partitioner is described in the lesson but not recorded (no librdkafka client in the lab).

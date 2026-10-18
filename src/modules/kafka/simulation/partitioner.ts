@@ -20,7 +20,8 @@ export class DefaultPartitioner implements Partitioner {
   private stickyCount = 0
 
   partition(key: string | null, partitionCount: number): number {
-    if (key !== null && key !== '') return partitionForKey(key, partitionCount)
+    // like the Java client: only a null key is "no key"; an empty key is hashed like any other
+    if (key !== null) return partitionForKey(key, partitionCount)
     if (this.stickyCount >= STICKY_BATCH) {
       this.stickyPartition = (this.stickyPartition + 1) % partitionCount
       this.stickyCount = 0

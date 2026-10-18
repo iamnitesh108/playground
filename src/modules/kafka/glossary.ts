@@ -121,5 +121,14 @@ export const GLOSSARY: GlossaryEntry[] = [
   { term: 'Topology', definition: 'The graph of a Kafka Streams app: source topics, processors and sinks, printed by topology.describe().', lesson: 'kafka-streams' },
   { term: 'transactional.id', definition: 'Stable producer id that enables transactions and fences an older instance of the same producer.', lesson: 'practical-4' },
   { term: 'UnderReplicatedPartitions', definition: 'Broker metric: partitions this broker leads whose ISR is smaller than the replica set. Should be 0.', lesson: 'monitoring' },
-  { term: 'Window', definition: 'A Kafka Streams time bucket for aggregations: tumbling, hopping, sliding or session.', lesson: 'kafka-streams' }
+  { term: 'Window', definition: 'A Kafka Streams time bucket for aggregations: tumbling, hopping, sliding or session.', lesson: 'kafka-streams' },
+  { term: 'Null key', definition: 'A record without a key (stored as key length -1). The producer spreads such records with sticky partitioning; compacted topics reject them.', lesson: 'keys' },
+  { term: 'Empty key', definition: 'A key of zero bytes. Unlike a null key it is hashed, so all empty-key records land on one partition.', lesson: 'keys' },
+  { term: 'Built-in partitioner', definition: 'The Java producer’s default since 3.3: murmur2 of the key bytes, or uniform sticky partitioning for key-less records.', lesson: 'keys' },
+  { term: 'Adaptive partitioning', definition: 'partitioner.adaptive.partitioning.enable: when switching sticky partitions, prefer leaders with fewer queued batches.', lesson: 'keys' },
+  { term: 'partitioner.ignore.keys', definition: 'Producer setting: when true, keys are not hashed and keyed records are spread like key-less ones.', lesson: 'keys' },
+  { term: 'Custom partitioner', definition: 'A class implementing org.apache.kafka.clients.producer.Partitioner, set with partitioner.class.', lesson: 'keys' },
+  { term: 'Hot key', definition: 'A key carrying a large share of the traffic, overloading one partition and the consumer that owns it.', lesson: 'keys' },
+  { term: 'Composite key', definition: 'A key built from several fields, e.g. tenant:order.', lesson: 'keys' },
+  { term: 'Co-partitioning', definition: 'Topics with the same key bytes, partition count and partitioner, so equal keys sit in equal partition numbers; required for joins.', lesson: 'keys' }
 ]
