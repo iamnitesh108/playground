@@ -7,9 +7,16 @@ module of short lessons with step-through diagrams and small in-browser simulato
 
 | Module | Covers |
 | ------ | ------ |
-| Apache Kafka | Events, brokers, topics, partitions, producers, offsets, how consumers work, consumer groups and rebalancing (animated), three hands-on practicals recorded on Kafka 4.3 with the CLI and a Micronaut app, delivery guarantees, replication, retention, Kafka Connect, Debezium CDC, the transactional outbox pattern, CLI and glossary |
+| Apache Kafka | Using Kafka day to day; events, brokers, topics, partitions, producers, offsets, how consumers work, consumer groups and rebalancing (animated); five hands-on practicals recorded on Kafka 4.3 (CLI and Java/Micronaut, including transactions and share groups); delivery guarantees, replication, retention, Schema Registry, Kafka Streams, Kafka Connect, Debezium CDC, the outbox pattern; security and monitoring; CLI and glossary |
 | Kafka from scratch | Production-style setup of Kafka 4.3 (KRaft), PostgreSQL, Kafka Connect and Debezium 3.7 — on Ubuntu with systemd and with Docker, single node and 3 controllers + 3 brokers; every config file explained; pub-sub and CDC from Java; operations and troubleshooting |
-| Redis internals and design | Recorded from a real Redis 8.8: the event loop, RESP and pipelining, data types and encodings, sorted sets, rehashing and SCAN, expiry, eviction, transactions and scripts, locks, rate limits, persistence and crashes, replication, Sentinel, Cluster, Pub/Sub and Streams, caching and design patterns, operations |
+| PostgreSQL | Install and configure, using PostgreSQL day to day (SQL, Java, TypeScript), schema design; how it runs, pages and TOAST, MVCC and vacuum; isolation, locks and constraints; query planning and EXPLAIN, B-tree and other index types; WAL, replication and failover, backups and PITR, partitioning; pooling, monitoring and tuning; glossary — recorded on PostgreSQL 18 |
+| Redis | Recorded from a real Redis 8.8: using Redis day to day, clients (pools, timeouts, retries), the event loop, RESP and pipelining, data types and encodings, sorted sets, rehashing and SCAN, expiry, eviction, transactions and scripts, locks, rate limits, persistence, replication, Sentinel, Cluster, Pub/Sub and Streams, caching patterns, multi-level caching (Caffeine/lru-cache/moka → Redis → Postgres), design patterns, operations, security, Kubernetes, Redis 8 extras (JSON, search, probabilistic, vector sets) |
+| Git | Setup, the three areas, history, how Git stores data, branches, merging and rebasing, remotes, fetch vs pull, work and personal accounts on one machine, undoing anything, the everyday toolbox |
+| Node.js internals | V8 and libuv, the event loop and microtasks, blocking and the thread pool, async patterns, streams and backpressure, HTTP on the wire, graceful shutdown |
+| React internals | Elements and JSX, render and commit, state snapshots and batching, reconciliation and keys, effects, hooks, memoization and the React Compiler, transitions and Suspense, server rendering and hydration |
+
+Lessons are visual (figures, flows, timelines and charts built from data with SVG/CSS) and the outputs they show are
+recorded from real software by the scripts in `tools/<topic>-capture`.
 
 ## Run
 
@@ -20,7 +27,7 @@ npm run build    # type-check and bundle to dist/
 npm run lint
 ```
 
-Requires Node 20.19+ (or 22.12+). Runtime dependencies: `react` and `react-dom` only.
+Requires Node 20.19+ (or 22.12+). Runtime dependencies: `react`, `react-dom` and `highlight.js` (code highlighting, loaded lazily).
 
 ## Structure
 
@@ -28,7 +35,7 @@ Requires Node 20.19+ (or 22.12+). Runtime dependencies: `react` and `react-dom` 
 src/
   app/        shell: hash router, layout, pages, theme and progress state
   core/       module contracts (LearningModule, Lesson) and the registry
-  shared/     ui primitives, diagram pieces, hooks, utils
+  shared/     ui primitives, figures (Flow, Timeline, charts), code highlighting, hooks, utils
   styles/     design tokens (light/dark) and base styles
   modules/
     index.ts  registers every module
@@ -65,7 +72,8 @@ the same partitions as on a real cluster.
    ```
 
 2. Write lessons as default-exported components, composing `@/shared/ui`
-   (`Demo`, `Walkthrough`, `Box`, `Connector`, `Callout`, `CodeBlock`, `TermList`, …).
+   (`Demo`, `Walkthrough`, `Callout`, `CodeBlock`, `TermList`, `Predict`, …) and `@/shared/figures`
+   (`Flow`, `Timeline`, `StatTiles`, `BarChart`, `ByteLayout`, `Proportion`).
 3. Add it to the registry in `src/modules/index.ts`.
 
 Nothing in `app/` or `core/` needs to change.

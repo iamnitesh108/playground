@@ -1,0 +1,13 @@
+.ok,
+.bad {
+  margin: var(--space-2) 0 0;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.84rem;
+  border-left: 3px solid var(--c6);
+  background: color-mix(in oklab, var(--c6) 12%, var(--surface));
+}
+
+.bad {
+  border-left-color: var(--c8);
+  background: color-mix(in oklab, var(--c8) 12%, var(--surface));
+}

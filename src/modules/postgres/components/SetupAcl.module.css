@@ -1,0 +1,56 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.parts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 4px;
+  margin-top: var(--space-3);
+}
+
+.part {
+  display: flex;
+  flex-direction: column;
+  min-width: 64px;
+  padding: 4px 8px;
+  border-top: 4px solid var(--hue);
+  border-radius: 4px;
+  background: var(--hue-soft);
+  font-size: 0.7rem;
+}
+
+.part code {
+  font-size: 0.95rem;
+  font-weight: 700;
+  background: none;
+  padding: 0;
+}
+
+.meaning {
+  color: var(--text-muted);
+  max-width: 110px;
+}
+
+.sep {
+  align-self: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.caption {
+  margin-top: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

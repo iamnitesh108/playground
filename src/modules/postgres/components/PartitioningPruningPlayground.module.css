@@ -1,0 +1,125 @@
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2) var(--space-4);
+}
+
+.slider {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.85rem;
+}
+
+.slider output {
+  min-width: 2.5em;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.chipsLabel {
+  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.chip {
+  padding: 2px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.chipOn {
+  border-color: var(--c7);
+  background: color-mix(in oklab, var(--c7) 16%, var(--surface));
+  font-weight: 600;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+  margin: var(--space-3) 0;
+}
+
+.gridFew {
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+}
+
+.part {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  transition: background-color 0.25s, border-color 0.25s, opacity 0.25s;
+}
+
+.scanned {
+  border-color: var(--hue);
+  background: var(--hue-soft);
+}
+
+.pruned {
+  border-style: dashed;
+  background: var(--surface-muted);
+  opacity: 0.7;
+}
+
+.partName {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.partBounds {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.partState {
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.scanned .partState {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.stage {
+  margin: 0 0 var(--space-2);
+  font-size: 0.88rem;
+}
+
+.badge {
+  display: inline-block;
+  margin-right: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--hue);
+  background: var(--hue-soft);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .part {
+    transition: none;
+  }
+}

@@ -1,0 +1,56 @@
+.columns {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 0.82rem;
+}
+
+.columns li {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.name {
+  font-family: var(--font-mono);
+  min-width: 11ch;
+}
+
+.columns select {
+  font: inherit;
+  padding: 2px 4px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.columns button {
+  font: inherit;
+  width: 26px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.columns button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.meta {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  min-width: 13ch;
+}
+
+.warn {
+  font-size: 0.85rem;
+  color: var(--warn);
+}

@@ -1,10 +1,12 @@
 import type { ReactNode } from 'react'
-import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, Walkthrough } from '@/shared/ui'
+import { BarChart, ByteLayout, Flow, StatTiles, Timeline, type ByteField } from '@/shared/figures'
+import { Callout, CodeBlock, LessonGoals, Predict, Recap, Table, TermList, Walkthrough } from '@/shared/ui'
 import { BackupTimeline } from '../components'
 import { OPS } from '../data/ops'
 
 const b = OPS.backup
 const time = (ts: string) => ts.slice(11, 19)
+const fullStart = b.label.match(/START TIME: (.+)/)![1].replace(' UTC', '')
 const [rowsLines, statusLine] = [b.result.split('\n').slice(0, -1).join('\n'), b.result.split('\n').at(-1)!]
 
 const ARCHIVE_CONF = `# postgresql.conf (or ALTER SYSTEM) — archive_mode needs a restart
@@ -67,6 +69,30 @@ const PITR: { title: string; body: ReactNode; code: string }[] = [
   },
 ]
 
+/* ---- figures from the recording ---- */
+const secs = (ts: string) => {
+  const m = ts.match(/(\d\d):(\d\d):(\d\d(?:\.\d+)?)/)!
+  return Number(m[1]) * 3600 + Number(m[2]) * 60 + Number(m[3])
+}
+const t0 = secs(fullStart)
+const lastCommit = b.log.match(/last completed transaction was at log time \S+ (\S+)/)![1]
+const dropCommit = b.log.match(/recovery stopping before commit of transaction (\d+), time \S+ (\S+)/)!
+const stopLsn = b.log.match(/redo done at ([0-9A-F]+\/[0-9A-F]+)/)![1]
+const redoLsn = b.log.match(/starting backup recovery with redo LSN ([0-9A-F]+\/[0-9A-F]+)/)![1]
+const at = (ts: string) => Math.round((secs(ts) - t0) * 10) / 10
+const sizes = [...b.du.matchAll(/^(\d+)M\s+\S+\/(\w+)$/gm)].map((m) => ({ name: m[2], mb: Number(m[1]) }))
+const archived = b.walList.split('\n').filter((l) => /^[0-9A-F]{24}$/.test(l))
+const backupStarts = b.walList.split('\n').filter((l) => l.endsWith('.backup')).map((l) => l.slice(0, 24))
+const segOf = (lsn: string) => Number.parseInt(lsn.split('/')[1].padStart(8, '0').slice(0, 2), 16)
+const replayFrom = segOf(redoLsn)
+const stopSeg = segOf(stopLsn)
+const archiveFields: ByteField[] = archived.map((name) => {
+  const n = Number.parseInt(name.slice(-2), 16)
+  const start = backupStarts.indexOf(name)
+  const what = start === 0 ? 'full backup starts' : start === 1 ? 'incremental starts' : n === stopSeg ? `stop at ${stopLsn}` : n < replayFrom ? 'not needed' : 'replayed'
+  return { label: what, bytes: 16 * 1024 * 1024, hue: n < replayFrom ? 3 : n === stopSeg ? 8 : 4, content: `…${name.slice(-2)}` }
+})
+
 export default function Backups() {
   return (
     <>
@@ -77,10 +103,20 @@ export default function Backups() {
           'restore a database to a point in time, as recorded on a real server',
           'know what makes a backup trustworthy',
         ]}
-        before="Lesson 8 — WAL and crash recovery"
+        before={<a href="#/postgres/wal">WAL and crash recovery</a>}
       />
 
       <h2>Two kinds of backup</h2>
+      <p>A backup is either a copy of the data as SQL (logical) or a copy of the database files plus the WAL that follows them (physical).</p>
+      <TermList
+        items={[
+          { term: 'logical dump', definition: 'pg_dump: the SQL definitions and rows of one database, as of the moment the dump started.' },
+          { term: 'base backup', definition: 'A copy of the whole data directory taken while the server runs (pg_basebackup).' },
+          { term: 'WAL archive', definition: 'Every finished 16 MB WAL segment, copied somewhere safe by archive_command.' },
+          { term: 'PITR', definition: 'Point-in-time recovery: restore a base backup, then replay archived WAL up to a chosen moment.' },
+          { term: 'timeline', definition: 'A numbered history. Each recovery that opens for writes starts a new one, so old and new WAL never mix.' },
+        ]}
+      />
       <Table
         head={['', 'Logical: pg_dump', 'Physical: base backup + WAL archive']}
         rows={[
@@ -101,18 +137,37 @@ export default function Backups() {
         The custom format (<code>-Fc</code>) is compressed and lets <code>pg_restore</code> list, select and reorder objects. Roles are cluster-wide,
         so they are not in a database dump; <code>pg_dumpall --globals-only</code> exports them. All recorded:
       </p>
-      <CodeBlock title="recorded" code={`$ pg_dump -Fc -d shop -f /backup/shop.dump\n${b.dumpList}`} />
-      <CodeBlock title="recorded (password hash shortened)" code={b.globals} />
-      <CodeBlock title="recorded: restore into a new database" code={b.copy} />
+      <CodeBlock language="text" title="recorded" code={`$ pg_dump -Fc -d shop -f /backup/shop.dump\n${b.dumpList}`} />
+      <CodeBlock language="text" title="recorded (password hash shortened)" code={b.globals} />
+      <CodeBlock language="text" title="recorded: restore into a new database" code={b.copy} />
 
       <h2>Physical: base backups and the WAL archive</h2>
       <p>
         A <strong>base backup</strong> is a copy of the data directory taken while the server runs. On its own it is inconsistent — pages
-        changed during the copy. Replaying the WAL from the backup’s start fixes that (it is the same crash recovery as in lesson 8), and
+        changed during the copy. Replaying the WAL from the backup’s start fixes that (it is the same crash recovery as in <a href="#/postgres/wal">WAL and crash recovery</a>), and
         replaying further moves the database forward in time. So the server must <strong>archive</strong> every finished WAL segment:
       </p>
-      <CodeBlock title="settings" code={ARCHIVE_CONF} />
-      <CodeBlock title="recorded" code={b.archive} />
+      <Flow
+        title="Continuous archiving: two streams of files leave the server"
+        cols={4}
+        rows={2}
+        nodes={[
+          { id: 'pg', label: 'PostgreSQL', sub: 'primary', col: 0, row: 0, rowSpan: 2, hue: 3 },
+          { id: 'wal', label: 'pg_wal/', sub: 'current segments', col: 1, row: 0, hue: 4, shape: 'log' },
+          { id: 'arch', label: 'WAL archive', sub: 'every segment', col: 3, row: 0, hue: 4, shape: 'store' },
+          { id: 'bb', label: 'pg_basebackup', sub: 'full / incremental', col: 1, row: 1, hue: 6 },
+          { id: 'base', label: 'base backups', sub: 'data directory copies', col: 3, row: 1, hue: 6, shape: 'store' },
+        ]}
+        edges={[
+          { from: 'pg', to: 'wal', hue: 4, flow: true },
+          { from: 'wal', to: 'arch', label: 'archive_command', hue: 4, flow: true },
+          { from: 'pg', to: 'bb', hue: 6 },
+          { from: 'bb', to: 'base', label: 'nightly, say', hue: 6 },
+        ]}
+        caption="A restore needs one base backup and every archived segment from that backup’s start to the target — a single gap ends the chain."
+      />
+      <CodeBlock language="ini" title="settings" code={ARCHIVE_CONF} />
+      <CodeBlock language="text" title="recorded" code={b.archive} />
       <p>
         <code>archive_command</code> runs for each 16 MB segment once it is complete; the segment is only recycled after the command succeeded.
         It must fail if the file already exists (so a mistake never overwrites good WAL) — real setups use a tool such as pgBackRest, Barman or
@@ -133,10 +188,67 @@ export default function Backups() {
       />
 
       <Walkthrough title="Undoing a DROP TABLE with point-in-time recovery" steps={PITR} intervalMs={6000}>
-        {(i) => <CodeBlock title="recorded" code={PITR[i].code} />}
+        {(i) => <CodeBlock language="text" title="recorded" code={PITR[i].code} />}
       </Walkthrough>
 
+      <h3>The recording as pictures</h3>
+      <Timeline
+        title={`Recorded: seconds after the full backup started (${fullStart.slice(11)} UTC)`}
+        lanes={[
+          { id: 'primary', label: 'production' },
+          { id: 'restore', label: 'restored copy' },
+        ]}
+        segments={[
+          { lane: 'primary', from: 0, to: at(dropCommit[2]), label: 'orders written, WAL archived', hue: 3 },
+          { lane: 'restore', from: 0, to: at(b.goodTime), label: 'replayed', hue: 6 },
+          { lane: 'restore', from: at(b.goodTime), to: at(dropCommit[2]), label: 'skipped', hue: 8, striped: true },
+        ]}
+        events={[
+          { lane: 'primary', at: 0, label: 'full backup', hue: 6 },
+          { lane: 'primary', at: at(lastCommit), label: 'order 4', hue: 1 },
+          { lane: 'primary', at: at(dropCommit[2]), label: 'DROP TABLE', hue: 8 },
+          { lane: 'restore', at: at(b.goodTime), label: 'target', hue: 7 },
+        ]}
+        end={Math.ceil(at(dropCommit[2])) + 1}
+        unit="s"
+      />
+      <ByteLayout
+        title="Recorded: the WAL archive, one block per 16 MB segment"
+        rows={[{ label: 'timeline 1, segments 1 → 6', fields: archiveFields }]}
+        caption={`Recovery started from the incremental backup’s redo point ${redoLsn} and stopped inside segment …${stopSeg.toString(16).padStart(2, '0').toUpperCase()}, before the commit of transaction ${dropCommit[1]} (the DROP). Earlier segments were not needed.`}
+      />
+      <BarChart
+        title="Recorded: the two base backups the restore combined (du -sh)"
+        unit=" MB"
+        bars={sizes.map((s) => ({ label: s.name === 'full' ? 'full base backup' : 'incremental (changed blocks only)', value: s.mb, hue: s.name === 'full' ? 6 : 4 }))}
+      />
+      <StatTiles
+        stats={[
+          { label: 'last transaction kept', value: lastCommit.slice(0, 8), sub: 'order 4, from the server log', hue: 6 },
+          { label: 'recovery stopped at', value: stopLsn, sub: `before transaction ${dropCommit[1]} committed`, hue: 8 },
+          { label: 'replay took', value: `${Math.round((secs(b.log.match(/^(\S+) UTC.*ready to accept connections$/m)![1]) - secs(b.log.split('\n')[0])) * 1000)} ms`, sub: 'two segments, a tiny database', hue: 4 },
+        ]}
+      />
+      <Flow
+        title="After the restore, history forks"
+        cols={4}
+        rows={2}
+        nodes={[
+          { id: 's5', label: '…0005', sub: 'timeline 1', col: 0, row: 0, hue: 4, shape: 'log' },
+          { id: 's6', label: '…0006', sub: `fork at ${stopLsn}`, col: 1, row: 0, hue: 4, shape: 'log' },
+          { id: 'old', label: 'DROP TABLE', sub: 'old history, ignored', col: 2, row: 0, span: 2, hue: 8 },
+          { id: 'new', label: '00000002…', sub: 'timeline 2: new WAL', col: 2, row: 1, span: 2, hue: 6, shape: 'log' },
+        ]}
+        edges={[
+          { from: 's5', to: 's6', hue: 4 },
+          { from: 's6', to: 'old', hue: 8, dashed: true },
+          { from: 's6', to: 'new', hue: 6, flow: true },
+        ]}
+        caption="00000002.history records the fork point. Recovery and standbys follow the newest timeline, so the dropped table never comes back by accident."
+      />
+
       <h2>Choose the target yourself</h2>
+      <p>Recovery can stop anywhere the archive covers; what you get depends on the target and on which segments exist.</p>
       <BackupTimeline />
       <p>
         Recovery starts from the newest base backup before the target, so recent backups shorten replay and make older WAL unnecessary. A
@@ -144,6 +256,7 @@ export default function Backups() {
       </p>
 
       <h2>Targets and options</h2>
+      <p>Recovery settings say where to stop and what to do when the target is reached.</p>
       <Table
         head={['Setting', 'Meaning']}
         rows={[
@@ -160,7 +273,8 @@ export default function Backups() {
         lost data back — or switch over if the original is gone.
       </Callout>
 
-      <h2>A backup you have not restored is a hope</h2>
+      <h2>Checklist: a backup you have not restored is a hope</h2>
+      <p>A backup is only proven by restoring it.</p>
       <ul>
         <li>Restore regularly into a scratch server, automatically, and run a query that proves the data is there.</li>
         <li>Verify backups: <code>pg_verifybackup</code> checks every file against the backup manifest.</li>

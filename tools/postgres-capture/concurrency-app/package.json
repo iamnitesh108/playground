@@ -1,0 +1,9 @@
+{
+  "name": "concurrency-app",
+  "private": true,
+  "type": "module",
+  "description": "Small TypeScript programs (run with Node type stripping) whose output the concurrency lessons show.",
+  "dependencies": {
+    "pg": "^8.23.1"
+  }
+}

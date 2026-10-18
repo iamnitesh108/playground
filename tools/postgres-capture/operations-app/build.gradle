@@ -1,0 +1,21 @@
+plugins {
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'com.zaxxer:HikariCP:5.1.0'
+    runtimeOnly 'org.postgresql:postgresql:42.7.4'
+    runtimeOnly 'org.slf4j:slf4j-nop:2.0.13'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_17
+}
+
+application {
+    mainClass = 'demo.pool.OrdersPool'
+}

@@ -1,0 +1,118 @@
+.explorer {
+  margin: var(--space-4) 0;
+}
+
+.figure {
+  margin: 0 0 var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.grid {
+  display: grid;
+  gap: 4px;
+  min-width: 560px;
+}
+
+.row {
+  display: contents;
+}
+
+.head {
+  padding: 6px 4px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  border-bottom: 3px solid var(--border-strong);
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.headOn {
+  border-bottom-color: var(--accent);
+}
+
+.rowLabel {
+  padding: 6px 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  align-self: center;
+  border-left: 3px solid transparent;
+}
+
+.rowOn {
+  border-left-color: var(--accent);
+  padding-left: 8px;
+}
+
+.cell {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 6px 8px;
+  border: 1.5px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--hue-soft);
+  font: inherit;
+  font-size: 0.74rem;
+  line-height: 1.3;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s var(--ease), transform 0.2s var(--ease);
+}
+
+.cell:hover {
+  border-color: var(--hue);
+}
+
+.cellOn {
+  border-color: var(--text);
+  box-shadow: inset 0 0 0 1px var(--text);
+}
+
+.mark {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--hue);
+  color: var(--surface);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+
+.what {
+  font-size: 0.9rem;
+}
+
+.evidence {
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell {
+    transition: none;
+  }
+}

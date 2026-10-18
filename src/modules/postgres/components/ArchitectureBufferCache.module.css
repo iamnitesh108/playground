@@ -1,0 +1,123 @@
+.pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: var(--space-3);
+}
+
+.page {
+  font: inherit;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  padding: 3px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.page:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.page:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.buffers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.buffer {
+  margin: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--space-2);
+  padding-bottom: 22px;
+  border: 1px solid var(--border);
+  border-top: 4px solid var(--hue, var(--border));
+  border-radius: var(--radius-sm);
+  background: var(--hue-soft, var(--surface));
+  transition: background-color 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+
+.touched {
+  outline: 2px solid var(--hue);
+  outline-offset: 1px;
+}
+
+.swept {
+  border-style: dashed;
+}
+
+.slot {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.content {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.usage {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+.pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  border: 1px solid var(--border-strong);
+}
+
+.pip.on {
+  background: var(--text-muted);
+  border-color: var(--text-muted);
+}
+
+.count {
+  margin-left: 4px;
+  font-size: 0.68rem;
+  color: var(--text-muted);
+}
+
+.hand {
+  position: absolute;
+  left: var(--space-2);
+  bottom: 4px;
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.log {
+  min-height: 2.6em;
+  margin: var(--space-3) 0 0;
+  font-size: 0.85rem;
+}
+
+@media (max-width: 520px) {
+  .buffers {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .buffer {
+    transition: none;
+  }
+}

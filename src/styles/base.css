@@ -5,6 +5,8 @@
 }
 
 html {
+  /* no contextual alternates: code fonts would turn => into ⇒ and >= into ≥, which misquotes code and prompts */
+  font-variant-ligatures: no-contextual;
   -webkit-text-size-adjust: 100%;
 }
 

@@ -1,0 +1,19 @@
+.slider {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.slider input {
+  width: 140px;
+  accent-color: var(--accent);
+}
+
+.slider output {
+  min-width: 7ch;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}

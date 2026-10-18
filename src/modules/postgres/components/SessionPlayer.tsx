@@ -1,31 +1,59 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { useStepper } from '@/shared/hooks/useStepper'
+import { hue } from '@/shared/figures'
 import { Button } from '@/shared/ui'
 import { cx } from '@/shared/utils/cx'
-import type { Frame, SessionId, StepResult } from '../data/types'
+import type { HeapTuple } from '../data/types'
 import { HeapPageView } from './HeapPageView'
+import { SESSION_HUE } from './SessionPlayerColours'
 import styles from './SessionPlayer.module.css'
 import { Highlighted } from '@/shared/code'
 
-interface SessionPlayerProps {
+/** What one statement returned, as recorded (readonly so recorded `as const` data fits). */
+export type PlayerResult =
+  | { readonly kind: 'rows'; readonly columns: readonly string[]; readonly rows: readonly (readonly unknown[])[]; readonly unblocked?: boolean }
+  | { readonly kind: 'tag'; readonly tag: string; readonly unblocked?: boolean }
+  | { readonly kind: 'error'; readonly code: string; readonly message: string; readonly detail: string | null; readonly hint?: string; readonly unblocked?: boolean }
+  | { readonly kind: 'blocked' }
+
+/**
+ * One recorded step of a multi-session scenario. The shared `Frame` (two sessions, with a heap page)
+ * fits this shape, and so do the 2–4 session recordings without a page.
+ */
+export interface PlayerFrame {
+  /** The statement run in this step; `s: '*'` marks a step where only time passes. */
+  readonly step: { readonly s: string; readonly sql: string } | null
+  readonly results: { readonly [session: string]: PlayerResult | undefined }
+  readonly sessions: { readonly [session: string]: { readonly xid: string | null; readonly state: string | null; readonly waiting: boolean } }
+  readonly page?: readonly HeapTuple[] | null
+  readonly xids?: Record<string, string>
+}
+
+interface SessionPlayerProps<F extends PlayerFrame> {
   title: string
-  frames: readonly Frame[]
+  frames: readonly F[]
   /** Data columns of the table shown in the page view. */
-  columns: readonly string[]
+  columns?: readonly string[]
   /** One caption per step (frames.length - 1). */
   notes: readonly ReactNode[]
   showPage?: boolean
+  /** Sessions shown, in order (default: those recorded in the first frame). */
+  sessions?: readonly string[]
+  /** Optional panel under the caption for the current step (e.g. pg_locks). */
+  aside?: (frame: F, index: number) => ReactNode
+  /** Caption shown before the first step. */
+  intro?: ReactNode
 }
 
 interface Entry {
   sql: string
   step: number
-  result: StepResult
+  result: PlayerResult
   waitedFrom?: number
 }
 
 /** Rebuilds what each session's terminal shows after `upTo` steps. */
-function history(frames: readonly Frame[], session: SessionId, upTo: number): Entry[] {
+function history(frames: readonly PlayerFrame[], session: string, upTo: number): Entry[] {
   const entries: Entry[] = []
   for (let i = 1; i <= upTo; i++) {
     const frame = frames[i]
@@ -44,7 +72,7 @@ function history(frames: readonly Frame[], session: SessionId, upTo: number): En
   return entries
 }
 
-function Result({ result }: { result: StepResult }) {
+function Result({ result }: { result: PlayerResult }) {
   switch (result.kind) {
     case 'blocked':
       return <div className={styles.waiting}>waiting for a lock…</div>
@@ -79,15 +107,15 @@ function Result({ result }: { result: StepResult }) {
   }
 }
 
-function Terminal({ session, frames, index }: { session: SessionId; frames: readonly Frame[]; index: number }) {
+function Terminal({ session, frames, index }: { session: string; frames: readonly PlayerFrame[]; index: number }) {
   const entries = history(frames, session, index)
-  const state = frames[index].sessions[session]
+  const state = frames[index].sessions[session] ?? { xid: null, state: null, waiting: false }
   return (
-    <div className={styles.terminal}>
+    <div className={cx(styles.terminal, state.waiting && styles.blocked)} style={hue(SESSION_HUE[session])}>
       <div className={styles.termHead}>
         <span className={styles.termName}>Session {session}</span>
         <span className={styles.termState}>
-          {state.waiting ? 'waiting for lock' : state.state ?? '—'}
+          {state.waiting ? 'waiting for a lock' : state.state ?? '—'}
           {state.xid && <> · xid {state.xid}</>}
         </span>
       </div>
@@ -107,11 +135,13 @@ function Terminal({ session, frames, index }: { session: SessionId; frames: read
   )
 }
 
-/** Replays a recorded two-session scenario, step by step. */
-export function SessionPlayer({ title, frames, columns, notes, showPage = true }: SessionPlayerProps) {
+/** Replays a recorded scenario of two or more sessions, step by step. */
+export function SessionPlayer<F extends PlayerFrame>({ title, frames, columns = [], notes, showPage = true, sessions, aside, intro }: SessionPlayerProps<F>) {
   const stepper = useStepper(frames.length, 2600)
   const i = stepper.index
   const frame = frames[i]
+  const shown = sessions ?? Object.keys(frames[0].sessions)
+  const page = showPage ? frame.page : null
 
   return (
     <section className={styles.player}>
@@ -120,22 +150,25 @@ export function SessionPlayer({ title, frames, columns, notes, showPage = true }
         <h4 className={styles.title}>{title}</h4>
       </header>
 
-      <div className={styles.terminals}>
-        <Terminal session="A" frames={frames} index={i} />
-        <Terminal session="B" frames={frames} index={i} />
+      <div className={styles.terminals} style={{ '--sessions': shown.length } as CSSProperties} data-sessions={shown.length}>
+        {shown.map((s) => (
+          <Terminal key={s} session={s} frames={frames} index={i} />
+        ))}
       </div>
 
       <div className={styles.caption} aria-live="polite">
         <span className={styles.counter}>
           {i}/{frames.length - 1}
         </span>
-        {i === 0 ? 'Start: the table as it is before either session does anything. Press Next.' : notes[i - 1]}
+        {i === 0 ? (intro ?? (page ? 'Start: the table as it is before either session does anything. Press Next.' : 'Start: no session has run anything yet. Press Next.')) : notes[i - 1]}
       </div>
 
-      {showPage && (
+      {aside && <div className={styles.aside}>{aside(frame, i)}</div>}
+
+      {page && (
         <div className={styles.page}>
           <div className={styles.pageTitle}>The table’s page (pageinspect)</div>
-          <HeapPageView tuples={frame.page} previous={i > 0 ? frames[i - 1].page : undefined} xids={frame.xids} columns={columns} />
+          <HeapPageView tuples={page} previous={i > 0 ? (frames[i - 1].page ?? undefined) : undefined} xids={frame.xids ?? {}} columns={columns} />
         </div>
       )}
 

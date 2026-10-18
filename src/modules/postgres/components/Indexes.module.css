@@ -1,0 +1,100 @@
+.compositeSql {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  overflow-wrap: anywhere;
+}
+
+.compositeLeaf {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: var(--space-2);
+  margin: var(--space-3) 0;
+}
+
+@media (max-width: 560px) {
+  .compositeLeaf {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.compositeGroup {
+  min-width: 0;
+  padding: var(--space-1);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--hue);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+
+.compositeCustomer {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.compositeEntries {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.compositeEntry {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  color: var(--text-muted);
+  transition: background 0.2s;
+}
+
+.compositeHit {
+  border-color: var(--c6);
+  background: color-mix(in oklab, var(--c6) 24%, var(--surface));
+  color: var(--text);
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .compositeEntry {
+    transition: none;
+  }
+}
+
+.compositeStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.badge {
+  padding: 2px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  font-size: 0.8rem;
+}
+
+.badgeOk {
+  border-color: var(--c6);
+  background: color-mix(in oklab, var(--c6) 16%, var(--surface));
+}
+
+.badgeMaybe {
+  border-color: var(--c2);
+  background: color-mix(in oklab, var(--c2) 16%, var(--surface));
+}
+
+.badgeNo {
+  border-color: var(--c8);
+  background: color-mix(in oklab, var(--c8) 16%, var(--surface));
+}
+
+.compositeText {
+  font-size: 0.86rem;
+  margin: var(--space-2) 0 0;
+}

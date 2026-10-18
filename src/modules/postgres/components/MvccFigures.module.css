@@ -1,0 +1,132 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow-x: auto;
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.line {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(84px, 1fr);
+  gap: 4px;
+}
+
+.xid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.72rem;
+}
+
+.marks {
+  height: 18px;
+}
+
+.mark {
+  display: inline-block;
+  padding: 0 6px;
+  border-radius: 9px;
+  background: var(--text);
+  color: var(--surface);
+  font-weight: 600;
+  font-size: 0.68rem;
+}
+
+.num {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.85rem;
+  padding: 4px;
+  text-align: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+}
+
+.xid[data-zone='done'] .num {
+  background: color-mix(in oklab, var(--c6) 14%, var(--surface));
+}
+
+.xid[data-zone='running'] .num {
+  background: color-mix(in oklab, var(--c8) 14%, var(--surface));
+}
+
+.xid[data-zone='future'] .num {
+  background: repeating-linear-gradient(45deg, var(--surface) 0 5px, color-mix(in oklab, var(--c8) 14%, var(--surface)) 5px 10px);
+}
+
+.zone {
+  color: var(--text-muted);
+  min-height: 2.6em;
+}
+
+.row {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  border-left: 3px solid var(--hue);
+  background: var(--hue-soft);
+}
+
+.rowEmpty {
+  padding: 4px 6px;
+  color: var(--text-faint);
+}
+
+.caption {
+  margin-top: var(--space-3);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-2);
+  font-size: 0.86rem;
+}
+
+.checks li {
+  margin: 0;
+  display: flex;
+  gap: var(--space-2);
+  align-items: baseline;
+  padding: var(--space-2);
+  border-left: 3px solid var(--hue, var(--border));
+  background: var(--hue-soft, transparent);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.badge {
+  flex: none;
+  min-width: 4ch;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--hue);
+}
+
+.skipped {
+  color: var(--text-muted);
+}
+
+.verdict {
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  font-weight: 600;
+  border: 1px solid var(--hue);
+  background: var(--hue-soft);
+  border-radius: var(--radius-sm);
+}

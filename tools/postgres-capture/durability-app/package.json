@@ -1,0 +1,9 @@
+{
+  "name": "durability-app",
+  "private": true,
+  "type": "module",
+  "description": "Small TypeScript programs run against real PostgreSQL servers for the durability lessons.",
+  "dependencies": {
+    "pg": "8.16.3"
+  }
+}

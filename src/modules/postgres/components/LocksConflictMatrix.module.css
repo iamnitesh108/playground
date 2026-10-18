@@ -1,0 +1,99 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.scroll {
+  overflow-x: auto;
+}
+
+.grid {
+  display: grid;
+  gap: 3px;
+  min-width: 520px;
+}
+
+.row {
+  display: contents;
+}
+
+.corner {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  align-self: end;
+  padding: 4px;
+}
+
+.colHead {
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-align: center;
+  align-self: end;
+  padding: 4px 2px;
+  border-bottom: 3px solid var(--border-strong);
+  line-height: 1.2;
+}
+
+.rowHead {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 3px 6px;
+  border-left: 3px solid var(--border-strong);
+}
+
+.on {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.mode {
+  font-size: 0.74rem;
+  font-weight: 600;
+}
+
+.taken {
+  font-size: 0.66rem;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  line-height: 1.3;
+}
+
+.cell {
+  display: grid;
+  place-items: center;
+  min-height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--hue-soft);
+  color: var(--hue);
+  font-weight: 700;
+  font-size: 0.85rem;
+  border: 1.5px solid transparent;
+  cursor: default;
+}
+
+.cellOn {
+  border-color: var(--hue);
+}
+
+.readout {
+  margin-top: var(--space-2);
+  min-height: 2.6em;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.caption {
+  margin-top: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}

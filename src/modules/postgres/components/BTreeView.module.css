@@ -20,7 +20,7 @@
 }
 
 .hotLine {
-  stroke: var(--accent);
+  stroke: var(--c7);
   stroke-width: 2;
 }
 
@@ -51,9 +51,10 @@
 
 .node {
   display: flex;
-  border: 1px solid var(--border-strong);
+  /* index pages use the module's index colour (c7) */
+  border: 1px solid color-mix(in oklab, var(--c7) 45%, var(--border-strong));
   border-radius: var(--radius-sm);
-  background: var(--surface);
+  background: color-mix(in oklab, var(--c7) 12%, var(--surface));
   font-family: var(--font-mono);
   font-size: 0.72rem;
   transition: border-color 0.3s var(--ease), background 0.3s var(--ease), transform 0.3s var(--ease);
@@ -61,15 +62,16 @@
 }
 
 .leaf {
-  background: var(--surface-muted);
+  background: color-mix(in oklab, var(--c7) 6%, var(--surface));
 }
 
 .onPath {
-  border-color: var(--accent);
+  border-color: var(--c7);
+  box-shadow: 0 0 0 1px var(--c7);
 }
 
 .focus {
-  background: var(--accent-soft);
+  background: color-mix(in oklab, var(--c7) 26%, var(--surface));
   transform: translateY(-2px);
 }
 
@@ -83,8 +85,8 @@
 }
 
 .keyHot {
-  background: var(--warn-soft);
-  color: var(--warn);
+  background: color-mix(in oklab, var(--c6) 30%, var(--surface));
+  color: var(--text);
   font-weight: 600;
 }
 
@@ -102,5 +104,17 @@
   from {
     opacity: 0;
     transform: scale(0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .node,
+  .line {
+    animation: none;
+    transition: none;
+  }
+
+  .focus {
+    transform: none;
   }
 }

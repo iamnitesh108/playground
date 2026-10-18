@@ -1,0 +1,134 @@
+.figure {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.title {
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.page {
+  display: flex;
+  gap: 6px;
+}
+
+.axis {
+  display: grid;
+  grid-auto-rows: 1fr;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  color: var(--text-faint);
+  text-align: right;
+  min-width: 3.2ch;
+  line-height: 1;
+}
+
+.grid {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(32, 1fr);
+  gap: 1px;
+  padding: 2px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+
+.cell {
+  height: 9px;
+  border-radius: 1px;
+  background: var(--surface-muted);
+  transition: background-color 0.25s var(--ease);
+}
+
+.cell[data-kind='header'],
+.cell[data-kind='data'],
+.cell[data-kind='dead'],
+.cell[data-kind='new'] {
+  background: var(--hue);
+}
+
+.cell[data-kind='pointer'],
+.cell[data-kind='thead'] {
+  background: color-mix(in oklab, var(--hue) 45%, var(--surface));
+}
+
+.cell[data-kind='special'] {
+  background: repeating-linear-gradient(45deg, var(--hue-soft) 0 3px, var(--hue) 3px 4px);
+}
+
+.cell[data-kind='free'] {
+  background: color-mix(in oklab, var(--text) 4%, var(--surface));
+}
+
+.cell[data-kind='pad'] {
+  background: var(--surface-muted);
+}
+
+.cell[data-first] {
+  box-shadow: inset 2px 0 0 var(--text);
+}
+
+.legend {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  font-size: 0.78rem;
+}
+
+.legend li {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--hue, var(--surface-muted));
+}
+
+.swatch[data-kind='pointer'],
+.swatch[data-kind='thead'] {
+  background: color-mix(in oklab, var(--hue) 45%, var(--surface));
+}
+
+.swatch[data-kind='free'] {
+  background: color-mix(in oklab, var(--text) 4%, var(--surface));
+  outline: 1px solid var(--border);
+}
+
+.swatch[data-kind='special'] {
+  background: repeating-linear-gradient(45deg, var(--hue-soft) 0 3px, var(--hue) 3px 4px);
+}
+
+.bytes {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.note {
+  color: var(--text-muted);
+}
+
+.caption {
+  margin-top: var(--space-2);
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cell {
+    transition: none;
+  }
+}

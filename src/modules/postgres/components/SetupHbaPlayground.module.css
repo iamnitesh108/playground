@@ -1,0 +1,99 @@
+.how {
+  margin: 0 0 var(--space-2);
+  font-size: 0.86rem;
+}
+
+.wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+}
+
+.table th,
+.table td {
+  padding: 4px 8px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+.table th {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.skipped td {
+  color: var(--text-muted);
+}
+
+.chosen td {
+  background: var(--hue-soft);
+  font-weight: 600;
+}
+
+.chosen td:first-child {
+  box-shadow: inset 4px 0 0 var(--hue);
+}
+
+.unread td {
+  color: var(--text-faint);
+}
+
+.mark {
+  display: inline-block;
+  width: 1.2em;
+  font-family: var(--font-sans);
+}
+
+.ok .mark {
+  color: var(--c6);
+}
+
+.no .mark {
+  color: var(--c8);
+}
+
+.no {
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, var(--c8) 60%, transparent);
+}
+
+.state {
+  font-family: var(--font-sans);
+}
+
+.outcome {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  margin: var(--space-3) 0 0;
+  padding: var(--space-2) var(--space-3);
+  border-left: 4px solid var(--hue);
+  background: var(--hue-soft);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+}
+
+.outcome code {
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.badge {
+  flex: none;
+  font-weight: 600;
+}

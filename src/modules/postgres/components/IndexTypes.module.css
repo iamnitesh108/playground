@@ -1,0 +1,138 @@
+/* ---------- GIN */
+.ginLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+@media (max-width: 640px) {
+  .ginLayout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.ginHead {
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  border-bottom: 2px solid var(--hue);
+  padding-bottom: 2px;
+  margin-bottom: 4px;
+}
+
+.ginDoc {
+  display: flex;
+  gap: var(--space-2);
+  padding: 3px var(--space-2);
+  margin: 3px 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  transition: background 0.2s;
+}
+
+.ginHit {
+  border-color: var(--c6);
+  background: color-mix(in oklab, var(--c6) 20%, var(--surface));
+}
+
+.ginId {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.ginKeys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.ginKey {
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  padding: 2px 8px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.ginKeyOn {
+  border-color: var(--hue);
+  background: var(--hue-soft);
+  font-weight: 600;
+}
+
+.ginWord {
+  font-family: var(--font-mono);
+}
+
+.ginList {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.ginResult {
+  margin-top: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ginDoc {
+    transition: none;
+  }
+}
+
+/* ---------- BRIN */
+.brinSvg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.brinWindow {
+  fill: color-mix(in oklab, var(--c1) 16%, transparent);
+  stroke: var(--c1);
+  stroke-width: 1;
+}
+
+.brinHitCol {
+  fill: color-mix(in oklab, var(--c6) 18%, transparent);
+}
+
+.brinOn {
+  fill: var(--hue);
+}
+
+.brinOff {
+  fill: color-mix(in oklab, var(--hue) 40%, var(--surface));
+}
+
+.brinAxis {
+  font-size: 11px;
+  fill: var(--text-muted);
+}
+
+.brinStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.chip {
+  padding: 2px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-muted);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
