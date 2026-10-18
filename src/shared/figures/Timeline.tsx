@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from '@/shared/hooks/useReducedMotion'
 import { Button } from '../ui/Button'
 import { hue, type Hue } from './palette'
@@ -50,6 +50,20 @@ export function Timeline({ title, lanes, segments = [], events = [], start = 0, 
   }, [t, end, start, reduced])
   const pos = (v: number) => ((v - start) / (end - start)) * 100
   const visible = (at: number) => t === null || at <= t
+  // a label that does not fit its segment becomes a numbered marker, spelled out under the lanes
+  const trackRef = useRef<HTMLSpanElement>(null)
+  const [trackPx, setTrackPx] = useState(0)
+  useEffect(() => {
+    const el = trackRef.current
+    if (!el || typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(() => setTrackPx(el.clientWidth))
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+  const LABEL_CHAR_PX = 6.2
+  const fits = (s: TimelineSegment) => !trackPx || !s.label || s.label.length * LABEL_CHAR_PX + 12 <= ((pos(s.to) - pos(s.from)) / 100) * trackPx
+  const overflowing = segments.filter((s) => s.label && !fits(s))
+  const marker = (s: TimelineSegment) => overflowing.indexOf(s) + 1
   return (
     <figure className={styles.figure}>
       <figcaption className={styles.head}>
@@ -60,7 +74,7 @@ export function Timeline({ title, lanes, segments = [], events = [], start = 0, 
         {lanes.map((l) => (
           <div key={l.id} className={styles.lane}>
             <span className={styles.laneLabel}>{l.label}</span>
-            <span className={styles.track}>
+            <span className={styles.track} ref={l.id === lanes[0].id ? trackRef : undefined}>
               {segments.filter((s) => s.lane === l.id).map((s, i) => (
                 <span
                   key={i}
@@ -68,7 +82,7 @@ export function Timeline({ title, lanes, segments = [], events = [], start = 0, 
                   style={{ ...hue(s.hue ?? 1), left: `${pos(s.from)}%`, width: `${Math.max(0.5, pos(t === null ? s.to : Math.min(s.to, Math.max(s.from, t))) - pos(s.from))}%` }}
                   title={s.label}
                 >
-                  {s.label && <span className={styles.segLabel}>{s.label}</span>}
+                  {s.label && <span className={styles.segLabel}>{fits(s) ? s.label : marker(s)}</span>}
                 </span>
               ))}
               {events.filter((e) => e.lane === l.id && visible(e.at)).map((e, i) => (
@@ -88,6 +102,11 @@ export function Timeline({ title, lanes, segments = [], events = [], start = 0, 
           <span>{end.toLocaleString()} {unit}</span>
         </div>
       </div>
+      {overflowing.length > 0 && (
+        <ol className={styles.notes}>
+          {overflowing.map((s) => <li key={marker(s)} style={hue(s.hue ?? 1)}><span className={styles.noteMark}>{marker(s)}</span>{s.label}</li>)}
+        </ol>
+      )}
     </figure>
   )
 }

@@ -136,3 +136,28 @@
   left: auto;
   right: -4px;
 }
+
+.notes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.74rem;
+  color: var(--text-muted);
+}
+
+.noteMark {
+  display: inline-grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  margin-right: 5px;
+  border-radius: 4px;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--hue-soft);
+  border: 1.5px solid var(--hue);
+}

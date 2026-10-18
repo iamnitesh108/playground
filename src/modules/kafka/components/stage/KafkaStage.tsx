@@ -96,7 +96,10 @@ export function KafkaStage({ cluster, flights, now, producer = 'producer' }: Kaf
         return (
           <g key={box.id} style={hue(groupHue(gi) as Hue)}>
             <rect x={box.x} y={box.y} width={box.w} height={box.h} rx={10} className={styles.group} style={{ strokeDasharray: DASH[gi % DASH.length] || undefined }} />
-            <text x={box.x + 12} y={box.y + 17} className={styles.groupName}>group: {g.id}</text>
+            <text x={box.x + 12} y={box.y + 17} className={styles.groupName}>
+              <title>{g.id}</title>
+              group: {g.id.length > 16 ? `${g.id.slice(0, 8)}…${g.id.slice(-6)}` : g.id}
+            </text>
             <text x={box.x + box.w - 10} y={box.y + 17} className={styles.topicMeta}>gen {g.generation}</text>
             {g.members.length === 0 && <text x={box.x + 12} y={box.y + 44} className={styles.boxCaption} style={{ textAnchor: 'start' }}>no consumers running</text>}
             {box.consumers.map((c) => {
